@@ -12,6 +12,8 @@ echo "== state traces";  "$ROOT/tools/run_traces.sh" | tail -1 || fail=1
 echo "== MikisWorld 2 state traces"; "$ROOT/tools/run_traces2.sh" | tail -1 || fail=1
 echo "== rendered frames"; "$ROOT/tools/run_frames.sh" | tail -1 || fail=1
 
+echo "== MikisWorld 2 rendered frames"; "$ROOT/tools/run_frames2.sh" | tail -1 || fail=1
+
 echo "== hall of fame"
 for f in "$ROOT"/traces/hall_*.txt; do
   sd=$(basename "$f" .txt); sd=${sd#hall_}

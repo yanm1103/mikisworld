@@ -83,6 +83,22 @@ public class Trace {
         Object midlet = Class.forName("GameMIDlet").getDeclaredConstructor().newInstance();
         Object d = get(midlet, nm("new"));
         set(d, nm("aD"), new Random(seed));
+        // MikisWorld 2 only creates its tile images while loading the main level; painting the minigame without that
+        // throws a NullPointerException in the original. For frame comparisons the harness primes them (paint-only state).
+        if (N.getProperty("prime.field") != null && System.getProperty("frames") != null) {
+            Object layout = get(d, N.getProperty("prime.layout"));
+            Method gm = layout.getClass().getDeclaredMethod(N.getProperty("prime.method"));
+            gm.setAccessible(true);
+            set(d, N.getProperty("prime.field"), gm.invoke(layout));
+            // paint-only integer fields, "field:layoutMethod,..." (the minigame paint loops forever while the tile width is 0)
+            for (String pair : N.getProperty("prime.ints", "").split(",")) {
+                if (pair.isEmpty()) continue;
+                String[] fm = pair.split(":");
+                Method im = layout.getClass().getDeclaredMethod(fm[1]);
+                im.setAccessible(true);
+                set(d, fm[0], im.invoke(layout));
+            }
+        }
         if (mode.equals("bonus")) ((byte[]) get(d, nm("E")))[0] = 1;
         call(d, nm("goto"), new Class<?>[0]);              // start game (cutscene, or bonus menu)
         if (startArea != Integer.MIN_VALUE) {          // state injection: jump straight to an area

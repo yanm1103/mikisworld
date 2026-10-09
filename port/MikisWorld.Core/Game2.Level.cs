@@ -8,6 +8,7 @@ public sealed partial class Game2
     private void LoadLevel()
     {
         _levelLoaded = true;
+        _damageFreed = false;
         _gameOverTimer = 0;
         _nextProj = 0;
         _interact = -1;
@@ -98,6 +99,7 @@ public sealed partial class Game2
         _finalLordY = (short)(r.ReadShort() * _scaleY / 16);
 
         _map.LoadLayerV2(r);
+        _cache?.Attach(_map.Tiles, _map.Width, _map.Height);
         _collision.Setup(_map.Tiles, _map.Width, _map.Height, _tileW, _tileH, _tileFlags);
         _scrollLockX = false;
         _scrollLockY = false;
@@ -162,7 +164,7 @@ public sealed partial class Game2
                 }
                 else if (tiles[idx] == Tile2.RainbowL)
                 {
-                    _map.Set(x + 1, y, Tile2.RainbowR);
+                    PutTile(x + 1, y, Tile2.RainbowR);
                 }
             }
         }

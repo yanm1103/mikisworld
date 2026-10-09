@@ -231,8 +231,8 @@ public sealed partial class Game2
                         {
                             int rc = col;
                             if (tiles[cell] == Tile2.RainbowR) rc = col - 1;
-                            _map.Set(rc, row, 0);
-                            _map.Set(rc + 1, row, 0);
+                            PutTile(rc, row, 0);
+                            PutTile(rc + 1, row, 0);
                             for (int s = 0; s < 4; s++)
                             {
                                 if (_fxX[s] == -1)
@@ -264,7 +264,7 @@ public sealed partial class Game2
                         }
                     case Tile2.Coin:
                     case Tile2.CoinB:
-                        _map.Set(col, row, 0);
+                        PutTile(col, row, 0);
                         _coins++;
                         if (_coins == _totalCoins)
                         {
@@ -280,11 +280,11 @@ public sealed partial class Game2
                         _lives++;
                         break;
                     case Tile2.Key:
-                        _map.Set(col, row, 0);
-                        _map.Set(_gateX, _gateY, Tile2.GateOpenTL);
-                        _map.Set(_gateX + 1, _gateY, Tile2.GateOpenTR);
-                        _map.Set(_gateX, _gateY + 1, Tile2.GateOpenBL);
-                        _map.Set(_gateX + 1, _gateY + 1, Tile2.GateOpenBR);
+                        PutTile(col, row, 0);
+                        PutTile(_gateX, _gateY, Tile2.GateOpenTL);
+                        PutTile(_gateX + 1, _gateY, Tile2.GateOpenTR);
+                        PutTile(_gateX, _gateY + 1, Tile2.GateOpenBL);
+                        PutTile(_gateX + 1, _gateY + 1, Tile2.GateOpenBR);
                         _keyTaken = true;
                         _host.Play(Sfx.Key);
                         _lordAnim = _frame;

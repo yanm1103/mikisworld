@@ -32,9 +32,16 @@ internal static class Mw2Test
         int startArea = a[6] == "-" ? int.MinValue : int.Parse(a[6]);
         string[] expected = File.ReadAllLines(a[7]);
         int keepLives = a.Length > 8 ? int.Parse(a[8]) : 0;
+        // optional: compare rendered frames with frames dumped by the original (Trace.java -Dframes=...)
+        string refDir = a.Length > 9 ? a[9] : null;
+        var frameTicks = new HashSet<int>();
+        if (a.Length > 10) foreach (string f in a[10].Split(',', StringSplitOptions.RemoveEmptyEntries)) frameTicks.Add(int.Parse(f));
+        string outDir = Environment.GetEnvironmentVariable("FRAME_OUT");
+        int frameMismatches = 0;
 
         var game = new Game2(new DirAssets(dir), new NullHost(), seed);
         if (mode == "bonus") game.BonusUnlocked = true;
+        if (refDir != null) game.EnableRendering();
         game.Start();
         if (startArea != int.MinValue)
         {
@@ -65,6 +72,7 @@ internal static class Mw2Test
                 break;
             }
             got.Add(game.DebugLine(t));
+            if (refDir != null && frameTicks.Contains(t)) frameMismatches += CompareFrame(game, refDir, t, outDir);
         }
         if (exception != null) got.Add(exception);
 
@@ -84,7 +92,38 @@ internal static class Mw2Test
                 return 1;
             }
         }
-        Console.WriteLine($"OK  {got.Count} lines identical");
-        return 0;
+        Console.WriteLine($"OK  {got.Count} lines identical" + (refDir != null ? $", {frameTicks.Count} frames compared, {frameMismatches} mismatching" : ""));
+        return frameMismatches == 0 ? 0 : 1;
+    }
+
+    // Renders the current frame and compares it pixel by pixel with the original's frame_<tick>.rgb.
+    private static int CompareFrame(Game2 game, string refDir, int tick, string outDir)
+    {
+        var bmp = new Bitmap(Layout2.ScreenW, Layout2.ScreenH);
+        var canvas = new Canvas(bmp);
+        game.Draw(canvas);
+        byte[] exp = File.ReadAllBytes(Path.Combine(refDir, $"frame_{tick}.rgb"));
+        int bad = 0, firstX = -1, firstY = -1, gotRgb = 0, expRgb = 0;
+        for (int y = 0; y < bmp.Height; y++)
+            for (int x = 0; x < bmp.Width; x++)
+            {
+                int p = bmp.Pixels[y * bmp.Width + x] & 0xFFFFFF;
+                int e = (exp[(y * bmp.Width + x) * 3] << 16) | (exp[(y * bmp.Width + x) * 3 + 1] << 8) | exp[(y * bmp.Width + x) * 3 + 2];
+                if (p != e) { if (bad++ == 0) { firstX = x; firstY = y; gotRgb = p; expRgb = e; } }
+            }
+        if (outDir != null && bad > 0)
+        {
+            Directory.CreateDirectory(outDir);
+            var rgba = new byte[bmp.Pixels.Length * 4];
+            for (int i = 0; i < bmp.Pixels.Length; i++)
+            {
+                rgba[i * 4] = (byte)(bmp.Pixels[i] >> 16); rgba[i * 4 + 1] = (byte)(bmp.Pixels[i] >> 8); rgba[i * 4 + 2] = (byte)bmp.Pixels[i]; rgba[i * 4 + 3] = 255;
+            }
+            using var fs = File.Create(Path.Combine(outDir, $"cs2_{tick}.png"));
+            new StbImageWriteSharp.ImageWriter().WritePng(rgba, bmp.Width, bmp.Height, StbImageWriteSharp.ColorComponents.RedGreenBlueAlpha, fs);
+        }
+        if (bad > 0)
+            Console.WriteLine($"FRAME tick {tick}: {bad} pixels differ, first at ({firstX},{firstY}) got #{gotRgb:X6} expected #{expRgb:X6}");
+        return bad > 0 ? 1 : 0;
     }
 }

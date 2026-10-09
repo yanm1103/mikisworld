@@ -13,7 +13,7 @@ public static class Layout2
     public const int TimeHudX = 98, TimeHudY = 2;
     public const int LivesX = 111, LivesY = 114;
     public const int CellW = 20, CellH = 23, OrbW = 9, OrbH = 9;
-    public const int BarW = 5, BarStripH = 8, LeftBarX = 9, RightBarX = 119;
+    public const int BarW = 5, BarStripH = 8, LeftBarX = 4, RightBarX = 119;
     public const int UiStrings = 18;
 }
 
@@ -142,7 +142,7 @@ public sealed partial class Game2
         _typed = new int[_cheat.Length];
     }
 
-    private void SetTile(int x, int y, int tile) => _map.Set(x, y, tile);
+    private void SetTile(int x, int y, int tile) => PutTile(x, y, tile);
 
     public void Reseed(long seed) { _rng = new JavaRandom(seed); }
 

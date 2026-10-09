@@ -16,7 +16,7 @@ public sealed class CutscenePlayer2
     public sbyte[] Frame;
     public short[] ActorX, ActorY;
     public bool[] TextVisible;
-    public int[] TextColor;
+    public int BubbleR, BubbleG, BubbleB;   // one colour for all bubbles: the last opcode-6 value (as in the original)
     public int CameraX, CameraY;
     public int ScaleX = 24, ScaleY = 24;     // set by the game (cy / cx)
 
@@ -24,7 +24,6 @@ public sealed class CutscenePlayer2
     {
         _assets = assets; _host = host; _setTile = setTile;
         TextVisible = new bool[stringCount];
-        TextColor = new int[stringCount];
     }
 
     public bool Finished => _nextEventAt == -1;
@@ -71,7 +70,7 @@ public sealed class CutscenePlayer2
                         break;
                     }
                 case 5: _script.ReadByte(); break;
-                case 6: { sbyte s = _script.ReadByte(); TextColor[s] = _script.ReadInt(); TextVisible[s] = true; break; }
+                case 6: { sbyte s = _script.ReadByte(); int rgb = _script.ReadInt(); BubbleR = rgb >> 16 & 0xFF; BubbleG = rgb >> 8 & 0xFF; BubbleB = rgb & 0xFF; TextVisible[s] = true; break; }
                 case 7: { sbyte s = _script.ReadByte(); TextVisible[s] = false; break; }
                 case 8:
                     {

@@ -34,6 +34,9 @@ public sealed partial class Game2
     // Original d.i(): set up a fresh bonus game
     private void InitBonus()
     {
+        var items = _assets.ImageSize("items.png");   // original l(): b9 / da are (re)computed here
+        _itemW = items.Width / 5;
+        _itemH = items.Height;
         _pendingMode = 0;
         _bonusInitialised = true;
         Turn = 0;

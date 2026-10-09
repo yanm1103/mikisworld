@@ -65,11 +65,11 @@ public sealed partial class Game2
                 {
                     case Tile2.PortalA:
                     case Tile2.PortalB:
-                        _map.Set(x, y, phase == 0 ? Tile2.PortalA : Tile2.PortalB);
+                        PutTile(x, y, phase == 0 ? Tile2.PortalA : Tile2.PortalB);
                         break;
                     case Tile2.Coin:
                     case Tile2.CoinB:
-                        _map.Set(x, y, phase == 0 ? Tile2.Coin : Tile2.CoinB);
+                        PutTile(x, y, phase == 0 ? Tile2.Coin : Tile2.CoinB);
                         break;
                 }
             }
@@ -161,8 +161,8 @@ public sealed partial class Game2
                 {
                     int cell = _events[_eventIdx + 1];
                     int cx = cell % _map.Width, cy = cell / _map.Width;
-                    _map.Set(cx, cy, Tile2.RainbowL);
-                    _map.Set(cx + 1, cy, Tile2.RainbowR);
+                    PutTile(cx, cy, Tile2.RainbowL);
+                    PutTile(cx + 1, cy, Tile2.RainbowR);
                     _events[_eventIdx] = -1;
                     _eventIdx += 2;
                     _eventIdx %= _events.Length;
