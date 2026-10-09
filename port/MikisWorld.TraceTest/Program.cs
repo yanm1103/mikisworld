@@ -39,8 +39,32 @@ internal static class Program
         -1 or 50 => 1, -2 or 56 => 6, -3 or 52 => 2, -4 or 54 => 5, -5 or 53 => 8, _ => 0
     };
 
+    // Differential test of the hall-of-fame logic against the original class k (tools/harness/src/HallTest.java).
+    //   MikisWorld.TraceTest hall <seed> <steps> <expected.txt>
+    private static int HallTest(string[] a)
+    {
+        var rnd = new JavaRandom(long.Parse(a[1]));
+        int steps = int.Parse(a[2]);
+        string[] expected = File.ReadAllLines(a[3]);
+        string[] names = { "bob", "AMY", " ", null, "", "zed", "a b", "mike" };
+        var hof = new HallOfFame("aaa", 0, 1, 10, true);
+        for (int i = 0; i < steps; i++)
+        {
+            string n = names[(rnd.NextInt() & 0x7fffffff) % names.Length];
+            int s = (rnd.NextInt() & 0x7fffffff) % 25;
+            bool high = hof.IsHighScore(0, s);
+            if (high || (rnd.NextInt() & 1) == 0) hof.Insert(0, n, s);
+            var sb = new System.Text.StringBuilder().Append(i).Append(' ').Append(s).Append(' ').Append(high ? "true" : "false").Append(" |");
+            for (int j = 0; j < 10; j++) sb.Append(' ').Append(hof.Name(0, j)).Append('=').Append(hof.Score(0, j));
+            if (sb.ToString() != expected[i]) { Console.WriteLine($"MISMATCH step {i}"); Console.WriteLine("  expected: " + expected[i]); Console.WriteLine("  got     : " + sb); return 1; }
+        }
+        Console.WriteLine($"OK  hall of fame, {steps} steps identical");
+        return 0;
+    }
+
     private static int Main(string[] a)
     {
+        if (a[0] == "hall") return HallTest(a);
         string dir = a[0], mode = a[1];
         long seed = long.Parse(a[2]);
         int ticks = int.Parse(a[3]);

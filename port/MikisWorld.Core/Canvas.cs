@@ -54,6 +54,8 @@ public sealed class Canvas
     public Bitmap Target => _t;
 
     public void SetColor(int r, int g, int b) { _color = unchecked((int)0xFF000000) | (r & 255) << 16 | (g & 255) << 8 | (b & 255); }
+    /// <summary>Colour with alpha (0-255), used for the dimming overlays of the PC menus.</summary>
+    public void SetColorArgb(int a, int r, int g, int b) { _color = (a & 255) << 24 | (r & 255) << 16 | (g & 255) << 8 | (b & 255); }
     public void SetFont(FontKind f) { _font = f; }
     public void Translate(int x, int y) { _tx += x; _ty += y; _cx -= x; _cy -= y; }
     public void SetClip(int x, int y, int w, int h) { _cx = x; _cy = y; _cw = w; _ch = h; }

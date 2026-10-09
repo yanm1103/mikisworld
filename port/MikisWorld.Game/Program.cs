@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json;
 using MikisWorld.Core;
 using Raylib_cs;
 
@@ -16,12 +17,15 @@ internal static class Program
             Console.Error.WriteLine("MikisWorld.jar not found. Pass its path as the first argument or put it in ./JAR/.");
             return 1;
         }
-        int shotAfter = ArgInt(args, "--screenshot-after", -1);   // dev aid: save a screenshot and quit
         int scale = ArgInt(args, "--scale", 4);
+        string savePath = ArgStr(args, "--save", null);
+        // developer aids: inject keys / take screenshots at given frames, e.g. --inject 30:Enter,60:Down --shoot 90:menu
+        var inject = ParseFrames(ArgStr(args, "--inject", ""));
+        var shoot = ParseFrames(ArgStr(args, "--shoot", ""));
+        int quitAfter = ArgInt(args, "--quit-after", -1);
 
         using var assets = new JarAssets(jar);
-        var host = new SilentHost();
-        var game = new Core.Game(assets, host, Environment.TickCount64);
+        var app = new App(assets, new SilentHost(), new FileStorage(savePath), Environment.TickCount64);
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         Raylib.InitWindow(Layout.ScreenW * scale, Layout.ScreenH * scale, "Miki's World");
@@ -30,7 +34,6 @@ internal static class Program
         Raylib.SetTargetFPS(60);
 
         var metrics = new RaylibFontMetrics();
-        game.EnableRendering();
         var frame = new Bitmap(Layout.ScreenW, Layout.ScreenH);
         var rgba = new byte[Layout.ScreenW * Layout.ScreenH * 4];
         Texture2D tex;
@@ -44,31 +47,36 @@ internal static class Program
         }
         Raylib.SetTextureFilter(tex, TextureFilter.Point);
 
-        game.Start();
         double acc = 0;
-        int frames = 0;
+        int frameNo = 0;
+        var injectedUp = new List<KeyboardKey>();
 
-        while (!Raylib.WindowShouldClose())
+        while (!Raylib.WindowShouldClose() && !app.WantsExit)
         {
-            double dt = Raylib.GetFrameTime();
-            acc += Math.Min(dt, 0.25);
+            acc += Math.Min(Raylib.GetFrameTime(), 0.25);
 
-            foreach (var (key, code, action) in Input.Map)
+            foreach (var k in injectedUp) HandleKey(app, k, false);
+            injectedUp.Clear();
+            if (inject.TryGetValue(frameNo, out var names))
+                foreach (string n in names)
+                    if (Enum.TryParse<KeyboardKey>(n, true, out var k)) { HandleKey(app, k, true); injectedUp.Add(k); }
+
+            foreach (var key in Input.AllKeys)
             {
-                if (Raylib.IsKeyPressed(key)) game.KeyPressed(code, action);
-                if (Raylib.IsKeyReleased(key)) game.KeyReleased(code, action);
+                if (Raylib.IsKeyPressed(key) || Raylib.IsKeyPressedRepeat(key) && Input.Repeats(key)) HandleKey(app, key, true);
+                if (Raylib.IsKeyReleased(key)) HandleKey(app, key, false);
             }
-            if (Raylib.IsKeyPressed(KeyboardKey.Escape)) break;
+            int ch;
+            while ((ch = Raylib.GetCharPressed()) != 0) app.TextInput((char)ch);
 
             while (acc >= StepMs / 1000.0)
             {
-                game.Update(StepMs);
+                app.Update(StepMs);
                 acc -= StepMs / 1000.0;
             }
-            if (game.WantsQuit) break;
 
             var canvas = new Canvas(frame) { Metrics = metrics };
-            game.Draw(canvas);
+            app.Draw(canvas);
             for (int i = 0; i < frame.Pixels.Length; i++)
             {
                 int p = frame.Pixels[i];
@@ -79,21 +87,35 @@ internal static class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
             int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
-            int k = Math.Max(1, Math.Min(sw / Layout.ScreenW, sh / Layout.ScreenH));
-            int ox = (sw - Layout.ScreenW * k) / 2, oy = (sh - Layout.ScreenH * k) / 2;
+            int kx = Math.Max(1, Math.Min(sw / Layout.ScreenW, sh / Layout.ScreenH));
+            int ox = (sw - Layout.ScreenW * kx) / 2, oy = (sh - Layout.ScreenH * kx) / 2;
             Raylib.DrawTexturePro(tex, new Rectangle(0, 0, Layout.ScreenW, Layout.ScreenH),
-                new Rectangle(ox, oy, Layout.ScreenW * k, Layout.ScreenH * k), Vector2.Zero, 0, Color.White);
-            foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, k);
+                new Rectangle(ox, oy, Layout.ScreenW * kx, Layout.ScreenH * kx), Vector2.Zero, 0, Color.White);
+            foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, kx);
             Raylib.EndDrawing();
 
-            if (shotAfter >= 0 && ++frames > shotAfter)
-            {
-                Raylib.TakeScreenshot("screenshot.png");
-                break;
-            }
+            if (shoot.TryGetValue(frameNo, out var shots))
+                foreach (string name in shots) Raylib.TakeScreenshot($"shot_{name}.png");
+            frameNo++;
+            if (quitAfter >= 0 && frameNo > quitAfter) break;
         }
         Raylib.CloseWindow();
         return 0;
+    }
+
+    private static void HandleKey(App app, KeyboardKey key, bool down)
+    {
+        if (down)
+        {
+            if (key == KeyboardKey.Escape) { app.Back(); return; }
+            if (key == KeyboardKey.Backspace) { app.Backspace(); return; }
+            if (key == KeyboardKey.Enter || key == KeyboardKey.KpEnter) app.ConfirmName();
+        }
+        foreach (var (k, code, action) in Input.Map)
+        {
+            if (k != key) continue;
+            if (down) app.KeyPressed(code, action); else app.KeyReleased(code, action);
+        }
     }
 
     private static string FindJar(string[] args)
@@ -112,6 +134,54 @@ internal static class Program
     {
         for (int i = 0; i + 1 < args.Length; i++) if (args[i] == name && int.TryParse(args[i + 1], out int v)) return v;
         return dflt;
+    }
+
+    private static string ArgStr(string[] args, string name, string dflt)
+    {
+        for (int i = 0; i + 1 < args.Length; i++) if (args[i] == name) return args[i + 1];
+        return dflt;
+    }
+
+    private static Dictionary<int, List<string>> ParseFrames(string spec)
+    {
+        var d = new Dictionary<int, List<string>>();
+        foreach (string part in spec.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            int c = part.IndexOf(':');
+            if (c < 0 || !int.TryParse(part[..c], out int f)) continue;
+            if (!d.TryGetValue(f, out var l)) d[f] = l = new List<string>();
+            l.Add(part[(c + 1)..]);
+        }
+        return d;
+    }
+}
+
+/// <summary>Settings, bonus unlock and high scores as one JSON file (the original used three RecordStores).</summary>
+internal sealed class FileStorage : IStorage
+{
+    private readonly string _path;
+    private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
+
+    public FileStorage(string path)
+    {
+        _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "save.json");
+    }
+
+    public SaveData Load()
+    {
+        try { if (File.Exists(_path)) return JsonSerializer.Deserialize<SaveData>(File.ReadAllText(_path)) ?? new SaveData(); }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
+        return new SaveData();
+    }
+
+    public void Save(SaveData data)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            File.WriteAllText(_path, JsonSerializer.Serialize(data, Opt));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 }
 
@@ -142,9 +212,16 @@ internal static class Input
         (KeyboardKey.Kp4, 52, 2), (KeyboardKey.Kp5, 53, 8), (KeyboardKey.Kp6, 54, 5),
         (KeyboardKey.Kp7, 55, 0), (KeyboardKey.Kp8, 56, 6), (KeyboardKey.Kp9, 57, 0),
     };
+
+    /// <summary>Every key the app reacts to, including Esc/Backspace/KpEnter.</summary>
+    public static readonly KeyboardKey[] AllKeys =
+        Map.Select(m => m.Item1).Concat(new[] { KeyboardKey.Escape, KeyboardKey.Backspace, KeyboardKey.KpEnter }).Distinct().ToArray();
+
+    /// <summary>Only menu navigation/editing repeats while held; game keys must not (the original had no key repeat).</summary>
+    public static bool Repeats(KeyboardKey k) => k is KeyboardKey.Up or KeyboardKey.Down or KeyboardKey.Backspace;
 }
 
-/// <summary>Text for bubbles/ending screen, drawn with Raylib's built-in font on top of the scaled pixel frame.</summary>
+/// <summary>Text for bubbles/menus/ending screen, drawn with Raylib's built-in font on top of the scaled pixel frame.</summary>
 internal sealed class RaylibFontMetrics : IFontMetrics
 {
     private readonly Font _font = Raylib.GetFontDefault();

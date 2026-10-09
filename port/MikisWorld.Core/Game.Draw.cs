@@ -229,11 +229,16 @@ public sealed partial class Game
     }
 
     // original d.cfr_renamed_1(Graphics): sky + two parallax cloud bands
-    private void DrawSky(Canvas g)
+    /// <summary>The scrolling sky + clouds, for screens outside the game world (menus).</summary>
+    public void DrawBackdrop(Canvas g, int frame) => DrawSky(g, frame, 0);
+
+    private void DrawSky(Canvas g) => DrawSky(g, _frame, _camX);
+
+    private void DrawSky(Canvas g, int frame, int camX)
     {
         int W = Layout.ScreenW, H = Layout.ScreenH;
         int n = W / _imgSky.Width + 2;
-        int x = -(_frame / 32) % _imgSky.Width;
+        int x = -(frame / 32) % _imgSky.Width;
         for (int i = 0; i < n; i++)
         {
             g.DrawImage(_imgSky, x, 0, TL);
@@ -241,7 +246,7 @@ public sealed partial class Game
         }
         n = W / 38 + 2;
         int y = 99;
-        x = -(_frame / 25 + _camX / 4) % 38;
+        x = -(frame / 25 + camX / 4) % 38;
         for (int i = 0; i < n; i++)
         {
             g.SetClip(0, 0, W, H);
@@ -251,7 +256,7 @@ public sealed partial class Game
         }
         n = W / 45 + 2;
         y = 114;
-        x = -(_frame / 5 + _camX / 2) % 45;
+        x = -(frame / 5 + camX / 2) % 45;
         for (int i = 0; i < n; i++)
         {
             g.SetClip(0, 0, W, H);
