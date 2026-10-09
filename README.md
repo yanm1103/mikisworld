@@ -39,7 +39,12 @@ original e validados contra ele (ver [Validação](#validação)).
 
 ## Como rodar
 
-Precisa do **.NET 8 SDK** e de `MikisWorld.jar` (não versionado; coloque em `JAR/`).
+Precisa de `MikisWorld.jar` (não versionado; coloque em `JAR/`) e do .NET 8 SDK.
+
+**Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
+Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
+
+Com um .NET 8 SDK instalado no sistema, o equivalente é:
 
 ```
 dotnet run --project port/MikisWorld.Game -- [caminho/para/MikisWorld.jar] [--scale N]
