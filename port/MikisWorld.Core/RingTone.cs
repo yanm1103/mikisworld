@@ -15,6 +15,12 @@ public sealed class RingTone
     };
     private static readonly double[] DurationFactor = { 1.0, 1.5, 9.0 / 4.0, 2.0 / 3.0 };   // none, dotted, double dotted, triplet
 
+    /// <summary>Peak amplitude (fraction of full scale) at 100 % volume.</summary>
+    public const double BaseAmplitude = 0.22;
+
+    /// <summary>Square-wave amplitude for a 0-100 % volume setting (linear: 50 % halves the amplitude).</summary>
+    public static double AmplitudeForVolume(int percent) => BaseAmplitude * Math.Clamp(percent, 0, 100) / 100.0;
+
     public string Name { get; private set; }
     public List<ToneNote> Notes { get; } = new();
 

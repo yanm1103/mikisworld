@@ -21,7 +21,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, teclado | **95%** | escala inteira com *snap* ao redimensionar, `F11`, `+`/`-`; falta gamepad e remapear teclas |
+| Janela, escala, teclado | **97%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; falta gamepad e remapear teclas |
 | Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **~98%** | |
@@ -39,7 +39,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
 | Menus, hi-scores, salvamento | **90%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
 | Áudio | **100%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3×; **conferido de ouvido** |
-| Janela, escala, teclado | **95%** | mesma janela do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
+| Janela, escala, teclado | **97%** | mesma janela e opções do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
 | **Total estimado** | **~97%** | mesmos pesos do jogo 1 |
 
 ### Histórico
@@ -58,11 +58,12 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Janela com escala inteira | *Snap* ao múltiplo inteiro ao redimensionar, `F11`, `+`/`-` | ~96% · ~94% |
 | Sons uma oitava abaixo | Padrão −1 oitava (`--octave N`); áudio conferido de ouvido nos dois jogos | ~98% · ~97% |
 | Documentação | README e análises atualizados; splash do jogo 2 opcional; créditos | ~98% · ~97% |
+| Opções de janela e volume | Tela *Options* (volume 0–100 % na amplitude da onda, tela cheia, escala inteira, filtro nearest/bilinear); os dois JARs passam a ser obrigatórios | ~98% · ~97% |
 
 ## Como rodar
 
-Precisa de `MikisWorld.jar` e/ou `MikisWorld2.jar` (coloque em `JAR/`) e do .NET 8 SDK.
-Se os dois estiverem em `JAR/`, uma tela inicial deixa escolher (`1`/`2`); `--game 1` ou `--game 2` pula essa tela.
+Precisa dos **dois** arquivos, `MikisWorld.jar` e `MikisWorld2.jar` (em `JAR/`), e do .NET 8 SDK. Se faltar algum, o programa não inicia:
+ele diz qual falta e onde procurar. Uma tela inicial deixa escolher o jogo (`1`/`2`); `--game 1` ou `--game 2` pula essa tela.
 
 **Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
 Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
@@ -84,13 +85,18 @@ ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome digite
 | 1 | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
 | 2 | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
 
-**Janela.** A imagem é sempre ampliada por um fator **inteiro** (sem pixels irregulares); ao soltar a borda depois de
-redimensionar, a janela "gruda" no múltiplo inteiro mais próximo. `+` / `-` mudam a escala e `F11` alterna tela cheia sem
-bordas (com barras pretas, mantendo o fator inteiro).
+**Opções** (menu → *Options*, vale para os dois jogos e é salvo em `%APPDATA%/MikisWorld/settings.json`; a tela cheia não é salva):
 
-**Salvamento.** Opções, bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2).
+| Opção | O que faz |
+|---|---|
+| Sound | volume de 0 a 100 % (←/→, passos de 5). Escala a **amplitude da onda quadrada** gerada; 0 % é mudo. Ao parar de mexer toca um blip para você ouvir o nível |
+| Fullscreen | tela cheia sem bordas (também `F11`) |
+| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
+| Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 
-**Som.** Só um som toca por vez, como no aparelho. `--octave N` ajusta a oitava (padrão `-1`; `0` = como decodificado).
+**Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`.
+
+**Som.** Só um som toca por vez, como no aparelho. `--octave N` ajusta a oitava (padrão `-1`; `0` = como decodificado). O volume é o da tela *Options*.
 `--export-sounds pasta` grava um WAV por som; `--sound-test` testa o dispositivo de áudio.
 
 ## Estrutura

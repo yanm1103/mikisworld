@@ -24,13 +24,15 @@ internal static class Program
         int octave = ArgInt(args, "--octave", -1);                  // pitch of the ring tones, in octaves relative to the decoded notes
         bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
 
-        if (jar1 == null && jar2 == null)
-        {
-            Console.Error.WriteLine("MikisWorld.jar / MikisWorld2.jar not found. Pass a path as an argument or put them in ./JAR/.");
-            return 1;
-        }
-        if (game == 0 && (jar1 == null || jar2 == null)) game = jar1 != null ? 1 : 2;
+        // both games are required: the start-up screen lets you choose, and missing files are reported instead of silently
+        // falling back to the one that exists
+        var missing = new List<string>();
+        if (jar1 == null) missing.Add("MikisWorld.jar");
+        if (jar2 == null) missing.Add("MikisWorld2.jar");
+        if (missing.Count > 0) return ShowMissingJars(missing, quitAfter >= 0 || exportDir != null || soundTest);
         if (game == 0 && (exportDir != null || soundTest || inject.Count > 0 || quitAfter >= 0)) game = 1;
+        var settings = SettingsStore.Load(ArgStr(args, "--settings", null));
+        settings.Changed += () => SettingsStore.Save(settings);
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         if (exportDir != null)
@@ -47,7 +49,8 @@ internal static class Program
         if (game == 0) { Raylib.CloseWindow(); return 0; }
 
         using var assets = new JarAssets(game == 2 ? jar2 : jar1);
-        using var audio = new AudioHost(assets, octave) { TitleLoops = game == 2 ? 3 : 1 };
+        using var audio = new AudioHost(assets, octave, settings.Volume) { TitleLoops = game == 2 ? 3 : 1 };
+        settings.Changed += () => audio.SetVolume(settings.Volume);
         if (soundTest)
         {
             audio.Play(Sfx.Coin);
@@ -60,8 +63,8 @@ internal static class Program
         long seed = Environment.TickCount64;
         string saveFile = savePath ?? DefaultSave(game);
         App app = game == 2
-            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2)
-            : new App(assets, audio, new FileStorage(saveFile), seed);
+            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings)
+            : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings);
 
         int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
         Raylib.SetWindowSize(sw0 * scale, sh0 * scale);
@@ -81,6 +84,7 @@ internal static class Program
                 tex = Raylib.LoadTextureFromImage(image);
             }
         }
+        bool smooth = !settings.UsesBilinear;                      // forces the filter to be applied on the first frame
         Raylib.SetTextureFilter(tex, TextureFilter.Point);
 
         double acc = 0;
@@ -100,8 +104,13 @@ internal static class Program
                 var wh = resizeSpec.Split('x');
                 Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
             }
-            if (Raylib.IsKeyPressed(KeyboardKey.F11)) Raylib.ToggleBorderlessWindowed();
-            if (!borderless && !Raylib.IsWindowMaximized())
+            if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
+            if (settings.Fullscreen != borderless)                  // the option (menu or F11) is the source of truth
+            {
+                Raylib.ToggleBorderlessWindowed();
+                borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
+            }
+            if (settings.IntegerScale && !borderless && !Raylib.IsWindowMaximized())
             {
                 int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
                          : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
@@ -118,11 +127,14 @@ internal static class Program
             injectedUp.Clear();
             if (inject.TryGetValue(frameNo, out var names))
                 foreach (string n in names)
+                {
+                    if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
                     if (Enum.TryParse<KeyboardKey>(n, true, out var k)) { HandleKey(app, k, true); injectedUp.Add(k); }
+                }
 
             foreach (var key in Input.AllKeys)
             {
-                if (Raylib.IsKeyPressed(key) || Raylib.IsKeyPressedRepeat(key) && Input.Repeats(key)) HandleKey(app, key, true);
+                if (Raylib.IsKeyPressed(key) || Raylib.IsKeyPressedRepeat(key) && (Input.Repeats(key) || app.AcceptsRepeat && Input.IsHorizontal(key))) HandleKey(app, key, true);
                 if (Raylib.IsKeyReleased(key)) HandleKey(app, key, false);
             }
             int ch;
@@ -144,14 +156,24 @@ internal static class Program
             }
             unsafe { fixed (byte* p = rgba) Raylib.UpdateTexture(tex, p); }
 
+            // nearest-neighbour unless the user switched integer scaling off *and* chose bilinear
+            if (smooth != settings.UsesBilinear)
+            {
+                smooth = settings.UsesBilinear;
+                var f = smooth ? TextureFilter.Bilinear : TextureFilter.Point;
+                Raylib.SetTextureFilter(tex, f);
+                Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, f);
+            }
+
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
             int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
-            int kx = Math.Max(1, Math.Min(sw / sw0, sh / sh0));
-            int ox = (sw - sw0 * kx) / 2, oy = (sh - sh0 * kx) / 2;
-            Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0),
-                new Rectangle(ox, oy, sw0 * kx, sh0 * kx), Vector2.Zero, 0, Color.White);
-            foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, kx);
+            // integer scaling: a whole-number factor (black bars); otherwise fill the window keeping the aspect ratio
+            float scalef = settings.IntegerScale ? Math.Max(1, Math.Min(sw / sw0, sh / sh0)) : Math.Min((float)sw / sw0, (float)sh / sh0);
+            float dw = sw0 * scalef, dh = sh0 * scalef;
+            float ox = MathF.Floor((sw - dw) / 2), oy = MathF.Floor((sh - dh) / 2);
+            Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0), new Rectangle(ox, oy, dw, dh), Vector2.Zero, 0, Color.White);
+            foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef);
             Raylib.EndDrawing();
 
             if (shoot.TryGetValue(frameNo, out var shots))
@@ -159,9 +181,29 @@ internal static class Program
             frameNo++;
             if (quitAfter >= 0 && frameNo > quitAfter) break;
         }
-        if (resizeSpec != null) Console.WriteLine($"final window {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} (native {sw0}x{sh0})");
+        if (resizeSpec != null) Console.WriteLine($"final window {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} (native {sw0}x{sh0}) borderless={Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode)} fullscreenSetting={settings.Fullscreen}");
         Raylib.CloseWindow();
         return 0;
+    }
+
+    /// <summary>Both JARs are required; explains which one is missing and where they are searched for.</summary>
+    private static int ShowMissingJars(List<string> missing, bool headless)
+    {
+        string text = "Miki's World needs BOTH game files.\n\nMissing: " + string.Join(", ", missing)
+            + "\n\nPut MikisWorld.jar and MikisWorld2.jar in the JAR folder next to the project,\nor pass their paths as arguments.\n\n(press any key to close)";
+        Console.Error.WriteLine(text.Replace("\n\n(press any key to close)", ""));
+        if (headless) return 1;
+        Raylib.InitWindow(780, 300, "Miki's World");
+        Raylib.SetTargetFPS(30);
+        while (!Raylib.WindowShouldClose() && Raylib.GetKeyPressed() == 0)
+        {
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(new Color(99, 48, 0, 255));
+            Raylib.DrawText(text, 24, 24, 22, Color.White);
+            Raylib.EndDrawing();
+        }
+        Raylib.CloseWindow();
+        return 1;
     }
 
     private static int CurrentScale(int w, int h) => Math.Max(1, Math.Min(Raylib.GetScreenWidth() / w, Raylib.GetScreenHeight() / h));
@@ -319,6 +361,9 @@ internal static class Input
 
     /// <summary>Only menu navigation/editing repeats while held; game keys must not (the original had no key repeat).</summary>
     public static bool Repeats(KeyboardKey k) => k is KeyboardKey.Up or KeyboardKey.Down or KeyboardKey.Backspace;
+
+    /// <summary>Left/right repeat only while a slider is on screen (the games themselves never had key repeat).</summary>
+    public static bool IsHorizontal(KeyboardKey k) => k is KeyboardKey.Left or KeyboardKey.Right or KeyboardKey.A or KeyboardKey.D;
 }
 
 /// <summary>Text for bubbles/menus/ending screen, drawn with Raylib's built-in font on top of the scaled pixel frame.</summary>
@@ -330,7 +375,7 @@ internal sealed class RaylibFontMetrics : IFontMetrics
     public int StringWidth(string s, FontKind font) => (int)Raylib.MeasureTextEx(_font, s, Size(font), 1).X;
     public int Height(FontKind font) => (int)Size(font);
 
-    public void Draw(TextCommand t, int ox, int oy, int k)
+    public void Draw(TextCommand t, float ox, float oy, float k)
     {
         float size = Size(t.Font);
         Vector2 sz = Raylib.MeasureTextEx(_font, t.Text, size, 1);
@@ -339,5 +384,33 @@ internal sealed class RaylibFontMetrics : IFontMetrics
         if ((t.Anchor & Canvas.Bottom) != 0) y -= sz.Y; else if ((t.Anchor & Canvas.VCenter) != 0) y -= sz.Y / 2;
         var color = new Color((byte)(t.Rgb >> 16), (byte)(t.Rgb >> 8), (byte)t.Rgb, (byte)255);
         Raylib.DrawTextEx(_font, t.Text, new Vector2(ox + x * k, oy + y * k), size * k, k, color);
+    }
+}
+
+/// <summary>Display and sound options, shared by both games (<c>%APPDATA%/MikisWorld/settings.json</c>).
+/// Full screen is deliberately not saved: the game always starts in a window.</summary>
+internal static class SettingsStore
+{
+    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false);
+    private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
+    private static string _path;
+
+    public static DisplaySettings Load(string path)
+    {
+        _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "settings.json");
+        var d = new Dto();
+        try { if (File.Exists(_path)) d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path)) ?? d; }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear };
+    }
+
+    public static void Save(DisplaySettings s)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear), Opt));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 }

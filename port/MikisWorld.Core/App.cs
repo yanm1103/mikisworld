@@ -7,7 +7,7 @@ namespace MikisWorld.Core;
 /// </summary>
 public sealed class App
 {
-    private enum Screen { Splash, Title, Help, About, HighScores, NameEntry, Game }
+    private enum Screen { Splash, Title, Help, About, HighScores, NameEntry, Options, Game }
 
     private readonly IStorage _storage;
     private readonly SaveData _save;
@@ -15,6 +15,8 @@ public sealed class App
     private readonly SettingsHost _host;
     private readonly IMikisGame _game;
     private readonly AppInfo _info;
+    private readonly DisplaySettings _set;
+    private int _optSel;
     private readonly Bitmap _titleArt, _splash;
     private readonly GameStrings _s;
     private readonly string _helpText;
@@ -43,12 +45,14 @@ public sealed class App
     public App(IAssets assets, IGameHost host, IStorage storage, long seed)
         : this(h => new Game(assets, h, seed), assets, host, storage, AppInfo.MikisWorld1) { }
 
-    public App(Func<IGameHost, IMikisGame> createGame, IAssets assets, IGameHost host, IStorage storage, AppInfo info)
+    public App(Func<IGameHost, IMikisGame> createGame, IAssets assets, IGameHost host, IStorage storage, AppInfo info,
+               DisplaySettings settings = null)
     {
         _storage = storage;
         _info = info;
+        _set = settings ?? new DisplaySettings();
         _save = storage.Load() ?? new SaveData();
-        _host = new SettingsHost(host) { Enabled = _save.Sound };
+        _host = new SettingsHost(host) { Enabled = _set.Volume > 0 };
         _game = createGame(_host);
         _game.BonusUnlocked = _save.BonusUnlocked;
         _game.EnableRendering();
@@ -62,6 +66,10 @@ public sealed class App
     }
 
     public IMikisGame Game => _game;
+    public DisplaySettings Settings => _set;
+
+    /// <summary>The frontend should deliver key repeats (held key) while this is true: the options sliders use them.</summary>
+    public bool AcceptsRepeat => _screen == Screen.Options;
     public int ScreenWidth => _game.ScreenWidth;
     public int ScreenHeight => _game.ScreenHeight;
 
@@ -70,6 +78,7 @@ public sealed class App
     internal bool DebugMenuOpen => _menuOpen;
     internal List<string> DebugMenuLabels() => MenuItems().Select(i => i.Label).ToList();
     internal string DebugName => _name;
+    internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
 
     // ------------------------------------------------------------------ time
     public void Update(int dt)
@@ -120,6 +129,8 @@ public sealed class App
     private static bool IsUp(int key, int action) => action == 1 || key == 50;
     private static bool IsDown(int key, int action) => action == 6 || key == 56;
     private static bool IsSelect(int key, int action) => action == 8 || key == 53;
+    private static bool IsLeft(int key, int action) => action == 2 || key == 52;
+    private static bool IsRight(int key, int action) => action == 5 || key == 54;
 
     /// <summary>Same key/action pair the MIDP canvas delivered (see Game.KeyPressed).</summary>
     public void KeyPressed(int key, int action)
@@ -149,6 +160,9 @@ public sealed class App
                 break;
             case Screen.NameEntry:
                 break;
+            case Screen.Options:
+                OptionsKey(key, action);
+                break;
         }
     }
 
@@ -176,6 +190,7 @@ public sealed class App
             case Screen.Help:
             case Screen.About:
             case Screen.HighScores:
+            case Screen.Options:
                 CloseForm();
                 break;
             case Screen.NameEntry:
@@ -216,7 +231,7 @@ public sealed class App
         items.Add((_s.Ui(10), StartNewGame));
         items.Add((_s.Ui(1), () => OpenForm(Screen.Help)));
         items.Add((_s.Ui(2), () => OpenForm(Screen.HighScores)));
-        items.Add((_s.Ui(14) + _s.Ui(_host.Enabled ? 12 : 13), ToggleSound));
+        items.Add((OptionsLabel, () => { OpenForm(Screen.Options); _optSel = 0; }));
         items.Add((_s.Ui(11), () => OpenForm(Screen.About)));
         items.Add((_s.Ui(3), () => WantsExit = true));
         return items;
@@ -242,11 +257,43 @@ public sealed class App
         _game.Start();
     }
 
-    private void ToggleSound()
+    private const string OptionsLabel = "Options";
+
+    private sealed record OptionRow(string Label, Func<string> Value, Action<int> Adjust, bool Slider);
+
+    private List<OptionRow> OptionRows()
     {
-        _host.Enabled = !_host.Enabled;
-        _save.Sound = _host.Enabled;
-        _storage.Save(_save);
+        var rows = new List<OptionRow>
+        {
+            new(_s.Ui(14).TrimEnd(' ', ':'), () => _set.Volume + "%", dir =>
+            {
+                _set.Volume = Math.Clamp(_set.Volume + dir * 5, 0, 100);
+                _host.Enabled = _set.Volume > 0;
+                _set.NotifyChanged();
+            }, true),
+            new("Fullscreen", () => _s.Ui(_set.Fullscreen ? 12 : 13), _ => { _set.Fullscreen = !_set.Fullscreen; _set.NotifyChanged(); }, false),
+            new("Integer scale", () => _s.Ui(_set.IntegerScale ? 12 : 13), _ => { _set.IntegerScale = !_set.IntegerScale; _set.NotifyChanged(); }, false),
+        };
+        // smoothing only makes sense when the picture is not magnified by a whole number
+        if (!_set.IntegerScale)
+            rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
+        return rows;
+    }
+
+    private void OptionsKey(int key, int action)
+    {
+        var rows = OptionRows();
+        _optSel = Math.Clamp(_optSel, 0, rows.Count - 1);
+        if (IsUp(key, action)) _optSel = (_optSel + rows.Count - 1) % rows.Count;
+        else if (IsDown(key, action)) _optSel = (_optSel + 1) % rows.Count;
+        else if (IsLeft(key, action)) rows[_optSel].Adjust(-1);
+        else if (IsRight(key, action)) rows[_optSel].Adjust(+1);
+        else if (IsSelect(key, action))
+        {
+            if (rows[_optSel].Slider) CloseForm();
+            else rows[_optSel].Adjust(1);
+        }
+        _optSel = Math.Clamp(_optSel, 0, OptionRows().Count - 1);     // the Filter row appears/disappears with Integer scale
     }
 
     private void OpenForm(Screen f)
@@ -298,6 +345,7 @@ public sealed class App
             case Screen.About: DrawBackdrop(g); DrawAbout(g); break;
             case Screen.HighScores: DrawBackdrop(g); DrawScores(g); break;
             case Screen.NameEntry: DrawBackdrop(g); DrawNameEntry(g); break;
+            case Screen.Options: DrawBackdrop(g); DrawOptions(g); break;
         }
     }
 
@@ -453,6 +501,40 @@ public sealed class App
             string line = (i + 1) + ". " + _hof.Name(0, i) + " - " + _hof.Score(0, i);
             DrawShadowed(g, line, x, y + i * lh, FontKind.Small, i == 0 ? 0xFFE060 : 0xFFFFFF, 0);
         }
+    }
+
+    private void DrawOptions(Canvas g)
+    {
+        DrawTitled(g, OptionsLabel, out int x, out int y, out int w, out int h);
+        var rows = OptionRows();
+        int lh = g.Metrics.Height(FontKind.Bold) + 3;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            int ty = y + 2 + i * lh;
+            bool sel = i == _optSel;
+            if (sel)
+            {
+                g.SetClip(0, 0, W, H);
+                g.SetColor(160, 90, 20);
+                g.FillRect(x - 3, ty - 1, w + 5, lh);
+            }
+            DrawShadowed(g, rows[i].Label, x, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+            string value = rows[i].Value();
+            int vw = g.Metrics.StringWidth(value, FontKind.Bold);
+            DrawShadowed(g, value, x + w - vw, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+            if (rows[i].Slider)
+            {
+                int barW = 36, bx = x + w - vw - 6 - barW, by = ty + 3, bh = lh - 8;
+                g.SetClip(0, 0, W, H);
+                g.SetColor(40, 20, 0);
+                g.FillRect(bx, by, barW, bh);
+                g.SetColor(255, 224, 160);
+                g.FillRect(bx, by, barW * _set.Volume / 100, bh);
+                g.SetColor(255, 255, 255);
+                g.DrawRect(bx, by, barW, bh);
+            }
+        }
+        DrawShadowed(g, "< >", x, y + h - g.Metrics.Height(FontKind.Small) - 1, FontKind.Small, 0xFFE0A0, 0);
     }
 
     private void DrawNameEntry(Canvas g)

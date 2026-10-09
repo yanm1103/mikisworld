@@ -45,6 +45,17 @@ internal static class OttTest
             Console.WriteLine($"{(ok ? "OK  " : "FAIL")} octave shift -1 halves the frequency (zero-crossing ratio {ratio:F2})");
             if (!ok) fail++;
         }
+        // volume: the amplitude of the generated square wave is proportional to the volume setting
+        {
+            var coin = RingTone.Decode(File.ReadAllBytes(Path.Combine(assetsDir, "coin.ott")));
+            int Peak(short[] x) => x.Max(v => Math.Abs((int)v));
+            int full = Peak(coin.Render(amplitude: RingTone.AmplitudeForVolume(100)));
+            int half = Peak(coin.Render(amplitude: RingTone.AmplitudeForVolume(50)));
+            int none = Peak(coin.Render(amplitude: RingTone.AmplitudeForVolume(0)));
+            bool ok = Math.Abs(half / (double)full - 0.5) < 0.02 && none == 0 && full > 5000;
+            Console.WriteLine($"{(ok ? "OK  " : "FAIL")} volume scales the wave amplitude (100 %: {full}, 50 %: {half}, 0 %: {none})");
+            if (!ok) fail++;
+        }
         Console.WriteLine(fail == 0 ? $"ALL OK ({files} tunes)" : $"{fail} FAILED");
         return fail == 0 ? 0 : 1;
     }

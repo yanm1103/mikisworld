@@ -134,7 +134,7 @@ internal static class AppTest
         Check(host.Played.Contains(Sfx.Title), "title jingle plays");
         Tap(app, Fire);
         Check(app.DebugMenuOpen, "Fire opens the menu");
-        Check(app.DebugMenuLabels().SequenceEqual(new[] { "New game", "Instructions", "High scores", "Sound: on", "About", "Exit" }),
+        Check(app.DebugMenuLabels().SequenceEqual(new[] { "New game", "Instructions", "High scores", "Options", "About", "Exit" }),
               "menu items match the original commands (no Continue yet): " + string.Join("|", app.DebugMenuLabels()));
 
         Console.WriteLine("forms");
@@ -146,11 +146,42 @@ internal static class AppTest
         Check(app.DebugScreen == "About", "About opens");
         app.Back();
 
-        Console.WriteLine("sound option persists");
-        Select(app, "Sound: on");
-        Check(!store.Data.Sound && app.DebugMenuLabels().Contains("Sound: off"), "toggling sound saves it and updates the label");
-        Select(app, "Sound: off");
-        Check(store.Data.Sound, "toggling again re-enables sound");
+        Console.WriteLine("options: volume slider, fullscreen, integer scale, filter");
+        Select(app, "Options");
+        Check(app.DebugScreen == "Options", "Options opens the options screen");
+        var set = app.Settings;
+        int changes = 0;
+        set.Changed += () => changes++;
+        void Left() { app.KeyPressed(52, 2); app.KeyReleased(52, 2); }
+        void Right() { app.KeyPressed(54, 5); app.KeyReleased(54, 5); }
+        Check(set.Volume == 100 && set.IntegerScale && !set.Bilinear && !set.Fullscreen, "defaults: volume 100 %, integer scale on, nearest, windowed");
+        for (int i2 = 0; i2 < 4; i2++) Left();
+        Check(set.Volume == 80 && changes == 4, "Left lowers the volume in steps of 5 %: " + set.Volume);
+        for (int i2 = 0; i2 < 30; i2++) Left();
+        Check(set.Volume == 0, "the volume stops at 0 %");
+        host.Played.Clear();
+        Right();
+        Check(set.Volume == 5, "Right raises it again (0 % -> 5 %)");
+        for (int i2 = 0; i2 < 30; i2++) Right();
+        Check(set.Volume == 100, "the volume stops at 100 %");
+        Tap(app, Down);
+        Tap(app, Fire);
+        Check(set.Fullscreen, "Fullscreen row: Fire turns it on");
+        Tap(app, Fire);
+        Check(!set.Fullscreen, "...and off again");
+        Tap(app, Down);
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Tap(app, Fire);
+        Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
+        Tap(app, Down);
+        Tap(app, Fire);
+        Check(set.Bilinear && set.UsesBilinear, "Filter row switches nearest -> bilinear");
+        Tap(app, Up);
+        Tap(app, Fire);
+        Check(set.IntegerScale && !set.UsesBilinear && !app.DebugOptionRows().Contains("Filter"), "Integer scale back on -> bilinear is not used and the row disappears");
+        app.Back();
+        Check(app.DebugScreen == "Title" && app.DebugMenuOpen, "Back returns to the menu");
+        app.Back();
 
         Console.WriteLine("new game, pause, continue");
         Select(app, "New game");
