@@ -7,12 +7,13 @@ export DOTNET_CLI_HOME="$ROOT/tools/.dotnet-home" DOTNET_NOLOGO=1 DOTNET_CLI_TEL
 "$DN" build "$ROOT/port/MikisWorld.TraceTest" -v q --nologo 2>&1 | grep -E " error " && exit 2
 EXE="$ROOT/port/MikisWorld.TraceTest/bin/Debug/net8.0/MikisWorld.TraceTest.exe"
 fail=0
+step() { out=$("$@" 2>&1); rc=$?; echo "$out" | tail -1; [ $rc -eq 0 ] || fail=1; }
 
-echo "== state traces";  "$ROOT/tools/run_traces.sh" | tail -1 || fail=1
-echo "== MikisWorld 2 state traces"; "$ROOT/tools/run_traces2.sh" | tail -1 || fail=1
-echo "== rendered frames"; "$ROOT/tools/run_frames.sh" | tail -1 || fail=1
+echo "== state traces";  step "$ROOT/tools/run_traces.sh"
+echo "== MikisWorld 2 state traces"; step "$ROOT/tools/run_traces2.sh"
+echo "== rendered frames"; step "$ROOT/tools/run_frames.sh"
 
-echo "== MikisWorld 2 rendered frames"; "$ROOT/tools/run_frames2.sh" | tail -1 || fail=1
+echo "== MikisWorld 2 rendered frames"; step "$ROOT/tools/run_frames2.sh"
 
 echo "== hall of fame"
 for f in "$ROOT"/traces/hall_*.txt; do
@@ -21,10 +22,11 @@ for f in "$ROOT"/traces/hall_*.txt; do
 done
 
 echo "== ring tone decoder"
-"$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces" | tail -1 || fail=1
+step "$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces"
+step "$EXE" ott "$ROOT/extracted/MikisWorld2" "$ROOT/traces" mw2_
 
 echo "== application flow"
-"$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2" | tail -1 || fail=1
+step "$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 
 [ $fail -eq 0 ] && echo "ALL VALIDATIONS PASSED" || echo "SOME VALIDATIONS FAILED"
 exit $fail

@@ -8,7 +8,7 @@ original e validados contra ele (ver [Validação](#validação)).
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Game2 desenho" (2026-10-09).
+> Última atualização: commit "Dois jogos no mesmo programa" (2026-10-09).
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -34,9 +34,10 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Decompilação e análise | **~85%** | decompilado e lido (tick, jogador, Mork, arco-íris, desenho, cutscenes, shell); `level.bin` validado (`parse_level.py --v2`); **o jar roda no harness** e 20 traces de referência foram gravados (`tools/record_traces2.sh`). Falta o desenho do minigame e a validação visual |
 | Lógica do jogo (Mork, arco-íris, física alterada) | **100%** | `Game2`: 20/20 traces idênticos ao original (~100 mil ticks), incluindo Mork, Lords, subáreas e estágio final |
 | Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
-| Menus, hi-scores, salvamento | 0% | shell do jogo 1 serve quase sem mudança |
-| Áudio | 0% | 13 dos 14 sons são idênticos aos do jogo 1; trocam `title.ott` e `gameend.ott` |
-| **Total estimado** | **~59%** | mesmos pesos do jogo 1 |
+| Menus, hi-scores, salvamento | **90%** | o mesmo `App` serve aos dois jogos (splash de 4 s, 128×128, código secreto próprio); fluxo coberto por testes automáticos |
+| Áudio | **85%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3× |
+| Janela, escala, teclado | **90%** | mesma janela do jogo 1; escolha do jogo (`--game 1|2` ou tela de seleção) |
+| **Total estimado** | **~93%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -49,10 +50,12 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Decomp do jogo 2 | MikisWorld2.jar decompilado, lido e comparado por bytecode; parser de nível v2; harness roda o jar 2 e grava 20 traces | MW1 ~95% · MW2 ~9% |
 | Game2 (lógica) | Tradução literal da classe do jogo 2 (Mork, arco-íris, colisão com wrap); 20/20 traces idênticos | MW1 ~95% · MW2 ~39% |
 | Game2 (desenho) | Renderizador 128×128 validado por quadros contra o original (inclui quirks: snapshot 12×12 do wipe, cache em anel) | MW1 ~95% · MW2 ~59% |
+| Dois jogos no mesmo programa | `App` genérico (`IMikisGame`), splash, escolha do jogo, áudio e save por JAR; correção dos scripts de teste | MW1 ~95% · MW2 ~93% |
 
 ## Como rodar
 
-Precisa de `MikisWorld.jar` (não versionado; coloque em `JAR/`) e do .NET 8 SDK.
+Precisa de `MikisWorld.jar` e/ou `MikisWorld2.jar` (não versionados; coloque em `JAR/`) e do .NET 8 SDK.
+Se os dois estiverem em `JAR/`, uma tela inicial deixa escolher (`1`/`2`); `--game 1` ou `--game 2` pula essa tela.
 
 **Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
 Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
@@ -60,7 +63,7 @@ Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou
 Com um .NET 8 SDK instalado no sistema, o equivalente é:
 
 ```
-dotnet run --project port/MikisWorld.Game -- [caminho/para/MikisWorld.jar] [--scale N]
+dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [caminho/para/MikisWorld.jar]
 ```
 
 Controles: setas/WASD (andar, pular, interagir), `Enter`/`Espaço` (pular cutscene), ou o teclado numérico

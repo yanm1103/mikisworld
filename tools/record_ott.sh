@@ -7,3 +7,8 @@ for f in ../extracted/MikisWorld/*.ott; do
   python -I decode_ott.py "$f" --json > "../traces/$(basename "$f").json" || exit 1
 done
 ls ../traces/*.ott.json | wc -l
+# MikisWorld 2's tunes (traces/mw2_<name>.ott.json)
+for f in ../extracted/MikisWorld2/*.ott; do
+  python -I decode_ott.py "$f" --json > "../traces/mw2_$(basename "$f").json" || exit 1
+done
+ls ../traces/mw2_*.ott.json | wc -l

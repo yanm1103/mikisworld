@@ -67,7 +67,7 @@ internal static class Program
         if (a[0] == "hall") return HallTest(a);
         if (a[0] == "apptest") return AppTest.Run(a[1], a.Length > 2 ? a[2] : null);
         if (a[0] == "mw2") return Mw2Test.Run(a);
-        if (a[0] == "ott") return OttTest.Run(a[1], a[2]);
+        if (a[0] == "ott") return OttTest.Run(a[1], a[2], a.Length > 3 ? a[3] : "");
         string dir = a[0], mode = a[1];
         long seed = long.Parse(a[2]);
         int ticks = int.Parse(a[3]);

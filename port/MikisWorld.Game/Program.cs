@@ -11,31 +11,43 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        string jar = FindJar(args);
-        if (jar == null)
-        {
-            Console.Error.WriteLine("MikisWorld.jar not found. Pass its path as the first argument or put it in ./JAR/.");
-            return 1;
-        }
+        string jar1 = FindJar(args, "MikisWorld.jar");
+        string jar2 = FindJar(args, "MikisWorld2.jar");
         int scale = ArgInt(args, "--scale", 4);
         string savePath = ArgStr(args, "--save", null);
+        int game = ArgInt(args, "--game", 0);                       // 0 = ask (when both JARs are present)
         // developer aids: inject keys / take screenshots at given frames, e.g. --inject 30:Enter,60:Down --shoot 90:menu
         var inject = ParseFrames(ArgStr(args, "--inject", ""));
         var shoot = ParseFrames(ArgStr(args, "--shoot", ""));
         int quitAfter = ArgInt(args, "--quit-after", -1);
-
-        using var assets = new JarAssets(jar);
         string exportDir = ArgStr(args, "--export-sounds", null);
-        if (exportDir != null) { AudioHost.Export(assets, exportDir); return 0; }
+        bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
+
+        if (jar1 == null && jar2 == null)
+        {
+            Console.Error.WriteLine("MikisWorld.jar / MikisWorld2.jar not found. Pass a path as an argument or put them in ./JAR/.");
+            return 1;
+        }
+        if (game == 0 && (jar1 == null || jar2 == null)) game = jar1 != null ? 1 : 2;
+        if (game == 0 && (exportDir != null || soundTest || inject.Count > 0 || quitAfter >= 0)) game = 1;
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
-        Raylib.InitWindow(Layout.ScreenW * scale, Layout.ScreenH * scale, "Miki's World");
-        Raylib.SetWindowMinSize(Layout.ScreenW, Layout.ScreenH);
+        if (exportDir != null)
+        {
+            using var a = new JarAssets(game == 2 ? jar2 : jar1);
+            AudioHost.Export(a, exportDir);
+            return 0;
+        }
+
+        Raylib.InitWindow(640, 400, "Miki's World");
         Raylib.SetExitKey(KeyboardKey.Null);
         Raylib.SetTargetFPS(60);
+        if (game == 0) game = ChooseGame();
+        if (game == 0) { Raylib.CloseWindow(); return 0; }
 
-        using var audio = new AudioHost(assets);
-        if (Array.IndexOf(args, "--sound-test") >= 0)
+        using var assets = new JarAssets(game == 2 ? jar2 : jar1);
+        using var audio = new AudioHost(assets) { TitleLoops = game == 2 ? 3 : 1 };
+        if (soundTest)
         {
             audio.Play(Sfx.Coin);
             Raylib.WaitTime(0.03);
@@ -43,17 +55,27 @@ internal static class Program
             Raylib.CloseWindow();
             return audio.Ready && audio.IsPlaying ? 0 : 1;
         }
-        var app = new App(assets, audio, new FileStorage(savePath), Environment.TickCount64);
+
+        long seed = Environment.TickCount64;
+        string saveFile = savePath ?? DefaultSave(game);
+        App app = game == 2
+            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2)
+            : new App(assets, audio, new FileStorage(saveFile), seed);
+
+        int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
+        Raylib.SetWindowSize(sw0 * scale, sh0 * scale);
+        Raylib.SetWindowMinSize(sw0, sh0);
+        Raylib.SetWindowTitle(game == 2 ? "Miki's World 2: The Storm Master" : "Miki's World 1: The Lost Tiara");
 
         var metrics = new RaylibFontMetrics();
-        var frame = new Bitmap(Layout.ScreenW, Layout.ScreenH);
-        var rgba = new byte[Layout.ScreenW * Layout.ScreenH * 4];
+        var frame = new Bitmap(sw0, sh0);
+        var rgba = new byte[sw0 * sh0 * 4];
         Texture2D tex;
         unsafe
         {
             fixed (byte* p = rgba)
             {
-                var image = new Image { Data = p, Width = Layout.ScreenW, Height = Layout.ScreenH, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 };
+                var image = new Image { Data = p, Width = sw0, Height = sh0, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 };
                 tex = Raylib.LoadTextureFromImage(image);
             }
         }
@@ -86,6 +108,7 @@ internal static class Program
                 app.Update(StepMs);
                 acc -= StepMs / 1000.0;
             }
+            audio.Tick();
 
             var canvas = new Canvas(frame) { Metrics = metrics };
             app.Draw(canvas);
@@ -99,10 +122,10 @@ internal static class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
             int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
-            int kx = Math.Max(1, Math.Min(sw / Layout.ScreenW, sh / Layout.ScreenH));
-            int ox = (sw - Layout.ScreenW * kx) / 2, oy = (sh - Layout.ScreenH * kx) / 2;
-            Raylib.DrawTexturePro(tex, new Rectangle(0, 0, Layout.ScreenW, Layout.ScreenH),
-                new Rectangle(ox, oy, Layout.ScreenW * kx, Layout.ScreenH * kx), Vector2.Zero, 0, Color.White);
+            int kx = Math.Max(1, Math.Min(sw / sw0, sh / sh0));
+            int ox = (sw - sw0 * kx) / 2, oy = (sh - sh0 * kx) / 2;
+            Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0),
+                new Rectangle(ox, oy, sw0 * kx, sh0 * kx), Vector2.Zero, 0, Color.White);
             foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, kx);
             Raylib.EndDrawing();
 
@@ -112,6 +135,38 @@ internal static class Program
             if (quitAfter >= 0 && frameNo > quitAfter) break;
         }
         Raylib.CloseWindow();
+        return 0;
+    }
+
+    /// <summary>Small start-up screen shown when both games are available.</summary>
+    private static int ChooseGame()
+    {
+        int sel = 0;
+        string[] titles = { "Miki's World 1", "Miki's World 2" };
+        string[] subs = { "The Lost Tiara", "The Storm Master" };
+        while (!Raylib.WindowShouldClose())
+        {
+            if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1)) return 1;
+            if (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2)) return 2;
+            if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.A) || Raylib.IsKeyPressed(KeyboardKey.W)) sel = 0;
+            if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.D) || Raylib.IsKeyPressed(KeyboardKey.S)) sel = 1;
+            if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.Space) || Raylib.IsKeyPressed(KeyboardKey.KpEnter)) return sel + 1;
+            if (Raylib.IsKeyPressed(KeyboardKey.Escape)) return 0;
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(new Color(60, 179, 210, 255));
+            Raylib.DrawText("Choose a game", 220, 30, 36, Color.White);
+            for (int i = 0; i < 2; i++)
+            {
+                var box = new Rectangle(60 + i * 280, 120, 240, 160);
+                Raylib.DrawRectangleRec(box, i == sel ? new Color(160, 90, 20, 255) : new Color(99, 48, 0, 255));
+                Raylib.DrawRectangleLinesEx(box, i == sel ? 4 : 2, Color.White);
+                Raylib.DrawText(titles[i], (int)box.X + 20, (int)box.Y + 40, 28, Color.White);
+                Raylib.DrawText(subs[i], (int)box.X + 20, (int)box.Y + 80, 22, new Color(255, 224, 160, 255));
+                Raylib.DrawText($"[{i + 1}]", (int)box.X + 20, (int)box.Y + 120, 20, Color.White);
+            }
+            Raylib.DrawText("1 / 2 or arrows + Enter", 195, 330, 22, Color.White);
+            Raylib.EndDrawing();
+        }
         return 0;
     }
 
@@ -130,13 +185,19 @@ internal static class Program
         }
     }
 
-    private static string FindJar(string[] args)
+    private static string DefaultSave(int game)
+        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", game == 2 ? "save2.json" : "save.json");
+
+    /// <summary>An explicit .jar argument whose name matches, else JAR/&lt;name&gt; found by walking up from the executable.</summary>
+    private static string FindJar(string[] args, string name)
     {
-        foreach (string a in args) if (a.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) && File.Exists(a)) return a;
+        foreach (string a in args)
+            if (a.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) && File.Exists(a)
+                && string.Equals(Path.GetFileName(a), name, StringComparison.OrdinalIgnoreCase)) return a;
         string dir = AppContext.BaseDirectory;
         for (int i = 0; i < 8 && dir != null; i++, dir = Path.GetDirectoryName(dir))
         {
-            string c = Path.Combine(dir, "JAR", "MikisWorld.jar");
+            string c = Path.Combine(dir, "JAR", name);
             if (File.Exists(c)) return c;
         }
         return null;
@@ -174,10 +235,7 @@ internal sealed class FileStorage : IStorage
     private readonly string _path;
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
 
-    public FileStorage(string path)
-    {
-        _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "save.json");
-    }
+    public FileStorage(string path) { _path = path; }
 
     public SaveData Load()
     {
@@ -195,14 +253,6 @@ internal sealed class FileStorage : IStorage
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
-}
-
-/// <summary>Sound is wired up separately; until then the host is silent.</summary>
-internal sealed class SilentHost : IGameHost
-{
-    public void Play(Sfx sound) { }
-    public void StopSound() { }
-    public void Vibrate(int frequency, int milliseconds) { }
 }
 
 /// <summary>Keyboard to MIDP key codes. Digits are the phone keypad (the game's original controls);

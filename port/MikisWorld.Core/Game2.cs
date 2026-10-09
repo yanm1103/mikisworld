@@ -47,7 +47,6 @@ public sealed partial class Game2 : IMikisGame
     private readonly int _hitHalfW;
     private int _walkSpeed, _airSpeed, _fallSpeed, _riseSpeed;   // bi, cE, bW, aK
     private readonly int[] _jumpTable = { 67, 64, 58, 48, 36, 23, 7, -7, -23, -36, -48, -58, -64, -67 };
-    private bool _jumpScaled;
     private int _itemW, _itemH, _lordH;
     private int _hitFxDx, _hitFxDy;
 

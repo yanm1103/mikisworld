@@ -2,12 +2,9 @@ namespace MikisWorld.Core;
 
 public sealed partial class Game2
 {
-    private bool _levelLoaded;
-
     // Original c.e(): reset the run and load level.bin.
     private void LoadLevel()
     {
-        _levelLoaded = true;
         _damageFreed = false;
         _gameOverTimer = 0;
         _nextProj = 0;

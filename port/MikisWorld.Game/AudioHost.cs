@@ -10,7 +10,11 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
     private const int SampleRate = 22050;
     private readonly Dictionary<Sfx, Sound> _sounds = new();
     private Sound? _current;
+    private int _loopsLeft;
     public bool Ready { get; }
+
+    /// <summary>The second game plays its title jingle three times (<c>Sound.play(3)</c>).</summary>
+    public int TitleLoops { get; set; } = 1;
 
     public AudioHost(IAssets assets)
     {
@@ -35,15 +39,27 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
         var s = _sounds[sound];
         Raylib.PlaySound(s);
         _current = s;
+        _loopsLeft = sound == Sfx.Title ? TitleLoops - 1 : 0;
     }
 
     public void StopSound()
     {
         if (_current is Sound c) Raylib.StopSound(c);
         _current = null;
+        _loopsLeft = 0;
     }
 
     public bool IsPlaying => _current is Sound c && Raylib.IsSoundPlaying(c);
+
+    /// <summary>Call once per frame: restarts a sound that still has loops left.</summary>
+    public void Tick()
+    {
+        if (_loopsLeft > 0 && _current is Sound c && !Raylib.IsSoundPlaying(c))
+        {
+            _loopsLeft--;
+            Raylib.PlaySound(c);
+        }
+    }
 
     public void Vibrate(int frequency, int milliseconds) { }
 

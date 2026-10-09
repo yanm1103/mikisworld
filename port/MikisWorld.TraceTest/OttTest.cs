@@ -5,7 +5,7 @@ using MikisWorld.Core;
 //   MikisWorld.TraceTest ott <assetsDir> <tracesDir>
 internal static class OttTest
 {
-    public static int Run(string assetsDir, string tracesDir)
+    public static int Run(string assetsDir, string tracesDir, string prefix = "")
     {
         int fail = 0, files = 0;
         foreach (string path in Directory.GetFiles(assetsDir, "*.ott").OrderBy(p => p))
@@ -13,7 +13,7 @@ internal static class OttTest
             files++;
             string name = Path.GetFileName(path);
             var tone = RingTone.Decode(File.ReadAllBytes(path));
-            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(tracesDir, name + ".json")));
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(tracesDir, prefix + name + ".json")));
             string refName = doc.RootElement.GetProperty("name").GetString();
             var events = doc.RootElement.GetProperty("events").EnumerateArray().ToList();
             string err = null;
