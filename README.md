@@ -69,7 +69,11 @@ dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [caminho/p
 Controles: setas/WASD (andar, pular, interagir), `Enter`/`Espaço` (pular cutscene), ou o teclado numérico
 como no celular (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar).
 `Esc` abre/fecha o menu (na partida ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome
-digite normalmente. Opções e hi-scores ficam em `%APPDATA%/MikisWorld/save.json`.
+digite normalmente. Opções e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2).
+
+**Janela:** a imagem é sempre ampliada por um fator **inteiro** (sem pixels irregulares); ao soltar a borda depois de redimensionar,
+a janela "gruda" no múltiplo inteiro mais próximo. `+` / `-` mudam a escala e `F11` alterna tela cheia sem bordas (com barras
+pretas, mantendo o fator inteiro).
 Código secreto para liberar o minigame bônus: `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8`.
 
 ## Estrutura

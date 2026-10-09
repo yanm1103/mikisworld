@@ -68,6 +68,7 @@ internal static class Program
         Raylib.SetWindowTitle(game == 2 ? "Miki's World 2: The Storm Master" : "Miki's World 1: The Lost Tiara");
 
         var metrics = new RaylibFontMetrics();
+        Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, TextureFilter.Point);
         var frame = new Bitmap(sw0, sh0);
         var rgba = new byte[sw0 * sh0 * 4];
         Texture2D tex;
@@ -83,11 +84,34 @@ internal static class Program
 
         double acc = 0;
         int frameNo = 0;
+        double resizedAt = -1;
+        string resizeSpec = ArgStr(args, "--resize", null);       // dev aid: "--resize 700x500" at frame 10
         var injectedUp = new List<KeyboardKey>();
 
         while (!Raylib.WindowShouldClose() && !app.WantsExit)
         {
             acc += Math.Min(Raylib.GetFrameTime(), 0.25);
+
+            // ---- window: always an integer multiple of the native resolution (no blurry/uneven pixels)
+            bool borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
+            if (resizeSpec != null && frameNo == 10)
+            {
+                var wh = resizeSpec.Split('x');
+                Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
+            }
+            if (Raylib.IsKeyPressed(KeyboardKey.F11)) Raylib.ToggleBorderlessWindowed();
+            if (!borderless && !Raylib.IsWindowMaximized())
+            {
+                int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
+                         : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
+                if (step != 0) SnapWindow(sw0, sh0, CurrentScale(sw0, sh0) + step);
+                if (Raylib.IsWindowResized()) resizedAt = Raylib.GetTime();
+                else if (resizedAt >= 0 && Raylib.GetTime() - resizedAt > 0.25)
+                {
+                    resizedAt = -1;
+                    SnapWindow(sw0, sh0, (int)Math.Round(Math.Min((double)Raylib.GetScreenWidth() / sw0, (double)Raylib.GetScreenHeight() / sh0)));
+                }
+            }
 
             foreach (var k in injectedUp) HandleKey(app, k, false);
             injectedUp.Clear();
@@ -134,8 +158,21 @@ internal static class Program
             frameNo++;
             if (quitAfter >= 0 && frameNo > quitAfter) break;
         }
+        if (resizeSpec != null) Console.WriteLine($"final window {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} (native {sw0}x{sh0})");
         Raylib.CloseWindow();
         return 0;
+    }
+
+    private static int CurrentScale(int w, int h) => Math.Max(1, Math.Min(Raylib.GetScreenWidth() / w, Raylib.GetScreenHeight() / h));
+
+    /// <summary>Resizes the window to <c>scale</c> times the native resolution (limited to what fits on the monitor).</summary>
+    private static void SnapWindow(int w, int h, int scale)
+    {
+        int monitor = Raylib.GetCurrentMonitor();
+        int maxScale = Math.Max(1, Math.Min(Raylib.GetMonitorWidth(monitor) / w, (Raylib.GetMonitorHeight(monitor) - 80) / h));
+        scale = Math.Clamp(scale, 1, maxScale);
+        if (Raylib.GetScreenWidth() != w * scale || Raylib.GetScreenHeight() != h * scale)
+            Raylib.SetWindowSize(w * scale, h * scale);
     }
 
     /// <summary>Small start-up screen shown when both games are available.</summary>
