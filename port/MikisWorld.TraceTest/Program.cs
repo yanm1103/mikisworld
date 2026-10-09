@@ -65,6 +65,7 @@ internal static class Program
     private static int Main(string[] a)
     {
         if (a[0] == "hall") return HallTest(a);
+        if (a[0] == "apptest") return AppTest.Run(a[1]);
         string dir = a[0], mode = a[1];
         long seed = long.Parse(a[2]);
         int ticks = int.Parse(a[3]);

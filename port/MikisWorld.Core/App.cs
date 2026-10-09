@@ -51,6 +51,12 @@ public sealed class App
 
     public Game Game => _game;
 
+    // ---- test hooks ----
+    internal string DebugScreen => _screen.ToString();
+    internal bool DebugMenuOpen => _menuOpen;
+    internal List<string> DebugMenuLabels() => MenuItems().Select(i => i.Label).ToList();
+    internal string DebugName => _name;
+
     // ------------------------------------------------------------------ time
     public void Update(int dt)
     {

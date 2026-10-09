@@ -10,6 +10,8 @@ public sealed partial class Game
     // ---- test hooks (used by MikisWorld.TraceTest to replay traces recorded from the original bytecode) ----
     internal void DebugTeleport(int fixedX, int fixedY) { _px = fixedX; _py = fixedY; }
     internal void DebugSetState(int state) { _state = state; }
+    internal void DebugSetCoins(int coins) { _coins = coins; }
+    internal void DebugEndGame() { _gameOverTimer = 0; _state = State.GameOver; }
 
     private static int Hash(short[] a)
     {
