@@ -38,7 +38,8 @@ def packed10(r):
     return count, v
 
 
-def parse(data):
+def parse(data, v2=False):
+    """v2=True for MikisWorld2: the header has no 'exit cells' list (bi) between the gate cells and the coin total."""
     r = R(data)
     lv = {}
     n = r.i8()
@@ -57,14 +58,18 @@ def parse(data):
     lv["area_sub_bottom_row"] = r.i16()
     lv["subarea_rows"] = [r.i16() for _ in range(k)]
     n = r.i8(); lv["gate_cells_b8"] = [r.i16() for _ in range(n)]
-    n = r.i8(); lv["exit_cells_bi"] = [r.i16() for _ in range(n)]
+    if not v2:
+        n = r.i8(); lv["exit_cells_bi"] = [r.i16() for _ in range(n)]
     lv["total_coins_declared"] = r.i8()
     lv["lord_final_pos"] = [r.i16(), r.i16()]
     # tile layer container (a.a(DataInputStream,0))
     start = r.p
     layers = r.i8()
-    offs = [r.i32() for _ in range(layers)]
-    r.p = start + offs[0]
+    if v2:
+        r.p += (layers - 1) * 2          # MW2: layer 0 follows immediately (extra layers would be skipped)
+    else:
+        offs = [r.i32() for _ in range(layers)]
+        r.p = start + offs[0]
     w, h, bpp = r.i16(), r.i16(), r.i8()
     per = 8 if bpp != 8 else 4
     bits = 4 if bpp != 8 else 8
@@ -80,11 +85,12 @@ def parse(data):
 
 
 if __name__ == "__main__":
-    lv = parse(open(sys.argv[1], "rb").read())
+    lv = parse(open(sys.argv[1], "rb").read(), v2="--v2" in sys.argv)
     m = lv["map"]
     print("map %dx%d bpp=%d layers=%d, unread bytes=%d" % (m["width"], m["height"], m["bpp"], m["layers"], lv["_bytes_left"]))
     print("platforms=%d subareas=%d coins(tile 6)=%d keys(7)=%d cages(15)=%d doors(12)=%d" % (
         len(lv["platform_flags"]), len(lv["subarea_spawn"]),
         m["tiles"].count(6), m["tiles"].count(7), m["tiles"].count(15), m["tiles"].count(12)))
-    if len(sys.argv) > 2:
-        json.dump(lv, open(sys.argv[2], "w"), indent=1)
+    outs = [a for a in sys.argv[2:] if not a.startswith("--")]
+    if outs:
+        json.dump(lv, open(outs[0], "w"), indent=1)

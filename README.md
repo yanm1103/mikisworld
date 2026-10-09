@@ -8,7 +8,7 @@ original e validados contra ele (ver [Validação](#validação)).
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Áudio" (2026-10-09).
+> Última atualização: commit "Decomp do jogo 2" (2026-10-09).
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -25,9 +25,18 @@ original e validados contra ele (ver [Validação](#validação)).
 
 ### MikisWorld2.jar
 
-| Parte | Status |
-|---|---|
-| Tudo | 0% (ainda não analisado) |
+Mesmo motor do jogo 1 (~85% do bytecode da classe principal é idêntico), com resolução 128×128, tiles de 12 px,
+um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de camada de tiles. Detalhes em
+[`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md).
+
+| Parte | Status | Notas |
+|---|---|---|
+| Decompilação e análise | **~60%** | decompilado; classes mapeadas por bytecode; `level.bin` validado (`parse_level.py --v2`); falta ler desenho, troca de área, cutscenes |
+| Lógica do jogo (Mork, arco-íris, física alterada) | 0% | segunda tradução literal de `c`, reusando o resto do Core |
+| Renderização (128×128, tiles individuais, fundo novo) | 0% | |
+| Menus, hi-scores, salvamento | 0% | shell do jogo 1 serve quase sem mudança |
+| Áudio | 0% | 13 dos 14 sons são idênticos aos do jogo 1; trocam `title.ott` e `gameend.ott` |
+| **Total estimado** | **~6%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -37,6 +46,7 @@ original e validados contra ele (ver [Validação](#validação)).
 | Renderizador e janela | Renderizador por software validado por quadros; janela Raylib lendo o JAR | ~69% |
 | Menus e salvamento | Título, menu, instruções, hi-scores, entrada de nome, lista de modo, save em JSON | ~82% |
 | Áudio | Decoder de Nokia Ring Tone + sintetizador + reprodução no Raylib; `play.bat` | ~95% |
+| Decomp do jogo 2 | MikisWorld2.jar decompilado e comparado por bytecode; parser de nível v2 | MW1 ~95% · MW2 ~6% |
 
 ## Como rodar
 
