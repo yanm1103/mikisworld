@@ -1,0 +1,85 @@
+# Miki's World — PC port
+
+Port para PC dos jogos J2ME da Sumea (`MikisWorld.jar`, `MikisWorld2.jar`).
+Alvo: **C# / .NET 8** + Raylib-cs, com a lógica e o desenho traduzidos de forma literal a partir do bytecode
+original e validados contra ele (ver [Validação](#validação)).
+
+## Progresso
+
+> Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
+> Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
+> Última atualização: commit "Renderizador e janela" (2026-10-09).
+
+### MikisWorld.jar (Miki's World 1: The Lost Tiara)
+
+| Parte | Status | Notas |
+|---|---|---|
+| Decompilação e análise | **100%** | [`docs/MikisWorld-analysis.md`](docs/MikisWorld-analysis.md) |
+| Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
+| Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
+| Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
+| Janela, escala, teclado | **90%** | falta: gamepad, tela cheia, remapear teclas |
+| Tela-título, menus, hi-scores, opções, salvamento | 0% | decompilado (classes `b`, `k`, `j`), não portado |
+| Áudio (`.ott` → WAV) | 0% | formato Nokia Ring Tone; precisa de decoder |
+| **Total estimado** | **~69%** | |
+
+### MikisWorld2.jar
+
+| Parte | Status |
+|---|---|
+| Tudo | 0% (ainda não analisado) |
+
+### Histórico
+
+| Commit | O que mudou | Total MW1 |
+|---|---|---|
+| inicial | Decompilação, harness do original, núcleo em C# validado por traces | ~45% |
+| Renderizador e janela | Renderizador por software validado por quadros; janela Raylib lendo o JAR | ~69% |
+
+## Como rodar
+
+Precisa do **.NET 8 SDK** e de `MikisWorld.jar` (não versionado; coloque em `JAR/`).
+
+```
+dotnet run --project port/MikisWorld.Game -- [caminho/para/MikisWorld.jar] [--scale N]
+```
+
+Controles: setas/WASD (andar, pular, interagir), `Enter`/`Espaço` (pular cutscene), ou o teclado numérico
+como no celular (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar). `Esc` sai.
+Código secreto para liberar o minigame bônus: `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8`.
+
+## Estrutura
+
+```
+docs/                      análise do jogo e dos formatos de arquivo
+port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
+port/MikisWorld.Game/      frontend Raylib (janela, entrada, texto); lê os recursos direto do JAR
+port/MikisWorld.TraceTest/ replay de traces e comparação de quadros com o original
+tools/harness/             roda o JAR original sem tela (stubs do MIDP, Graphics real) e grava traces/quadros
+tools/gen_inputs.py        gera scripts de input determinísticos
+tools/parse_level.py       parser independente do level.bin
+tools/record_traces.sh     grava traces do original        tools/run_traces.sh   compara com o C#
+tools/record_frames.sh     grava quadros do original       tools/run_frames.sh   compara com o C#
+```
+
+Não versionados (ver `.gitignore`): `JAR/`, `extracted/`, `decompiled/`, `traces/`, `tools/dotnet/`, `tools/cfr.jar`.
+
+## Reproduzindo o ambiente de validação
+
+1. `jar xf JAR/MikisWorld.jar` numa pasta vazia `extracted/MikisWorld/`.
+2. SDK .NET 8 portátil: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
+3. (Opcional) Decompilador: CFR 0.152 → `tools/cfr.jar`, de `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
+4. `tools/record_traces.sh` e `tools/record_frames.sh` — rodam o JAR original (JDK 11+ e Python).
+5. `tools/run_traces.sh` deve terminar com `17/17 traces identical`;
+   `tools/run_frames.sh` com `10/10 frame sets identical`.
+
+## Validação
+
+O original é executado sem tela (`tools/harness`) com passo fixo de 20 ms, `java.util.Random` com semente fixa e
+uma sequência de teclas + teleportes. O estado completo é gravado a cada tick e o C# precisa reproduzir
+**exatamente** as mesmas linhas. Para o desenho, o harness implementa `Graphics`/`Image` de verdade sobre
+`BufferedImage` e grava quadros 176×144; o renderizador C# precisa gerar os mesmos pixels. Bugs do original
+(por exemplo, cair abaixo do mapa) são reproduzidos de propósito: o C# falha no mesmo tick.
+
+Limites conhecidos: os inputs são aleatórios com teleportes (não partidas jogadas) e o texto (fonte do aparelho)
+fica fora da comparação de pixels.

@@ -1,0 +1,13 @@
+# local toolchain and generated artifacts
+tools/dotnet/
+tools/.dotnet-home/
+tools/harness/out/
+traces/
+extracted/
+decompiled/
+**/bin/
+**/obj/
+*.user
+tools/cfr.jar
+__pycache__/
+JAR/
