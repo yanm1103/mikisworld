@@ -5,6 +5,6 @@ public abstract class Displayable {
     public void removeCommand(Command c) {}
     public void setCommandListener(CommandListener l) { listener = l; }
     public void setTitle(String s) {}
-    public int getWidth() { return 176; }
-    public int getHeight() { return 144; }
+    public int getWidth() { return Integer.getInteger("screen.w", 176); }
+    public int getHeight() { return Integer.getInteger("screen.h", 144); }
 }

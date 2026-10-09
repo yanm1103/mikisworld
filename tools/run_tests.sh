@@ -9,6 +9,7 @@ EXE="$ROOT/port/MikisWorld.TraceTest/bin/Debug/net8.0/MikisWorld.TraceTest.exe"
 fail=0
 
 echo "== state traces";  "$ROOT/tools/run_traces.sh" | tail -1 || fail=1
+echo "== MikisWorld 2 state traces"; "$ROOT/tools/run_traces2.sh" | tail -1 || fail=1
 echo "== rendered frames"; "$ROOT/tools/run_frames.sh" | tail -1 || fail=1
 
 echo "== hall of fame"

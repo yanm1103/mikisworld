@@ -27,6 +27,14 @@ public sealed class TileLayer
         _ = start;
     }
 
+    /// <summary>MikisWorld 2's container: byte layerCount, then (layerCount-1)*2 bytes, then layer 0 directly.</summary>
+    public void LoadLayerV2(DataReader r)
+    {
+        int layers = r.ReadByte();
+        r.Skip((layers - 1) * 2);
+        Load(r);
+    }
+
     /// <summary>short width, short height, byte bitsPerTile (4 or 8), then packed ints, MSB first.</summary>
     public void Load(DataReader r)
     {

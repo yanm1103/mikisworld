@@ -14,7 +14,7 @@ LEVEL="../extracted/MikisWorld2/level.bin"
 rec() { # name scenario seed ticks startArea keeplives
   python gen_inputs.py "$LEVEL" "$2" "$3" "$4" --v2 > ../traces/mw2_$1_$3.in
   mode=main; [ "$2" = bonus ] && mode=bonus
-  java -Dnames=harness/names_mw2.properties -Dkeeplives=$6 -cp "$CP" Trace $mode "$3" "$4" ../traces/mw2_$1_$3.in $5 > ../traces/mw2_$1_$3.trace 2>&1
+  java -Dscreen.w=128 -Dscreen.h=128 -Dnames=harness/names_mw2.properties -Dkeeplives=$6 -cp "$CP" Trace $mode "$3" "$4" ../traces/mw2_$1_$3.in $5 > ../traces/mw2_$1_$3.trace 2>&1
 }
 for s in 1 2 3 4 5 6; do rec main main $s 8000 "" 3; done
 for s in 1 2 3; do rec die main $s 6000 "" 0; done

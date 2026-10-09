@@ -1,0 +1,90 @@
+using MikisWorld.Core;
+
+// Replays an input script on the C# port of MikisWorld 2 and compares with a trace recorded from the original jar
+// (tools/harness/src/Trace.java + names_mw2.properties).
+//
+//   MikisWorld.TraceTest mw2 <assetsDir> <main|bonus> <seed> <ticks> <script|-> <startArea|-> <expected.trace> [keeplives]
+internal static class Mw2Test
+{
+    private static int GameAction(int k) => k switch
+    {
+        -1 or 50 => 1, -2 or 56 => 6, -3 or 52 => 2, -4 or 54 => 5, -5 or 53 => 8, _ => 0
+    };
+
+    private const string Header = "tick cK c2 n cv aO aM am ak a1 a8 H a4 cO W bU cQ b1 E0 ci proj platHash mapHash grid c0 aX aW bw aE cL b5 I ba cm ck";
+
+    public static int Run(string[] a)
+    {
+        string dir = a[1], mode = a[2];
+        long seed = long.Parse(a[3]);
+        int ticks = int.Parse(a[4]);
+        var script = new Dictionary<int, List<string[]>>();
+        if (a[5] != "-")
+            foreach (string raw in File.ReadLines(a[5]))
+            {
+                string ln = raw.Trim();
+                if (ln.Length == 0 || ln[0] == '#') continue;
+                string[] p = ln.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+                int t = int.Parse(p[0]);
+                if (!script.TryGetValue(t, out var list)) script[t] = list = new List<string[]>();
+                list.Add(p);
+            }
+        int startArea = a[6] == "-" ? int.MinValue : int.Parse(a[6]);
+        string[] expected = File.ReadAllLines(a[7]);
+        int keepLives = a.Length > 8 ? int.Parse(a[8]) : 0;
+
+        var game = new Game2(new DirAssets(dir), new NullHost(), seed);
+        if (mode == "bonus") game.BonusUnlocked = true;
+        game.Start();
+        if (startArea != int.MinValue)
+        {
+            game.EnterArea(startArea);
+            if (startArea >= 2) game.DebugSetState(State.Playing);
+        }
+
+        var got = new List<string> { Game2.DebugConsts(game), Header, game.DebugLine(-1) };
+        string exception = null;
+        for (int t = 0; t < ticks && exception == null; t++)
+        {
+            if (script.TryGetValue(t, out var evs))
+                foreach (var e in evs)
+                {
+                    switch (e[1])
+                    {
+                        case "T": game.DebugTeleport(int.Parse(e[2]), int.Parse(e[3])); break;
+                        case "S": game.ChooseMode(int.Parse(e[2])); break;
+                        case "P": { int k = int.Parse(e[2]); game.KeyPressed(k, GameAction(k)); break; }
+                        case "R": { int k = int.Parse(e[2]); game.KeyReleased(k, GameAction(k)); break; }
+                    }
+                }
+            if (keepLives > 0 && game.DebugLives < 2 && game.CurrentState != State.GameOver) game.DebugLives = keepLives;
+            try { game.Update(20, 20 * (t + 1)); }
+            catch (Exception ex) when (ex is IndexOutOfRangeException || ex is ArgumentOutOfRangeException)
+            {
+                exception = $"#EXCEPTION tick={t}";
+                break;
+            }
+            got.Add(game.DebugLine(t));
+        }
+        if (exception != null) got.Add(exception);
+
+        int n = Math.Max(got.Count, expected.Length);
+        for (int i = 0; i < n; i++)
+        {
+            string g = i < got.Count ? got[i] : "<missing>";
+            string e = i < expected.Length ? expected[i] : "<missing>";
+            if (i == 0) continue;          // #consts line: printed with the harness' field-name quirks, informational only
+            if (e.StartsWith("#EXCEPTION") && g.StartsWith("#EXCEPTION") && e.Split(' ')[1] == g.Split(' ')[1]) continue;
+            if (g != e)
+            {
+                Console.WriteLine($"MISMATCH at line {i + 1}");
+                Console.WriteLine("  expected: " + e);
+                Console.WriteLine("  got     : " + g);
+                if (i > 0 && i - 1 < got.Count) Console.WriteLine("  previous: " + got[i - 1]);
+                return 1;
+            }
+        }
+        Console.WriteLine($"OK  {got.Count} lines identical");
+        return 0;
+    }
+}
