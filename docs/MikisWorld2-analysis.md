@@ -5,7 +5,7 @@ J2ME / MIDP 1.0 / CLDC 1.0, Sumea, v1.2.2. Decompilado com CFR 0.152 em `decompi
 documento só descreve **o que muda**.
 
 > Itens marcados **(inferido)** vêm da leitura do código ainda não validada contra o jogo rodando.
-> Ainda não li o código de desenho (`R9`/`R10` de `c`), a troca de área (`R10(int)`) nem a classe `d` (cutscenes) por inteiro.
+> Segunda passada concluída em `c` (tick, jogador, troca de área, desenho), `d` (cutscenes), `f` (layout), `i` (tiles) e `j` (base).
 
 ## Resumo
 
@@ -45,7 +45,7 @@ as strings "Refresh" / "Please wait, receiving scores..." existem em `en`, mas n
 | Tile | 14×14 | **12×12** (`f.R7()`, `f.m()`); `f.g()` fatia `tiles.png` em **25** imagens |
 | Largura do jogador | 16 | **15** (`f.d()`) |
 | `player.png` | 8 quadros | **6** quadros (`getWidth()/6`) |
-| Fundo | `sky.png` + `clouds.png` (parallax) | **não existem** — o fundo é outro (a investigar) |
+| Fundo | `sky.png` + `clouds.png` (parallax) | **não existem**: o céu é o **tile 0** de `tiles.png` (azul opaco); a camada de tiles desenha todos os tiles, inclusive o 0 |
 | `symbols.png` | sim | não existe |
 | `splash.png` | não | sim |
 
@@ -75,9 +75,9 @@ Diferentes: `title.ott`, `gameend.ott`, `title.png`, `tiles.png`, `player.png`, 
 
 1. **Mork, um perseguidor** ("Mork is after you!"): campos `c0` (estado 0 = parado/vigiando, 1–4 = indo para esquerda/direita/
    cima/baixo), `aX`/`aW` (posição, ponto fixo <<4), `bw` (temporizador), `b5` (quadro de animação). Vai ao encontro do
-   jogador por eixos; ao chegar perto causa dano (`R2`), que tira uma vida, toca `damage`, vibra e arma um contador
-   `aE = 21`, decrementado a cada passo (provavelmente o piscar do jogador; **inferido**, nada o usa como invencibilidade
-   no trecho que li). Na fase final ele acelera conforme o progresso (`ba`).
+   jogador por eixos; ao chegar perto causa dano (`R2`), que tira uma vida, toca `damage`, vibra e arma o contador
+   `aE = 21` (decrementado a cada passo), que controla a **faísca de dano** desenhada ao redor do jogador; não vi
+   nada que o use como invencibilidade. Na fase final ele acelera conforme o progresso (`ba`).
 2. **Arco-íris no lugar dos pássaros**: o tile 12 (e o 21, sua placa) é coletado e preenche até 4 posições de animação
    (`cm`/`ck`); no estágio final os arco-íris coletados viram uma **escada** ("Collect 10 rainbows to build a ladder up",
    `ba` conta até 10, eventos em `bm[80]`). **(inferido)**
@@ -106,7 +106,74 @@ tudo o que é idêntico:
 Reaproveitável sem mudança: `JavaRandom`, `DataReader`, `TileCollision`, `HallOfFame`, `SaveData`, `RingTone` (`.ott` iguais),
 `Canvas`/`Bitmap`, o minigame inteiro, o player de cutscene (a confirmar: 78% de similaridade) e o shell de menus.
 
-## Ainda por ler
+## Detalhes (segunda passada)
 
-`c`: `R9`/`R10` (desenho), `R10(int)` (troca de área), `R6` (projétil), `n()`/`i()`/`m()`; `d` (cutscenes, 78%);
-`i` (camada de tiles, 52%); `j` (base, 80%); como o fundo é desenhado sem `sky.png`/`clouds.png`.
+### Máquina de estados e tempos
+Os estados são os mesmos do jogo 1 (0, 3, 4, 5, 6, 10, 11, 12, 20, 21–25), mas os tempos mudaram:
+
+| | Jogo 1 | Jogo 2 |
+|---|---|---|
+| Lord 1 (estado 4): piscar / tiro / libera plataformas / fim | 30 / 60 / 90, 110, 130 | **10 / 20 / 30, 40, 50** |
+| Lord 2 (estado 5): piscar / libera plataformas / fim | 30 / 50, 70 | **10 / 30, 40** |
+| Tela de fim (estado 12) | 14 s (texto após 7 s) | **7 s** |
+| Primeiro encontro (aviso na tela) | — | "Mork is after you!" por 3 s, depois "Hurry up!" piscando até 6 s (`cL`, que parte de 10000 e é zerado ao fim da cutscene) |
+
+O tick recebe dois parâmetros e **o segundo importa**: o tempo total acumulado em ms. O estágio final usa-o para agendar o
+reaparecimento dos arco-íris (`bm[]` guarda `tempo + 4000`). No harness do jogo 1 esse parâmetro era sempre 0; para o jogo 2
+ele precisa ser acumulado (20 ms por tick). A tela só é redesenhada quando o tick rodou (flag `b1`).
+
+### Mork (perseguidor)
+Não age em cutscene, na tela de fim nem nas subáreas. Estados `c0`: 0 = pensando; 1/2 = vai para esquerda/direita; 3/4 = sobe/desce.
+No estado 0, a cada `bw` ms compara a posição do jogador com a sua (`aX`,`aW`, ponto fixo): se o jogador está muito acima
+(mais que `1,5 telas`) ele **teletransporta** para baixo do jogador; senão escolhe o eixo de maior distância e anda
+(`bw = 4 tiles * 16`), parando em `bw <= 0`. Move `cy`/`cx` (velocidade de tile) por passo, mais rápido no estágio final
+(`× (200 + 200·ba/10)/200`). Ao sobrepor o jogador (metade da largura/altura do sprite de `lord.png`) chama `R2`
+(dano), volta ao estado 0 e espera 7 s; `R2` também arma `bw = 4000`. Nasce em `(F, D + 5 tiles)` no estágio final. **(inferido; falta validar)**
+
+### Arco-íris e estágio final
+- Um arco-íris ocupa **2 tiles** (12 à esquerda, 21 à direita); coletar apaga os dois e acende um dos 4 sprites flutuantes
+  (`cm`/`ck`, sobem `aK = cx·240/100` por passo até sair da tela). Fora do estágio final conta em `I` (como os pássaros).
+- No estágio final (`dg == 2`), cada arco-íris coletado (até 10, `ba`) reagenda o reaparecimento do mesmo par de tiles 4 s depois;
+  na 10ª coleta toca `gameend`, carrega `end.bin` e vai para a área −2. O HUD mostra o ícone (tiles 12+21) e `10 − ba`.
+- Não existe mais a lista `bi` (células de saída) nem a limpeza dessas células ao entrar no estágio final. Os blocos laranja
+  (tile 23) continuam sendo criados em `ci[]` (uma dupla por arco-íris que o jogador trouxe do mundo principal).
+- Portão: **fechado** = tiles 16–19 (já no mapa, marcado pelo tile 16); a **chave** (7) o troca pelo **aberto** = 8–11 (que dá o
+  `65535` de "interagir"). No jogo 1 era o inverso.
+
+### Cutscenes (`d`)
+Mesmo esqueleto do jogo 1, com diferenças: opcode **6** lê um `int` (cor RGB do balão) além do índice da fala; opcode **8** coloca
+as 4 peças do portão fechado (16–19) em `(x, y)`; opcode **4** só toca/vibra para o id 2 (dano); tipos de sprite novos **11**
+(2 blocos laranja) e **12** (3 nuvens), e não há mais os tipos 7–10 (`symbols.png`). A câmera da cutscene é deslocada
+`(176 − 128)/2 = 24 px` no estado 20.
+
+### Desenho
+- Sem parallax. Mapa → nuvens-plataforma (sem o "afundar" ao pisar) → Mork/Lords → arco-íris flutuantes → faíscas de dano
+  (`aE > 0`, um único efeito ao redor do jogador) → jogador → HUD → balões.
+- Vidas = tile 24 (coração em moldura amarela); contador de moedas com os mesmos dígitos de `numbers.png`.
+- A camada de tiles guarda uma imagem em cache e redesenha só os tiles alterados (`i.a(x, y, tile)`); o resultado visual é o
+  mesmo de redesenhar tudo.
+- **Minigame**: lógica idêntica, desenho novo: fundo de cor chapada `(60,179,210)` com uma fileira de nuvens (tile 13) embaixo,
+  grade de células **20×23**, peças **9×9**; sem barras laterais nem os personagens do jogo 1.
+
+### Shell (menus)
+`j` agora estende `com.nokia.mid.ui.FullCanvas` (sem softkeys do sistema) e monta o menu num `List` ("Miki's World 2"):
+as teclas virtuais `-6`/`-7` (softkeys) abrem o menu e `-5` (botão central) vale como `5`/FIRE. As opções (comandos, som,
+vibração, hi-score, instruções, sobre) são as mesmas do jogo 1, e `GameMIDlet` acrescenta a tela `splash.png` antes do título.
+O `App` do port já tem o menu equivalente (Esc/Enter).
+
+### Layout 128×128 (classe `f`)
+| Constante | Valor | Constante | Valor |
+|---|---|---|---|
+| tela | 128 × 128 | tile | 12 × 12 (25 imagens) |
+| largura do jogador | 15 | janela de tiles | 12 × 12 |
+| dígito `numbers` | 8 | dígito `time` | 14 |
+| sprites do Lord | 36 (frame) / 24 (pose) | contador de moedas | (2, 115) |
+| relógio do estágio final | (98, 2) | vidas | (111, 114), da direita para a esquerda |
+| células do minigame | 20 × 23 | peças do minigame | 9 × 9 |
+| barras | largura 5, tira 8 | (gameover.png) | centralizado |
+
+## Ainda por ler / validar
+
+Tudo acima vem de leitura; nada foi executado. Falta: o desenho do minigame por inteiro, as telas de menu/entrada de nome
+(`a`, `GameMIDlet`) linha a linha, o `c.f()`/`d()` residuais, e **rodar o JAR original no harness** para confirmar Mork, arco-íris
+e tempos (o harness precisa dos nomes de campo do jogo 2).
