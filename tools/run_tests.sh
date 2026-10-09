@@ -25,6 +25,9 @@ echo "== ring tone decoder"
 step "$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces"
 step "$EXE" ott "$ROOT/extracted/MikisWorld2" "$ROOT/traces" mw2_
 
+echo "== cutscene bubbles do not leak between cutscenes"
+step "$EXE" cutscene "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
+
 echo "== application flow"
 step "$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 

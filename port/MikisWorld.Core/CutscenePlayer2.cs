@@ -16,6 +16,7 @@ public sealed class CutscenePlayer2
     public sbyte[] Frame;
     public short[] ActorX, ActorY;
     public bool[] TextVisible;
+    private readonly int _stringCount;
     public int BubbleR, BubbleG, BubbleB;   // one colour for all bubbles: the last opcode-6 value (as in the original)
     public int CameraX, CameraY;
     public int ScaleX = 24, ScaleY = 24;     // set by the game (cy / cx)
@@ -23,6 +24,7 @@ public sealed class CutscenePlayer2
     public CutscenePlayer2(IAssets assets, IGameHost host, int stringCount, Action<int, int, int> setTile)
     {
         _assets = assets; _host = host; _setTile = setTile;
+        _stringCount = stringCount;
         TextVisible = new bool[stringCount];
     }
 
@@ -32,6 +34,7 @@ public sealed class CutscenePlayer2
     public void Load(string name)
     {
         _script = new DataReader(_assets.ReadResource(name));
+        TextVisible = new bool[_stringCount];     // original: fresh flags on every load, so no bubble survives into the next cutscene
         int n = _script.ReadByte();
         ActorVisible = new bool[n];
         SpriteType = new sbyte[n];

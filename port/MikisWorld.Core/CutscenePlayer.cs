@@ -17,11 +17,13 @@ public sealed class CutscenePlayer
     public sbyte[] Frame;
     public short[] ActorX, ActorY;
     public bool[] TextVisible;
+    private readonly int _stringCount;
     public int CameraX, CameraY;
 
     public CutscenePlayer(IAssets assets, IGameHost host, int scaleX, int scaleY, int stringCount)
     {
         _assets = assets; _host = host; _scaleX = scaleX; _scaleY = scaleY;
+        _stringCount = stringCount;
         TextVisible = new bool[stringCount];
     }
 
@@ -32,6 +34,7 @@ public sealed class CutscenePlayer
     public void Load(string name)
     {
         _script = new DataReader(_assets.ReadResource(name));
+        TextVisible = new bool[_stringCount];     // original: fresh flags on every load, so no bubble survives into the next cutscene
         int n = _script.ReadByte();
         ActorVisible = new bool[n];
         SpriteType = new sbyte[n];
