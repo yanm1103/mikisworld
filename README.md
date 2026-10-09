@@ -8,7 +8,7 @@ original e validados contra ele (ver [Validação](#validação)).
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Menus e salvamento" (2026-10-09).
+> Última atualização: commit "Áudio" (2026-10-09).
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -20,8 +20,8 @@ original e validados contra ele (ver [Validação](#validação)).
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
 | Janela, escala, teclado | **90%** | falta: gamepad, tela cheia, remapear teclas |
 | Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por 26 checks automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
-| Áudio (`.ott` → WAV) | 0% | formato Nokia Ring Tone; precisa de decoder |
-| **Total estimado** | **~82%** | |
+| Áudio (`.ott`) | **85%** | decoder validado contra referência independente (12/12); sintetizador de onda quadrada tocado pelo Raylib; falta conferir de ouvido (o número de repetições dos loops é inferido) |
+| **Total estimado** | **~95%** | |
 
 ### MikisWorld2.jar
 
@@ -36,6 +36,7 @@ original e validados contra ele (ver [Validação](#validação)).
 | inicial | Decompilação, harness do original, núcleo em C# validado por traces | ~45% |
 | Renderizador e janela | Renderizador por software validado por quadros; janela Raylib lendo o JAR | ~69% |
 | Menus e salvamento | Título, menu, instruções, hi-scores, entrada de nome, lista de modo, save em JSON | ~82% |
+| Áudio | Decoder de Nokia Ring Tone + sintetizador + reprodução no Raylib; `play.bat` | ~95% |
 
 ## Como rodar
 
@@ -78,7 +79,7 @@ Não versionados (ver `.gitignore`): `JAR/`, `extracted/`, `decompiled/`, `trace
 2. SDK .NET 8 portátil: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
 3. (Opcional) Decompilador: CFR 0.152 → `tools/cfr.jar`, de `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
 4. `tools/record_traces.sh` e `tools/record_frames.sh` — rodam o JAR original (JDK 11+ e Python).
-5. `tools/record_hall.sh` — grava as tabelas de hi-score da classe `k` original.
+5. `tools/record_hall.sh` (tabelas de hi-score da classe `k` original) e `tools/record_ott.sh` (referência dos sons).
 6. `tools/run_tests.sh` roda tudo e deve terminar com `ALL VALIDATIONS PASSED`
    (`17/17 traces identical`, `10/10 frame sets identical`, hi-scores e fluxo do app).
 
@@ -92,3 +93,11 @@ uma sequência de teclas + teleportes. O estado completo é gravado a cada tick 
 
 Limites conhecidos: os inputs são aleatórios com teleportes (não partidas jogadas) e o texto (fonte do aparelho)
 fica fora da comparação de pixels.
+
+## Áudio
+
+Os 12 efeitos/músicas são Nokia Ring Tones (`.ott`). O decoder (`RingTone.cs`) foi escrito a partir do layout de bits
+do formato Smart Messaging e validado contra um decoder independente em Python (`tools/decode_ott.py`). A síntese é uma
+onda quadrada simples, como o buzzer do celular. Como no original, só um som toca por vez.
+Para ouvir fora do jogo: `play.bat --export-sounds sons` grava um WAV por som. `--sound-test` testa o dispositivo de áudio.
+Inferido (não confirmado pela especificação): um padrão com valor de loop *n* toca *n+1* vezes.

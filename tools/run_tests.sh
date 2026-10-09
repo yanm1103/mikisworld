@@ -17,6 +17,9 @@ for f in "$ROOT"/traces/hall_*.txt; do
   "$EXE" hall "$sd" 400 "$f" || fail=1
 done
 
+echo "== ring tone decoder"
+"$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces" | tail -1 || fail=1
+
 echo "== application flow"
 "$EXE" apptest "$ROOT/extracted/MikisWorld" | tail -1 || fail=1
 

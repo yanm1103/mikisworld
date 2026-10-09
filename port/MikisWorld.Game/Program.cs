@@ -25,13 +25,25 @@ internal static class Program
         int quitAfter = ArgInt(args, "--quit-after", -1);
 
         using var assets = new JarAssets(jar);
-        var app = new App(assets, new SilentHost(), new FileStorage(savePath), Environment.TickCount64);
+        string exportDir = ArgStr(args, "--export-sounds", null);
+        if (exportDir != null) { AudioHost.Export(assets, exportDir); return 0; }
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         Raylib.InitWindow(Layout.ScreenW * scale, Layout.ScreenH * scale, "Miki's World");
         Raylib.SetWindowMinSize(Layout.ScreenW, Layout.ScreenH);
         Raylib.SetExitKey(KeyboardKey.Null);
         Raylib.SetTargetFPS(60);
+
+        using var audio = new AudioHost(assets);
+        if (Array.IndexOf(args, "--sound-test") >= 0)
+        {
+            audio.Play(Sfx.Coin);
+            Raylib.WaitTime(0.03);
+            Console.WriteLine($"audio device ready={audio.Ready}, coin playing={audio.IsPlaying}");
+            Raylib.CloseWindow();
+            return audio.Ready && audio.IsPlaying ? 0 : 1;
+        }
+        var app = new App(assets, audio, new FileStorage(savePath), Environment.TickCount64);
 
         var metrics = new RaylibFontMetrics();
         var frame = new Bitmap(Layout.ScreenW, Layout.ScreenH);
