@@ -8,7 +8,7 @@ original e validados contra ele (ver [Validação](#validação)).
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Harness do jogo 2" (2026-10-09).
+> Última atualização: commit "Game2" (2026-10-09).
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -32,11 +32,11 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Parte | Status | Notas |
 |---|---|---|
 | Decompilação e análise | **~85%** | decompilado e lido (tick, jogador, Mork, arco-íris, desenho, cutscenes, shell); `level.bin` validado (`parse_level.py --v2`); **o jar roda no harness** e 20 traces de referência foram gravados (`tools/record_traces2.sh`). Falta o desenho do minigame e a validação visual |
-| Lógica do jogo (Mork, arco-íris, física alterada) | 0% | segunda tradução literal de `c`, reusando o resto do Core |
+| Lógica do jogo (Mork, arco-íris, física alterada) | **100%** | `Game2`: 20/20 traces idênticos ao original (~100 mil ticks), incluindo Mork, Lords, subáreas e estágio final |
 | Renderização (128×128, tiles individuais, fundo novo) | 0% | |
 | Menus, hi-scores, salvamento | 0% | shell do jogo 1 serve quase sem mudança |
 | Áudio | 0% | 13 dos 14 sons são idênticos aos do jogo 1; trocam `title.ott` e `gameend.ott` |
-| **Total estimado** | **~9%** | mesmos pesos do jogo 1 |
+| **Total estimado** | **~39%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -47,6 +47,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Menus e salvamento | Título, menu, instruções, hi-scores, entrada de nome, lista de modo, save em JSON | ~82% |
 | Áudio | Decoder de Nokia Ring Tone + sintetizador + reprodução no Raylib; `play.bat` | ~95% |
 | Decomp do jogo 2 | MikisWorld2.jar decompilado, lido e comparado por bytecode; parser de nível v2; harness roda o jar 2 e grava 20 traces | MW1 ~95% · MW2 ~9% |
+| Game2 (lógica) | Tradução literal da classe do jogo 2 (Mork, arco-íris, colisão com wrap); 20/20 traces idênticos | MW1 ~95% · MW2 ~39% |
 
 ## Como rodar
 
