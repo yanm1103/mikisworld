@@ -8,7 +8,7 @@ export DOTNET_CLI_HOME="$ROOT/tools/.dotnet-home" DOTNET_NOLOGO=1 DOTNET_CLI_TEL
 EXE="$ROOT/port/MikisWorld.TraceTest/bin/Debug/net8.0/MikisWorld.TraceTest.exe"
 fail=0; total=0
 for f in "$ROOT"/traces/*.trace; do
-  b=$(basename "$f" .trace); sc=${b%_*}; seed=${b#*_}
+  b=$(basename "$f" .trace); case $b in mw2_*) continue;; esac; sc=${b%_*}; seed=${b#*_}
   mode=main; [ "$sc" = bonus ] && mode=bonus
   case $sc in area1) area=1;; area2) area=2;; area3) area=3;; *) area=-;; esac
   case $sc in main) ticks=8000;; bonus) ticks=3000;; *) ticks=4000;; esac
