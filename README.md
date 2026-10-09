@@ -119,4 +119,6 @@ Os 12 efeitos/músicas são Nokia Ring Tones (`.ott`). O decoder (`RingTone.cs`)
 do formato Smart Messaging e validado contra um decoder independente em Python (`tools/decode_ott.py`). A síntese é uma
 onda quadrada simples, como o buzzer do celular. Como no original, só um som toca por vez.
 Para ouvir fora do jogo: `play.bat --export-sounds sons` grava um WAV por som. `--sound-test` testa o dispositivo de áudio.
-Inferido (não confirmado pela especificação): um padrão com valor de loop *n* toca *n+1* vezes.
+Inferido (não confirmado pela especificação): um padrão com valor de loop *n* toca *n+1* vezes, e a oitava de cada nota.
+Como quase todos os sons ficavam entre 0,7 e 2,6 kHz (agudos demais numa onda quadrada), o padrão é **uma oitava abaixo**;
+`--octave N` ajusta (`0` = como decodificado, `-2` = duas oitavas abaixo), inclusive com `--export-sounds`.

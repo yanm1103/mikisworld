@@ -36,6 +36,15 @@ internal static class OttTest
             Console.WriteLine($"{(err == null ? "OK  " : "FAIL")} {name,-22} {tone.Notes.Count,4} notes {tone.TotalSeconds,6:F2}s {(err == null ? "" : err)}");
             if (err != null) fail++;
         }
+        // octave shift: a square wave one octave lower must cross zero about half as often
+        {
+            var coin = RingTone.Decode(File.ReadAllBytes(Path.Combine(assetsDir, "coin.ott")));
+            int Crossings(short[] x) { int c = 0; for (int i = 1; i < x.Length; i++) if ((x[i - 1] < 0) != (x[i] < 0)) c++; return c; }
+            double ratio = (double)Crossings(coin.Render(octaveShift: -1)) / Crossings(coin.Render(octaveShift: 0));
+            bool ok = ratio > 0.45 && ratio < 0.55;
+            Console.WriteLine($"{(ok ? "OK  " : "FAIL")} octave shift -1 halves the frequency (zero-crossing ratio {ratio:F2})");
+            if (!ok) fail++;
+        }
         Console.WriteLine(fail == 0 ? $"ALL OK ({files} tunes)" : $"{fail} FAILED");
         return fail == 0 ? 0 : 1;
     }

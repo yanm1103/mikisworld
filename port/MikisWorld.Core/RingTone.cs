@@ -83,8 +83,11 @@ public sealed class RingTone
     public double TotalSeconds => Notes.Sum(n => n.Milliseconds) / 1000.0;
 
     /// <summary>Mono 16-bit PCM of the whole tune.</summary>
-    public short[] Render(int sampleRate = 22050, double amplitude = 0.22)
+    /// <param name="octaveShift">added to every note's octave (-1 = one octave lower). The scale-to-pitch mapping of the format was
+    /// inferred (the spec was not available), and tunes came out shrill on a square-wave speaker, so the game defaults to -1.</param>
+    public short[] Render(int sampleRate = 22050, double amplitude = 0.22, int octaveShift = 0)
     {
+        double octave = Math.Pow(2, octaveShift);
         var samples = new List<short>((int)(TotalSeconds * sampleRate) + 16);
         double carry = 0;                                 // keeps note boundaries sample-accurate over the whole tune
         double phase = 0;
@@ -95,7 +98,7 @@ public sealed class RingTone
             carry = exact - total;
             double gapFraction = n.Style == 1 ? 0 : n.Style == 2 ? 0.5 : 0.08;
             int sounding = n.Note == 0 ? 0 : (int)(total * (1 - gapFraction));
-            double freq = n.Note == 0 ? 0 : Frequency(n);
+            double freq = n.Note == 0 ? 0 : Frequency(n) * octave;
             int fade = Math.Min(sounding / 4, sampleRate / 500);   // ~2 ms to avoid clicks
             for (int i = 0; i < total; i++)
             {

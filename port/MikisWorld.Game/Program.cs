@@ -21,6 +21,7 @@ internal static class Program
         var shoot = ParseFrames(ArgStr(args, "--shoot", ""));
         int quitAfter = ArgInt(args, "--quit-after", -1);
         string exportDir = ArgStr(args, "--export-sounds", null);
+        int octave = ArgInt(args, "--octave", -1);                  // pitch of the ring tones, in octaves relative to the decoded notes
         bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
 
         if (jar1 == null && jar2 == null)
@@ -35,7 +36,7 @@ internal static class Program
         if (exportDir != null)
         {
             using var a = new JarAssets(game == 2 ? jar2 : jar1);
-            AudioHost.Export(a, exportDir);
+            AudioHost.Export(a, exportDir, octave);
             return 0;
         }
 
@@ -46,7 +47,7 @@ internal static class Program
         if (game == 0) { Raylib.CloseWindow(); return 0; }
 
         using var assets = new JarAssets(game == 2 ? jar2 : jar1);
-        using var audio = new AudioHost(assets) { TitleLoops = game == 2 ? 3 : 1 };
+        using var audio = new AudioHost(assets, octave) { TitleLoops = game == 2 ? 3 : 1 };
         if (soundTest)
         {
             audio.Play(Sfx.Coin);

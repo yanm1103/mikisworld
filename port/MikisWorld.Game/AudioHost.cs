@@ -16,14 +16,14 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
     /// <summary>The second game plays its title jingle three times (<c>Sound.play(3)</c>).</summary>
     public int TitleLoops { get; set; } = 1;
 
-    public AudioHost(IAssets assets)
+    public AudioHost(IAssets assets, int octaveShift = -1)
     {
         Raylib.InitAudioDevice();
         Ready = Raylib.IsAudioDeviceReady();
         if (!Ready) return;
         foreach (Sfx s in Enum.GetValues<Sfx>())
         {
-            short[] pcm = RingTone.Decode(assets.ReadResource(SfxFiles.FileName(s))).Render(SampleRate);
+            short[] pcm = RingTone.Decode(assets.ReadResource(SfxFiles.FileName(s))).Render(SampleRate, octaveShift: octaveShift);
             fixed (short* p = pcm)
             {
                 var wave = new Wave { SampleCount = (uint)pcm.Length, SampleRate = SampleRate, SampleSize = 16, Channels = 1, Data = p };
@@ -72,14 +72,14 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
     }
 
     /// <summary>Writes every sound effect as a WAV file (no audio device needed).</summary>
-    public static void Export(IAssets assets, string dir)
+    public static void Export(IAssets assets, string dir, int octaveShift = -1)
     {
         Directory.CreateDirectory(dir);
         foreach (Sfx s in Enum.GetValues<Sfx>())
         {
             var tone = RingTone.Decode(assets.ReadResource(SfxFiles.FileName(s)));
             string path = Path.Combine(dir, Path.ChangeExtension(SfxFiles.FileName(s), ".wav"));
-            File.WriteAllBytes(path, RingTone.ToWav(tone.Render(SampleRate), SampleRate));
+            File.WriteAllBytes(path, RingTone.ToWav(tone.Render(SampleRate, octaveShift: octaveShift), SampleRate));
             Console.WriteLine($"{path}  ({tone.TotalSeconds:F1}s)");
         }
     }
