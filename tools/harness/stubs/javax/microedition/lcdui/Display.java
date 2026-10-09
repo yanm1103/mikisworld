@@ -6,4 +6,5 @@ public class Display {
     public static Display getDisplay(MIDlet m) { return I; }
     public void setCurrent(Displayable d) { cur = d; }
     public Displayable getCurrent() { return cur; }
+    public boolean isColor() { return true; }
 }

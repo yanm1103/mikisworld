@@ -172,8 +172,22 @@ O `App` do port já tem o menu equivalente (Esc/Enter).
 | células do minigame | 20 × 23 | peças do minigame | 9 × 9 |
 | barras | largura 5, tira 8 | (gameover.png) | centralizado |
 
+## Execução do original (harness)
+
+O jar 2 **roda headless** no mesmo harness do jogo 1 (`tools/harness`), usando um arquivo de nomes
+(`tools/harness/names_mw2.properties`) que traduz os campos lógicos para os nomes ofuscados do jogo 2, e os shims da Nokia
+copiados do jar 1 (o jogo 2 não os traz). As constantes impressas pelo original **confirmam a leitura**: tiles 12×12,
+jogador 15×20, `cy = cx = 24`, velocidades `21`/`43`, queda `48`, subida dos arco-íris `57`, 76 moedas, Lords nas plataformas
+40 e 6, jogador em `(40, 780)` e o Mork nascendo 10 tiles abaixo (`aW = 20640`).
+
+`tools/record_traces2.sh` grava 20 cenários (principal, subáreas, estágio final, minigame e "die" sem vidas extras). Cobrem
+os estados 0, 3, 4, 5, 6, 10, 11, 12 e 20, os quatro movimentos do Mork e até 9 arco-íris no estágio final. Como o Mork
+mata um jogador aleatório em ~1500 ticks, a maioria roda com `-Dkeeplives=3` (repõe as vidas antes de cada tick; o
+runner em C# precisa fazer o mesmo). Como no jogo 1, as subáreas 3 e 4 estouram o mesmo `ArrayIndexOutOfBounds` ao usar um
+portal que não tem destino (bug do original reproduzido nos traces).
+
 ## Ainda por ler / validar
 
-Tudo acima vem de leitura; nada foi executado. Falta: o desenho do minigame por inteiro, as telas de menu/entrada de nome
+Falta: o desenho do minigame por inteiro, as telas de menu/entrada de nome
 (`a`, `GameMIDlet`) linha a linha, o `c.f()`/`d()` residuais, e **rodar o JAR original no harness** para confirmar Mork, arco-íris
 e tempos (o harness precisa dos nomes de campo do jogo 2).

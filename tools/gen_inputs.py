@@ -1,6 +1,8 @@
 """Generate deterministic input scripts for tools/harness Trace (and the C# port's test runner).
 
-usage: python gen_inputs.py <level.bin> <scenario: main|area1|area2|area3|bonus> <seed> <ticks> > script.txt
+usage: python gen_inputs.py <level.bin> <scenario: main|area1|area2|area3|bonus> <seed> <ticks> [--v2] > script.txt
+
+--v2: level.bin of MikisWorld2 (12 px tiles, 8-bit map, different header).
 
 areaN scenarios are meant to be run with Trace's startArea = N (area1 = final stage, area2/3 = sub-areas).
 
@@ -12,7 +14,7 @@ import random
 import sys
 from parse_level import parse
 
-TILE = 14          # bT/b6 reported by the original (see #consts line of a trace)
+TILE = 14          # bT/b6 reported by the original (see #consts line of a trace); 12 for MikisWorld2
 SCALE_NUM, SCALE_DEN = 28, 16   # cl/16, ck/16 applied to file coordinates
 
 
@@ -34,7 +36,11 @@ def platforms(lv):
 
 
 def main():
-    lv = parse(open(sys.argv[1], "rb").read())
+    global TILE
+    v2 = "--v2" in sys.argv
+    if v2:
+        TILE = 12
+    lv = parse(open(sys.argv[1], "rb").read(), v2=v2)
     scen, seed, ticks = sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     rnd = random.Random(seed)
     m = lv["map"]; w, h, t = m["width"], m["height"], m["tiles"]
@@ -43,7 +49,7 @@ def main():
               "area3": (lv["subarea_rows"][0], lv["subarea_rows"][1])}.get(scen, (2, P - 2))
     spots = []
     for i, v in enumerate(t):
-        if v in (6, 7, 15, 12, 16) and lo <= i // w < hi:
+        if v in ((6, 7, 15, 12, 16, 8) if v2 else (6, 7, 15, 12, 16)) and lo <= i // w < hi:
             spots.append((i % w, i // w))
     plats = [p for p in platforms(lv) if lo <= p[1] < hi]
     lord_ix = [lv["lord1_platform"], lv["lord2_platform"]]
