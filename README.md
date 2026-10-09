@@ -8,7 +8,7 @@ original e validados contra ele (ver [Validação](#validação)).
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Renderizador e janela" (2026-10-09).
+> Última atualização: commit "Menus e salvamento" (2026-10-09).
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -19,9 +19,9 @@ original e validados contra ele (ver [Validação](#validação)).
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
 | Janela, escala, teclado | **90%** | falta: gamepad, tela cheia, remapear teclas |
-| Tela-título, menus, hi-scores, opções, salvamento | 0% | decompilado (classes `b`, `k`, `j`), não portado |
+| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por 26 checks automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott` → WAV) | 0% | formato Nokia Ring Tone; precisa de decoder |
-| **Total estimado** | **~69%** | |
+| **Total estimado** | **~82%** | |
 
 ### MikisWorld2.jar
 
@@ -35,6 +35,7 @@ original e validados contra ele (ver [Validação](#validação)).
 |---|---|---|
 | inicial | Decompilação, harness do original, núcleo em C# validado por traces | ~45% |
 | Renderizador e janela | Renderizador por software validado por quadros; janela Raylib lendo o JAR | ~69% |
+| Menus e salvamento | Título, menu, instruções, hi-scores, entrada de nome, lista de modo, save em JSON | ~82% |
 
 ## Como rodar
 
@@ -45,7 +46,9 @@ dotnet run --project port/MikisWorld.Game -- [caminho/para/MikisWorld.jar] [--sc
 ```
 
 Controles: setas/WASD (andar, pular, interagir), `Enter`/`Espaço` (pular cutscene), ou o teclado numérico
-como no celular (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar). `Esc` sai.
+como no celular (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar).
+`Esc` abre/fecha o menu (na partida ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome
+digite normalmente. Opções e hi-scores ficam em `%APPDATA%/MikisWorld/save.json`.
 Código secreto para liberar o minigame bônus: `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8`.
 
 ## Estrutura
@@ -70,8 +73,9 @@ Não versionados (ver `.gitignore`): `JAR/`, `extracted/`, `decompiled/`, `trace
 2. SDK .NET 8 portátil: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
 3. (Opcional) Decompilador: CFR 0.152 → `tools/cfr.jar`, de `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
 4. `tools/record_traces.sh` e `tools/record_frames.sh` — rodam o JAR original (JDK 11+ e Python).
-5. `tools/run_traces.sh` deve terminar com `17/17 traces identical`;
-   `tools/run_frames.sh` com `10/10 frame sets identical`.
+5. `tools/record_hall.sh` — grava as tabelas de hi-score da classe `k` original.
+6. `tools/run_tests.sh` roda tudo e deve terminar com `ALL VALIDATIONS PASSED`
+   (`17/17 traces identical`, `10/10 frame sets identical`, hi-scores e fluxo do app).
 
 ## Validação
 
