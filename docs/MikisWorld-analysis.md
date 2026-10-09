@@ -5,8 +5,10 @@ Fonte decompilada (CFR 0.152): `decompiled/MikisWorld/` — nomes ofuscados; ide
 (`else`, `new`, `do`…) foram trocados por `cfr_renamed_N` para o código ser sintaticamente válido.
 Recursos extraídos: `extracted/MikisWorld/`.
 
-> Tudo abaixo vem da leitura do código decompilado. Itens marcados **(inferido)** são interpretação
-> minha do que um campo/valor faz e ainda não foram confirmados rodando o jogo.
+> O que está abaixo começou como leitura do código decompilado e foi **confirmado rodando o JAR original** num harness sem tela
+> (`tools/harness`) e comparando, tick a tick e pixel a pixel, com o port em C# (veja o [README](../README.md#validação)).
+> Itens marcados **(inferido)** são interpretações de nomes/semântica que não aparecem nos testes (por exemplo, o motivo de um campo).
+> Para o jogo 2, veja [`MikisWorld2-analysis.md`](MikisWorld2-analysis.md).
 
 ## Mapa de classes
 
@@ -31,6 +33,7 @@ Recursos extraídos: `extracted/MikisWorld/`.
 - `AppData` — 3 bytes `{?, som, vibração}`.
 - `GameData` — 1 byte: `1` = minigame bônus liberado.
 - `HallOfFame` — 1 tabela × 10 entradas (nome UTF + int), ordenação "maior é melhor".
+- No port, os três viram um único `save.json` (`%APPDATA%/MikisWorld/`), e a tabela de hi-scores (`HallOfFame.cs`) foi comparada com a classe `k` original.
 
 ## Máquina de estados de `d` (campo `cK`)
 
@@ -40,9 +43,9 @@ Recursos extraídos: `extracted/MikisWorld/`.
 | 3 | game over (some após 3 s) |
 | 4 / 5 | encontro com o "Lord" 1 / 2 (pisca, projéteis, libera plataformas ao fim) |
 | 6 | fase final (contagem regressiva `cQ`, começa em 67000 ms) |
-| 7 | pausado/transição **(inferido)** |
+| 7 | tratado como "jogando" (só atualiza o jogador); **nenhum dos traces e nenhum caminho do código entra nele** |
 | 10 / 11 | wipe de tela (35 frames) saindo / entrando |
-| 12 | tela de fim ("end.png", depois texto) |
+| 12 | tela de fim (`end.png` por 7 s, depois 4 linhas de texto até 14 s; FIRE antecipa) |
 | 20 | cutscene (script `e`) |
 | 21 | menu "Jogo principal / Bônus" (`List` LCDUI) |
 | 22 / 23 / 24 / 25 | minigame bônus: vez do jogador / animação da explosão / IA pensando / IA jogando |
@@ -80,17 +83,43 @@ Mapa: **16×205 tiles**, 82 plataformas, 2 subáreas, 55 moedas, 1 chave, 4 gaio
 
 ### `begin.bin` / `end.bin` — script de cutscene (classe `e`)
 `byte N` (nº de atores), `N` bytes de tipo de sprite, `byte` tempo do 1º evento, depois eventos `{byte op; args…; byte deltaTempo (−1 = fim)}`:
-`0` mostra ator (id,x,y) · `1` esconde · `2` posição da câmera · `3` move ator (dx,dy,frame) · `4` toca som · `6/7` liga/desliga balão de texto (índice de string).
+`0` mostra ator (id,x,y) · `1` esconde · `2` posição da câmera · `3` move ator (dx,dy,frame) · `4` toca som (0 gaiola, 1 Lord, 2 dano) · `5` sem efeito · `6/7` liga/desliga balão de texto (índice de string).
+O tempo do 1º evento é lido e **descartado** (o loader zera o contador logo depois). As flags de balões são **recriadas a cada `Load`**: um balão ligado na introdução não aparece na cutscene final.
 Tipos de sprite: 0-1 jogadora (`player.png`), 2-3 Lord (`lord.png`), 4-5 itens, 6 dano, 7-10 símbolos (`symbols.png`).
 
 ### `en` / `en.hlp`
-`en`: `byte N` + `N×UTF` (33 strings: 0-16 UI/diálogos de cutscene, 16+ = textos `GameMIDlet.a(i)`). `en.hlp`: 1 `UTF` com o texto de ajuda.
+`en`: `byte N` + `N×UTF` (33 strings: 0-15 = UI/menus, 16-32 = os 17 textos in-game `GameMIDlet.a(i)`: dicas, falas das cutscenes, créditos finais). `en.hlp`: 1 `UTF` com o texto de ajuda.
 
-### `*.ott`
-Nokia Ring Tone (OTT). Precisa de conversor/decoder próprio (ou transcrever para MIDI/PCM) no port.
+### `*.ott` — Nokia Ring Tone (Smart Messaging) — **decoder validado**
+Bits em ordem MSB: `0x02`, comando `0x25` (7 bits) + 1 bit de alinhamento, comando `0x1D` (7 bits), tipo de canção (3 bits, 1 = básica),
+título (4 bits de tamanho + 8 bits por caractere), nº de padrões (8 bits). Cada padrão: cabeçalho (3 bits id, 2 bits id do padrão,
+4 bits de *loop*), nº de instruções (8 bits) e as instruções (id de 3 bits): `1` nota (4 bits nota 0-12, 3 bits duração 1/1…1/32,
+2 bits especificador: normal, pontuada ×3/2, dupla pontuada ×9/4, tercina ×2/3), `2` escala (2 bits), `3` estilo (2 bits),
+`4` andamento (5 bits → tabela de 32 BPM de 25 a 900), `5` volume (4 bits).
 
-## O que falta para o port
-1. Renomear `d.java` com nomes legíveis e separá-lo em módulos (jogador/física, mundo/itens, render, minigame, estados).
-2. Escrever extratores finais: strings → JSON, mapa → JSON/TMX, cutscenes → JSON, `.ott` → WAV/MIDI.
-3. Validar contra o jogo original (rodar o JAR num emulador J2ME e comparar frame a frame/estado a estado).
-4. Decidir engine/linguagem do port.
+Os sons: `title`, `onceuponatime`, `gamestart`, `gameend`, `gameover`, `lord`, `transportation`, `bonus`, `cage` (gaiola com pássaro), `coin`,
+`damage`, `key`. O decoder em C# (`RingTone.cs`) bate nota a nota com um decoder independente em Python (`tools/decode_ott.py`).
+**(inferido)** um padrão com valor de *loop* n toca n+1 vezes; e a escala 0 é a oitava com Lá = 440 Hz. Como isso deixava quase todos
+os sons agudos demais (0,7–2,6 kHz) numa onda quadrada, o port toca **uma oitava abaixo** por padrão (`--octave`), o que foi
+confirmado de ouvido.
+
+## Estado do port
+
+Concluído e validado (veja o README para os números): lógica, minigame, desenho, menus/hi-scores/salvamento, áudio e janela.
+Onde cada coisa está no C# (`port/MikisWorld.Core/`):
+
+| Original | Port |
+|---|---|
+| `d` (jogo) | `Game*.cs` (`Game.Level`, `Game.Update`, `Game.Player`, `Game.Bonus`, `Game.Draw`) |
+| `a` (tiles) | `TileLayer.cs` (dados) + desenho em `Game.Draw.cs` |
+| `f` (colisão) | `TileCollision.cs` |
+| `e` (cutscenes) | `CutscenePlayer.cs` |
+| `k` (hi-scores) | `HallOfFame.cs` + `SaveData.cs` |
+| `c` (som) | `RingTone.cs` + `Sfx.cs` (+ `AudioHost` no frontend) |
+| `GameMIDlet`, `b`, `j` | `App.cs` (menus, formulários, fluxo) e o frontend `MikisWorld.Game` |
+
+## Bugs do original
+
+- Cair abaixo do mapa causa `ArrayIndexOutOfBounds` na colisão; entrar num portal sem subárea correspondente (há 4 portais e só 2 subáreas)
+  faz o mesmo em `d.for(int)`. O port reproduz os dois **de propósito** nos traces (que usam teleportes); não verifiquei se uma partida normal consegue provocá-los.
+- O "texto Let me tell you a story.." aparecia na cutscene final por um bug **do port** (flags não recriadas), já corrigido — não é do original.

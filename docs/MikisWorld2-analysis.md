@@ -4,8 +4,10 @@ J2ME / MIDP 1.0 / CLDC 1.0, Sumea, v1.2.2. Decompilado com CFR 0.152 em `decompi
 (recursos em `extracted/MikisWorld2/`). Veja [`MikisWorld-analysis.md`](MikisWorld-analysis.md) para o jogo 1: este
 documento só descreve **o que muda**.
 
-> Itens marcados **(inferido)** vêm da leitura do código ainda não validada contra o jogo rodando.
-> Segunda passada concluída em `c` (tick, jogador, troca de área, desenho), `d` (cutscenes), `f` (layout), `i` (tiles) e `j` (base).
+> Tudo abaixo foi **confirmado rodando o JAR original** no harness (`tools/harness` + `names_mw2.properties`) e comparando com o
+> port (`Game2`): 20 traces de estado e 9 conjuntos de quadros idênticos (veja o [README](../README.md#validação)). Itens marcados
+> **(inferido)** são interpretações de significado (por que um campo existe), sem efeito nos testes.
+> Leitura concluída em `c` (tick, jogador, troca de área, desenho), `d` (cutscenes), `f` (layout), `i` (tiles) e `j` (base).
 
 ## Resumo
 
@@ -77,11 +79,13 @@ Diferentes: `title.ott`, `gameend.ott`, `title.png`, `tiles.png`, `player.png`, 
    cima/baixo), `aX`/`aW` (posição, ponto fixo <<4), `bw` (temporizador), `b5` (quadro de animação). Vai ao encontro do
    jogador por eixos; ao chegar perto causa dano (`R2`), que tira uma vida, toca `damage`, vibra e arma o contador
    `aE = 21` (decrementado a cada passo), que controla a **faísca de dano** desenhada ao redor do jogador; não vi
-   nada que o use como invencibilidade. Na fase final ele acelera conforme o progresso (`ba`).
+   nada que o use como invencibilidade. Na fase final ele acelera conforme o progresso (`ba`). Os quatro movimentos aparecem
+   nos traces e o port os reproduz tick a tick.
 2. **Arco-íris no lugar dos pássaros**: o tile 12 (e o 21, sua placa) é coletado e preenche até 4 posições de animação
    (`cm`/`ck`); no estágio final os arco-íris coletados viram uma **escada** ("Collect 10 rainbows to build a ladder up",
-   `ba` conta até 10, eventos em `bm[80]`). **(inferido)**
-3. **Tiles renumerados**: portão = 8–11 (jogo 1: 16–19); a chave (7) abre o portão em `(bu, bs)`; moeda 6/20 e portais 15/22 iguais.
+   `ba` conta até 10, eventos em `bm[80]`). A lógica está validada; o significado de "escada" é **(inferido)** da string do jogo.
+3. **Tiles renumerados**: portão **fechado** = 16–19 (já no mapa, marcado pelo tile 16) e **aberto** = 8–11, o inverso do jogo 1; a chave (7) troca
+   um pelo outro em `(bu, bs)`; moeda 6/20 e portais 15/22 iguais. Os tijolos rosa (tile 5) **não são sólidos** (flag 0).
 4. **Física**: movimento do jogador congelado durante cutscene/ending (`cY != 20 && != 12`); gravidade base `2`
    quando parado em vez de `0`; sobre plataforma o deslocamento vertical é zerado; **a colisão com tiles roda antes da
    varredura de plataformas** (ordem invertida em relação ao jogo 1). As tabelas de pulo e velocidades (`cE`, `bi`, `bW`)
@@ -92,19 +96,22 @@ Diferentes: `title.ott`, `gameend.ott`, `title.png`, `tiles.png`, `player.png`, 
 Sem alteração relevante (bytecode ≥ 93% igual): troca de área para subáreas/estágio final, varredura do nível,
 atualização de plataformas móveis, câmera, e **todo o minigame** (100%).
 
-## Plano de port
+## Estado do port
 
-A forma mais segura de manter a validação bit a bit é uma **segunda tradução literal** da classe `c` (`Game2`), reutilizando
-tudo o que é idêntico:
+Feito como **segunda tradução literal** da classe `c` (`Game2`), reutilizando tudo o que é idêntico, e validado como o jogo 1:
 
-1. Generalizar o harness (`tools/harness/src/Trace.java`) para nomes de campo por jogo (o jogo 2 usa outras letras).
-2. Parametrizar o que já é configurável em `Layout`/`Game` (resolução, tile, largura do jogador, tabelas de tiles, cheat).
-3. Traduzir só os métodos que divergem: `UpdatePlayer`, início/reinício, desenho, entrada/inicialização, Mork e arco-íris.
-4. Gerar traces e quadros do JAR 2 com o mesmo pipeline e exigir 100% de igualdade.
-5. `App` ganha um seletor de jogo (ou dois executáveis) com assets, strings e cheat do respectivo JAR.
+| Original (jogo 2) | Port (`port/MikisWorld.Core/`) |
+|---|---|
+| `c` (jogo) | `Game2*.cs` (`Level`, `Update`, `Player`, `Bonus`, `Draw`, `Debug`) |
+| `e` (colisão, com wrap) | `TileCollision2.cs` |
+| `d` (cutscenes) | `CutscenePlayer2.cs` |
+| `i` (tiles com cache em anel) | `TileLayer.cs` (dados, `LoadLayerV2`) + `TileCache2.cs` (desenho) |
+| `f` (layout 128×128) | `Layout2` / `Tile2` em `Game2.cs` |
+| `a`, `GameMIDlet`, `j` (menus) | o mesmo `App.cs` do jogo 1, via `IMikisGame` + `AppInfo` |
+| `k`, `b`, `g`, `h` | `HallOfFame.cs`, `RingTone.cs`/`Sfx.cs`, vibração ignorada |
 
-Reaproveitável sem mudança: `JavaRandom`, `DataReader`, `TileCollision`, `HallOfFame`, `SaveData`, `RingTone` (`.ott` iguais),
-`Canvas`/`Bitmap`, o minigame inteiro, o player de cutscene (a confirmar: 78% de similaridade) e o shell de menus.
+Reaproveitados sem mudança: `JavaRandom`, `DataReader`, `HallOfFame`, `SaveData`, `RingTone`, `Canvas`/`Bitmap`, o minigame (copiado de `Game.Bonus.cs`,
+com bytecode idêntico) e o shell de menus.
 
 ## Detalhes (segunda passada)
 
@@ -128,7 +135,7 @@ No estado 0, a cada `bw` ms compara a posição do jogador com a sua (`aX`,`aW`,
 (mais que `1,5 telas`) ele **teletransporta** para baixo do jogador; senão escolhe o eixo de maior distância e anda
 (`bw = 4 tiles * 16`), parando em `bw <= 0`. Move `cy`/`cx` (velocidade de tile) por passo, mais rápido no estágio final
 (`× (200 + 200·ba/10)/200`). Ao sobrepor o jogador (metade da largura/altura do sprite de `lord.png`) chama `R2`
-(dano), volta ao estado 0 e espera 7 s; `R2` também arma `bw = 4000`. Nasce em `(F, D + 5 tiles)` no estágio final. **(inferido; falta validar)**
+(dano), volta ao estado 0 e espera 7 s; `R2` também arma `bw = 4000`. Nasce em `(F, D + 5 tiles)` no estágio final. Validado pelos traces.
 
 ### Arco-íris e estágio final
 - Um arco-íris ocupa **2 tiles** (12 à esquerda, 21 à direita); coletar apaga os dois e acende um dos 4 sprites flutuantes
@@ -158,8 +165,9 @@ as 4 peças do portão fechado (16–19) em `(x, y)`; opcode **4** só toca/vibr
 ### Shell (menus)
 `j` agora estende `com.nokia.mid.ui.FullCanvas` (sem softkeys do sistema) e monta o menu num `List` ("Miki's World 2"):
 as teclas virtuais `-6`/`-7` (softkeys) abrem o menu e `-5` (botão central) vale como `5`/FIRE. As opções (comandos, som,
-vibração, hi-score, instruções, sobre) são as mesmas do jogo 1, e `GameMIDlet` acrescenta a tela `splash.png` antes do título.
-O `App` do port já tem o menu equivalente (Esc/Enter).
+vibração, hi-score, instruções, sobre) são as mesmas do jogo 1, e o jogo mostra `splash.png` antes do título (preto 1 s, imagem 2 s, preto 1 s).
+O `App` do port tem o menu equivalente (Esc/Enter) e implementa o splash (`AppInfo.HasSplash`), mas ele está **desligado por padrão**
+(decisão do autor do port). O título toca 3 vezes (`Sound.play(3)`), como no original.
 
 ### Layout 128×128 (classe `f`)
 | Constante | Valor | Constante | Valor |
@@ -186,8 +194,13 @@ mata um jogador aleatório em ~1500 ticks, a maioria roda com `-Dkeeplives=3` (r
 runner em C# precisa fazer o mesmo). Como no jogo 1, as subáreas 3 e 4 estouram o mesmo `ArrayIndexOutOfBounds` ao usar um
 portal que não tem destino (bug do original reproduzido nos traces).
 
-## Ainda por ler / validar
+## Pendências e bugs do original
 
-Falta: o desenho do minigame por inteiro, as telas de menu/entrada de nome
-(`a`, `GameMIDlet`) linha a linha, o `c.f()`/`d()` residuais, e **rodar o JAR original no harness** para confirmar Mork, arco-íris
-e tempos (o harness precisa dos nomes de campo do jogo 2).
+- **Bug do original (não reproduzido):** iniciar o minigame antes de carregar o nível principal trava a pintura — as imagens de tiles (`bK`) e o
+  tamanho do tile (`b2`) só existem depois do primeiro `e()`, e o desenho do minigame faz `for (x = 0; x < largura; x += b2)` com `b2 = 0` (laço infinito) /
+  usa `bK[13]` (`NullPointerException`). Isso só aparece se o bônus já estiver liberado e for o primeiro modo escolhido. O port sempre tem as imagens.
+- **Reproduzido de propósito nos traces:** as subáreas 3 e 4 estouram `ArrayIndexOutOfBounds` ao usar um portal sem destino (mesmo bug do jogo 1).
+- A imagem de *snapshot* do wipe é criada com **12×12** px (`Image.createImage(12, 12)`), então o wipe mostra um quadradinho deslizando;
+  é fiel ao original e está nos quadros de referência.
+- **Cobertura:** os inputs dos testes são aleatórios com teleportes e vidas repostas (o Mork mata um jogador aleatório em ~1500 ticks); partidas
+  longas jogadas à mão ainda podem revelar casos não cobertos. O texto (fonte do aparelho) fica fora da comparação de pixels.

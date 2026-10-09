@@ -47,14 +47,18 @@ internal static class AppTest
     {
         var assets = new DirAssets(dir);
         var store = new MemoryStorage();
-        Console.WriteLine("MikisWorld 2: splash and title");
+        Console.WriteLine("MikisWorld 2: title (the splash is optional via AppInfo.HasSplash, off in the shipped configuration)");
         var app = NewMw2(assets, store);
-        Check(app.DebugScreen == "Splash" && app.ScreenWidth == 128 && app.ScreenHeight == 128, "starts on the splash screen, 128x128");
-        for (int i = 0; i < 100; i++) app.Update(20);
-        Check(app.DebugScreen == "Splash", "splash lasts ~4 s (still showing at 2 s)");
-        for (int i = 0; i < 110; i++) app.Update(20);
-        Check(app.DebugScreen == "Title", "title after 4 s");
-        var skip = NewMw2(assets, new MemoryStorage());
+        Check(app.DebugScreen == "Title" && app.ScreenWidth == 128 && app.ScreenHeight == 128, "starts directly on the title screen, 128x128");
+        var splashInfo = new AppInfo { About = "", HasSplash = true };
+        App WithSplash() => new App(h => new Game2(assets, h, 7), assets, new CountingHost(), new MemoryStorage(), splashInfo);
+        var sp = WithSplash();
+        Check(sp.DebugScreen == "Splash", "with HasSplash the app starts on the splash screen");
+        for (int i = 0; i < 100; i++) sp.Update(20);
+        Check(sp.DebugScreen == "Splash", "the splash lasts ~4 s (still showing at 2 s)");
+        for (int i = 0; i < 110; i++) sp.Update(20);
+        Check(sp.DebugScreen == "Title", "title after 4 s");
+        var skip = WithSplash();
         skip.KeyPressed(53, 8);
         Check(skip.DebugScreen == "Title", "any key skips the splash");
 
