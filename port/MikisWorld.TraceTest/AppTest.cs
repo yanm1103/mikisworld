@@ -32,7 +32,92 @@ internal static class AppTest
         Tap(a, Fire);
     }
 
-    public static int Run(string assetsDir)
+    public static int Run(string assetsDir, string assets2Dir = null)
+    {
+        int rc1 = RunMw1(assetsDir);
+        int rc2 = assets2Dir != null ? RunMw2(assets2Dir) : 0;
+        Console.WriteLine(_fail == 0 ? "ALL OK" : $"{_fail} FAILED");
+        return rc1 | rc2;
+    }
+
+    private static App NewMw2(DirAssets assets, IStorage store, IGameHost host = null)
+        => new App(h => new Game2(assets, h, 7), assets, host ?? new CountingHost(), store, AppInfo.MikisWorld2);
+
+    private static int RunMw2(string dir)
+    {
+        var assets = new DirAssets(dir);
+        var store = new MemoryStorage();
+        Console.WriteLine("MikisWorld 2: splash and title");
+        var app = NewMw2(assets, store);
+        Check(app.DebugScreen == "Splash" && app.ScreenWidth == 128 && app.ScreenHeight == 128, "starts on the splash screen, 128x128");
+        for (int i = 0; i < 100; i++) app.Update(20);
+        Check(app.DebugScreen == "Splash", "splash lasts ~4 s (still showing at 2 s)");
+        for (int i = 0; i < 110; i++) app.Update(20);
+        Check(app.DebugScreen == "Title", "title after 4 s");
+        var skip = NewMw2(assets, new MemoryStorage());
+        skip.KeyPressed(53, 8);
+        Check(skip.DebugScreen == "Title", "any key skips the splash");
+
+        Console.WriteLine("MikisWorld 2: every screen draws without errors");
+        var tmp = new App(h => new Game2(assets, h, 3), assets, new CountingHost(), new MemoryStorage(), AppInfo.MikisWorld2);
+        var bmp = new Bitmap(128, 128);
+        bool ok = true;
+        try
+        {
+            for (int i = 0; i < 400; i++) { tmp.Update(20); tmp.Draw(new Canvas(bmp)); }
+            tmp.KeyPressed(53, 8); tmp.Draw(new Canvas(bmp));                  // menu
+            Select(tmp, "Instructions"); tmp.Draw(new Canvas(bmp)); tmp.Back();
+            Select(tmp, "High scores"); tmp.Draw(new Canvas(bmp)); tmp.Back();
+            Select(tmp, "About"); tmp.Draw(new Canvas(bmp)); tmp.Back();
+            Select(tmp, "New game");
+            for (int i = 0; i < 600; i++) { tmp.Update(20); tmp.Draw(new Canvas(bmp)); }
+            tmp.Back(); tmp.Draw(new Canvas(bmp));                              // paused game + menu
+        }
+        catch (Exception ex) { ok = false; Console.WriteLine("  " + ex); }
+        Check(ok, "splash, title, menu, forms, cutscene and paused game all draw");
+
+        Console.WriteLine("MikisWorld 2: new game, cheat code, bonus");
+        app = NewMw2(assets, store);
+        for (int i = 0; i < 220; i++) app.Update(20);
+        Select(app, "New game");
+        Check(app.DebugScreen == "Game" && app.Game.CurrentState == State.Cutscene, "New game starts the intro cutscene");
+        for (int i = 0; i < 5; i++) app.Update(20);
+        app.KeyPressed(53, 8);
+        for (int i = 0; i < 20 && app.Game.CurrentState == State.Cutscene; i++) app.Update(20);
+        Check(app.Game.CurrentState == State.Playing, "cutscene skipped");
+        int[] wrong = { 55, 55, 55, 55, 51, 51, 50, 50, 50, 55, 55, 55, 51, 51, 56 };           // the first game's code
+        foreach (int k in wrong) { app.KeyPressed(k, 0); app.KeyReleased(k, 0); }
+        app.Update(20);
+        Check(!store.Data.BonusUnlocked, "the first game's code does NOT unlock the second game's bonus");
+        int[] cheat = { 56, 51, 51, 55, 55, 55, 50, 50, 50, 51, 51, 55, 55, 55, 55 };
+        foreach (int k in cheat) { app.KeyPressed(k, 0); app.KeyReleased(k, 0); }
+        app.Update(20);
+        Check(store.Data.BonusUnlocked, "typing 8 3 3 7 7 7 2 2 2 3 3 7 7 7 7 unlocks and saves the bonus game");
+        var app2 = NewMw2(assets, store);
+        for (int i = 0; i < 220; i++) app2.Update(20);
+        Select(app2, "New game");
+        app2.Update(20);
+        Check(app2.Game.CurrentState == State.ModeMenu, "with the bonus unlocked, New game shows the mode list");
+        app2.KeyPressed(56, 6); app2.KeyPressed(53, 8);
+        for (int i = 0; i < 3; i++) app2.Update(20);
+        Check(app2.Game.CurrentState == State.BonusPlayerTurn, "choosing 'Bonus game' starts the minigame");
+
+        Console.WriteLine("MikisWorld 2: hi-score");
+        var store3 = new MemoryStorage();
+        var app3 = NewMw2(assets, store3);
+        for (int i = 0; i < 220; i++) app3.Update(20);
+        Select(app3, "New game");
+        ((Game2)app3.Game).DebugSetCoins(33);
+        ((Game2)app3.Game).DebugEndGame();
+        for (int i = 0; i < 400 && app3.DebugScreen == "Game"; i++) app3.Update(20);
+        Check(app3.DebugScreen == "NameEntry", "a qualifying score asks for a name");
+        foreach (char c in "Amie") app3.TextInput(c);
+        app3.ConfirmName();
+        Check(store3.Data.HighScores[0].Name == "Amie" && store3.Data.HighScores[0].Score == 33, "score saved");
+        return _fail == 0 ? 0 : 1;
+    }
+
+    private static int RunMw1(string assetsDir)
     {
         var assets = new DirAssets(assetsDir);
         var store = new MemoryStorage();
@@ -77,8 +162,8 @@ internal static class AppTest
         Check(app.Game.Frame > frameBefore && app.DebugScreen == "Game", "Continue resumes the same game");
 
         Console.WriteLine("game over -> high score -> name entry");
-        app.Game.DebugSetCoins(17);
-        app.Game.DebugEndGame();
+        ((Game)app.Game).DebugSetCoins(17);
+        ((Game)app.Game).DebugEndGame();
         for (int i = 0; i < 200 && app.DebugScreen == "Game"; i++) app.Update(20);
         Check(app.DebugScreen == "NameEntry", "a qualifying score asks for a name");
         foreach (char c in "Miki-san-long-name") app.TextInput(c);
@@ -97,8 +182,8 @@ internal static class AppTest
 
         Console.WriteLine("non-qualifying score skips name entry");
         Select(app, "New game");
-        app.Game.DebugSetCoins(0);
-        app.Game.DebugEndGame();
+        ((Game)app.Game).DebugSetCoins(0);
+        ((Game)app.Game).DebugEndGame();
         for (int i = 0; i < 200 && app.DebugScreen == "Game"; i++) app.Update(20);
         Check(app.DebugScreen == "Title", "score 0 does not qualify");
 
@@ -128,7 +213,6 @@ internal static class AppTest
         for (int i = 0; i < 3; i++) app4.Update(20);
         Check(app4.Game.CurrentState == State.BonusPlayerTurn, "choosing 'Bonus game' starts the minigame");
 
-        Console.WriteLine(_fail == 0 ? "ALL OK" : $"{_fail} FAILED");
         return _fail == 0 ? 0 : 1;
     }
 

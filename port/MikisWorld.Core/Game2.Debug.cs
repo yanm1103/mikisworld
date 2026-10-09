@@ -8,6 +8,8 @@ public sealed partial class Game2
     internal void DebugTeleport(int fixedX, int fixedY) { _px = fixedX; _py = fixedY; }
     internal void DebugSetState(int state) { _state = state; }
     internal int DebugLives { get => _lives; set => _lives = value; }
+    internal void DebugSetCoins(int coins) { _coins = coins; }
+    internal void DebugEndGame() { _gameOverTimer = 0; _state = State.GameOver; }
 
     private static int Hash(short[] a)
     {

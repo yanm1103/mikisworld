@@ -60,7 +60,7 @@ public sealed partial class Game
     }
 
     /// <summary>Original d.a(Graphics): the whole frame for the current state.</summary>
-    public void Draw(Canvas g)
+    public bool Draw(Canvas g)
     {
         int W = Layout.ScreenW, H = Layout.ScreenH;
         if (_state >= State.ModeMenu && _state <= State.BonusAiMoving) DrawBonus(g);
@@ -113,6 +113,7 @@ public sealed partial class Game
                 }
             }
         }
+        return true;
     }
 
     // ------------------------------------------------------------------ world scene (original d.cfr_renamed_6(Graphics))

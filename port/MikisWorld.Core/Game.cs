@@ -38,7 +38,7 @@ public static class Tile
 /// Deliberately a literal translation: same integer arithmetic, same evaluation order, same use of the RNG,
 /// so it can be diffed tick-by-tick against traces taken from the original bytecode.
 /// </summary>
-public sealed partial class Game
+public sealed partial class Game : IMikisGame
 {
     // ---------------------------------------------------------------- environment
     private readonly IAssets _assets;
@@ -174,6 +174,12 @@ public sealed partial class Game
     }
 
     public GameStrings Strings { get; }
+
+    // ---- IMikisGame
+    public int ScreenWidth => Layout.ScreenW;
+    public int ScreenHeight => Layout.ScreenH;
+    public void Update(int dt, int totalMs) => Update(dt);
+    public void ChooseModeIndex(int i) => ChooseMode(i);
 
     public void Reseed(long seed) { _rng = new JavaRandom(seed); }
 

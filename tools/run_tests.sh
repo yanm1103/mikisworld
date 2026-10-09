@@ -24,7 +24,7 @@ echo "== ring tone decoder"
 "$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces" | tail -1 || fail=1
 
 echo "== application flow"
-"$EXE" apptest "$ROOT/extracted/MikisWorld" | tail -1 || fail=1
+"$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2" | tail -1 || fail=1
 
 [ $fail -eq 0 ] && echo "ALL VALIDATIONS PASSED" || echo "SOME VALIDATIONS FAILED"
 exit $fail

@@ -31,7 +31,7 @@ public static class Tile2
 /// MikisWorld 2 ("The Storm Master"): second literal translation of the game class (original <c>c</c>), validated tick by tick
 /// against traces of the original bytecode. Shares everything else with the first game (RNG, level reader, hall of fame, ...).
 /// </summary>
-public sealed partial class Game2
+public sealed partial class Game2 : IMikisGame
 {
     private readonly IAssets _assets;
     private readonly IGameHost _host;
@@ -177,6 +177,8 @@ public sealed partial class Game2
     public int Frame => _frame;
     public int Score => _coins;
     public bool NeedsRepaint => _repaint;
+    public int ScreenWidth => Layout2.ScreenW;
+    public int ScreenHeight => Layout2.ScreenH;
 
     // ---------------------------------------------------------------- input
     public void KeyPressed(int key, int action)

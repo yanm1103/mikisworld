@@ -65,7 +65,7 @@ internal static class Program
     private static int Main(string[] a)
     {
         if (a[0] == "hall") return HallTest(a);
-        if (a[0] == "apptest") return AppTest.Run(a[1]);
+        if (a[0] == "apptest") return AppTest.Run(a[1], a.Length > 2 ? a[2] : null);
         if (a[0] == "mw2") return Mw2Test.Run(a);
         if (a[0] == "ott") return OttTest.Run(a[1], a[2]);
         string dir = a[0], mode = a[1];

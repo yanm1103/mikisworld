@@ -1,25 +1,27 @@
 namespace MikisWorld.Core;
 
 /// <summary>
-/// The application shell: title screen, options menu, instructions, high scores, name entry, game-mode list
-/// and the game itself. This replaces the phone's softkey menu of the original (classes <c>GameMIDlet</c>, <c>b</c>,
-/// <c>k</c>) with an on-screen menu, keeping its commands and texts.
+/// The application shell: optional splash, title screen, options menu, instructions, high scores, name entry, game-mode
+/// list and the game itself. Replaces the phone's softkey menu of the original (classes <c>GameMIDlet</c>, title class,
+/// <c>k</c>) with an on-screen menu, keeping its commands and texts. Works for both games through <see cref="IMikisGame"/>.
 /// </summary>
 public sealed class App
 {
-    private enum Screen { Title, Help, About, HighScores, NameEntry, Game }
+    private enum Screen { Splash, Title, Help, About, HighScores, NameEntry, Game }
 
-    private readonly IAssets _assets;
     private readonly IStorage _storage;
     private readonly SaveData _save;
     private readonly HallOfFame _hof = new("aaa", 0, 1, 10, true);
     private readonly SettingsHost _host;
-    private readonly Game _game;
-    private readonly Bitmap _titleArt;
+    private readonly IMikisGame _game;
+    private readonly AppInfo _info;
+    private readonly Bitmap _titleArt, _splash;
     private readonly GameStrings _s;
     private readonly string _helpText;
+    private readonly Bitmap _gameBuf;                 // last painted game frame (the game only repaints when it changed)
+    private List<TextCommand> _gameTexts = new();
 
-    private Screen _screen = Screen.Title;
+    private Screen _screen;
     private Screen _formReturn;               // where Back leads from a form
     private bool _formReopensMenu;            // ...and whether the option menu is shown again
     private bool _menuOpen;                   // option menu (covers title or paused game)
@@ -27,29 +29,41 @@ public sealed class App
     private bool _gameInProgress;             // "Continue game" is available
     private int _modeSel;                     // "Select game" list (main / bonus)
     private int _ms;                          // animation clock
+    private int _gameClock;                   // game time since the run started
     private int _scroll;
     private string _name = "";
     private int _pendingScore;
     private bool _titleSoundPlayed;
 
     public bool WantsExit { get; private set; }
+    private int W => _game.ScreenWidth;
+    private int H => _game.ScreenHeight;
 
+    /// <summary>MikisWorld 1 convenience constructor.</summary>
     public App(IAssets assets, IGameHost host, IStorage storage, long seed)
+        : this(h => new Game(assets, h, seed), assets, host, storage, AppInfo.MikisWorld1) { }
+
+    public App(Func<IGameHost, IMikisGame> createGame, IAssets assets, IGameHost host, IStorage storage, AppInfo info)
     {
-        _assets = assets;
         _storage = storage;
+        _info = info;
         _save = storage.Load() ?? new SaveData();
         _host = new SettingsHost(host) { Enabled = _save.Sound };
-        _s = GameStrings.Load(assets);
+        _game = createGame(_host);
+        _game.BonusUnlocked = _save.BonusUnlocked;
+        _game.EnableRendering();
+        _s = _game.Strings;
         _helpText = GameStrings.LoadHelp(assets);
         _titleArt = assets.LoadBitmap("title.png");
+        _splash = info.HasSplash ? assets.LoadBitmap("splash.png") : null;
         _hof.Import(0, _save.HighScores.Select(e => (e.Name, e.Score)).ToList());
-        _game = new Game(assets, _host, seed) { BonusUnlocked = _save.BonusUnlocked };
-        _game.EnableRendering();
-        _menuOpen = false;
+        _gameBuf = new Bitmap(_game.ScreenWidth, _game.ScreenHeight);
+        _screen = _splash != null ? Screen.Splash : Screen.Title;
     }
 
-    public Game Game => _game;
+    public IMikisGame Game => _game;
+    public int ScreenWidth => _game.ScreenWidth;
+    public int ScreenHeight => _game.ScreenHeight;
 
     // ---- test hooks ----
     internal string DebugScreen => _screen.ToString();
@@ -61,19 +75,27 @@ public sealed class App
     public void Update(int dt)
     {
         _ms += dt;
+        if (_screen == Screen.Splash && _ms >= 4000) EndSplash();
         if (_screen == Screen.Title && !_titleSoundPlayed)
         {
             _titleSoundPlayed = true;
             _host.Play(Sfx.Title);
         }
         if (_screen != Screen.Game || _menuOpen) return;
-        _game.Update(dt);
+        _gameClock += dt;
+        _game.Update(dt, _gameClock);
         if (_game.BonusUnlocked != _save.BonusUnlocked)
         {
             _save.BonusUnlocked = _game.BonusUnlocked;
             _storage.Save(_save);
         }
         if (_game.WantsQuit) GameFinished();
+    }
+
+    private void EndSplash()
+    {
+        _screen = Screen.Title;
+        _ms = 0;
     }
 
     // original GameMIDlet.for() when the game ended on its own
@@ -104,6 +126,9 @@ public sealed class App
     {
         switch (_screen)
         {
+            case Screen.Splash:
+                EndSplash();
+                break;
             case Screen.Title:
                 if (!_menuOpen) { if (IsSelect(key, action)) OpenMenu(); }
                 else MenuKey(key, action);
@@ -137,6 +162,9 @@ public sealed class App
     {
         switch (_screen)
         {
+            case Screen.Splash:
+                EndSplash();
+                break;
             case Screen.Title:
                 _menuOpen = !_menuOpen;
                 _menuSel = 0;
@@ -210,6 +238,7 @@ public sealed class App
         _screen = Screen.Game;
         _gameInProgress = true;
         _modeSel = 0;
+        _gameClock = 0;
         _game.Start();
     }
 
@@ -243,21 +272,25 @@ public sealed class App
     }
 
     // ------------------------------------------------------------------ drawing
-    private const int W = Layout.ScreenW, H = Layout.ScreenH;
     private const int TL = Canvas.Left | Canvas.Top;
 
     public void Draw(Canvas g)
     {
         switch (_screen)
         {
+            case Screen.Splash:
+                DrawSplash(g);
+                break;
             case Screen.Title:
                 g.SetClip(0, 0, W, H);
+                g.SetColor(0, 0, 0);
+                g.FillRect(0, 0, W, H);
                 g.DrawImage(_titleArt, (W - _titleArt.Width) / 2, (H - _titleArt.Height) / 2, TL);
                 if (_menuOpen) { Dim(g); DrawMenu(g); }
                 else if (_ms / 600 % 2 == 0) DrawShadowed(g, "Press Enter", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
                 break;
             case Screen.Game:
-                _game.Draw(g);
+                DrawGame(g);
                 if (_menuOpen) { Dim(g); DrawMenu(g); }
                 else if (_game.CurrentState == State.ModeMenu) DrawModeList(g);
                 break;
@@ -268,20 +301,41 @@ public sealed class App
         }
     }
 
+    // original title class of the second game: black for 1 s, the splash for 2 s, black for 1 s
+    private void DrawSplash(Canvas g)
+    {
+        g.SetClip(0, 0, W, H);
+        g.SetColor(0, 0, 0);
+        g.FillRect(0, 0, W, H);
+        if (_ms >= 1000 && _ms < 3000)
+            g.DrawImage(_splash, (W - _splash.Width) / 2, (H - _splash.Height) / 2, TL);
+    }
+
+    // The game paints into its own buffer (it skips frames where nothing changed); the shell copies it and re-emits the
+    // text of the last real paint so speech bubbles don't flicker.
+    private void DrawGame(Canvas g)
+    {
+        var gc = new Canvas(_gameBuf) { Metrics = g.Metrics };
+        if (_game.Draw(gc)) _gameTexts = new List<TextCommand>(gc.Texts);
+        g.SetClip(0, 0, W, H);
+        g.DrawImage(_gameBuf, 0, 0, TL);
+        g.Texts.AddRange(_gameTexts);
+    }
+
     private void DrawBackdrop(Canvas g)
     {
         g.SetClip(0, 0, W, H);
         _game.DrawBackdrop(g, _ms / 20);
     }
 
-    private static void Dim(Canvas g)
+    private void Dim(Canvas g)
     {
         g.SetClip(0, 0, W, H);
         g.SetColorArgb(0x99, 0, 0, 0);
         g.FillRect(0, 0, W, H);
     }
 
-    private static void Panel(Canvas g, int x, int y, int w, int h)
+    private void Panel(Canvas g, int x, int y, int w, int h)
     {
         g.SetClip(0, 0, W, H);
         g.SetColor(99, 48, 0);
@@ -303,7 +357,7 @@ public sealed class App
     {
         var items = MenuItems();
         int lineH = g.Metrics.Height(FontKind.Bold) + 3;
-        int w = 124, h = items.Count * lineH + 8;
+        int w = Math.Min(124, W - 4), h = items.Count * lineH + 8;
         int x = (W - w) / 2, y = (H - h) / 2;
         Panel(g, x, y, w, h);
         for (int i = 0; i < items.Count; i++)
@@ -323,7 +377,7 @@ public sealed class App
     {
         DrawBackdrop(g);
         int lineH = g.Metrics.Height(FontKind.Bold) + 4;
-        int w = 124, h = 3 * lineH + 10;
+        int w = Math.Min(124, W - 4), h = 3 * lineH + 10;
         int x = (W - w) / 2, y = (H - h) / 2;
         Panel(g, x, y, w, h);
         DrawShadowed(g, _s.Text(15), x + 8, y + 5, FontKind.Bold, 0xFFFFFF, 0);
@@ -385,8 +439,7 @@ public sealed class App
     private void DrawAbout(Canvas g)
     {
         DrawTitled(g, _s.Ui(11), out int x, out int y, out int w, out int h);
-        string text = "Miki's World 1: The Lost Tiara v1.1.2\nCopyright 2002 Sumea\nwww.sumea.com\n\nPC port (unofficial)";
-        var lines = Wrap(g, text, w, FontKind.Small);
+        var lines = Wrap(g, _info.About, w, FontKind.Small);
         int lh = g.Metrics.Height(FontKind.Small) + 1;
         for (int i = 0; i < lines.Count; i++) DrawShadowed(g, lines[i], x, y + i * lh, FontKind.Small, 0xFFFFFF, 0);
     }

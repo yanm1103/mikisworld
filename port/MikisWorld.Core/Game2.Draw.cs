@@ -78,16 +78,16 @@ public sealed partial class Game2
     }
 
     /// <summary>Original c.a(Graphics).</summary>
-    public void Draw(Canvas g)
+    public bool Draw(Canvas g)
     {
         int W = Layout2.ScreenW, H = Layout2.ScreenH;
         if (_state == -1)
         {
             g.SetColor(0, 0, 0);
             g.FillRect(0, 0, W, H);
-            return;
+            return true;
         }
-        if (!_repaint) return;
+        if (!_repaint) return false;
         _repaint = false;
         if (_state >= State.ModeMenu && _state <= State.BonusAiMoving) DrawBonus(g);
         else if (_state == State.WipeOut)
@@ -107,6 +107,18 @@ public sealed partial class Game2
             g.DrawImage(_snapshot, n, 0, TL);
         }
         else DrawScene(g);
+        return true;
+    }
+
+    /// <summary>Menu background: the minigame's flat sky with a row of clouds (this game has no parallax sky image).</summary>
+    public void DrawBackdrop(Canvas g, int frame)
+    {
+        int W = Layout2.ScreenW, H = Layout2.ScreenH;
+        g.SetClip(0, 0, W, H);
+        g.SetColor(60, 179, 210);
+        g.FillRect(0, 0, W, H);
+        for (int x = -(frame / 4 % _tileW); x < W; x += _tileW)
+            g.DrawImage(_tileImages[Tile2.Cloud], x, H - 1, BL);
     }
 
     private void DrawScene(Canvas g)
