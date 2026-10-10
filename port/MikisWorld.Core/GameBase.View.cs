@@ -22,11 +22,20 @@ public abstract partial class GameBase
         if (ViewWidth != oldW || ViewHeight != oldH) OnViewModeChanged();
     }
 
+    internal void DebugSetStage(int stage) { _stage = stage; }
+
+    /// <summary>Hook: the debug "Skip level" is about to move the player somewhere the story did not take him.</summary>
+    protected virtual void OnSkipLevel() { }
+
     /// <summary>Hook: the picture changed size; a game with a drawing cache has to forget it.</summary>
     protected virtual void OnViewModeChanged() { }
 
     /// <summary>How much further than the original screen the picture can reach vertically (0 unless the wide view is on).</summary>
     protected int ExtraView => Tweaks.WideView ? Math.Max(0, ViewHeight - L.ScreenH) : 0;
+
+    /// <summary>Where the last stage's lightning is launched: the top of the original screen, or (wide view) the top of the picture.
+    /// Never so high that its collision box would leave the map (the original never gets there: its camera is below the top).</summary>
+    protected int StormSpawnY => ExtraView > 0 ? Math.Max(_camY - ExtraView, _itemH + 2) : _camY;
 
     // ---- what the next world drawing uses (set by PrepareDraw)
     protected int _vw, _vh;           // size of the picture being drawn
@@ -58,7 +67,7 @@ public abstract partial class GameBase
         int y0 = Math.Max(0, top - _dy), y1 = Math.Min(_vh, bottom - _dy);
         _wx = x0; _ww = Math.Max(0, x1 - x0);
         _wy = y0; _wh = Math.Max(0, y1 - y0);
-        _sx = (_vw - lw) / 2; _sy = (_vh - lh) / 2;
+        _sx = (_vw - lw) / 2; _sy = _vh - lh;              // the sky hangs from the bottom of the picture, where the original screen had its horizon
     }
 
     /// <summary>Origin of a picture axis: centred on the camera's window, kept inside [lo, hi] when the area is larger than the picture

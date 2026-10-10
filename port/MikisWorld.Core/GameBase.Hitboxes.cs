@@ -50,6 +50,7 @@ public abstract partial class GameBase
     public void DebugSkipLevel()
     {
         if (!InPlay) return;
+        OnSkipLevel();
         if (_area == Area.Final)
         {
             _host.Play(Sfx.GameEnd);

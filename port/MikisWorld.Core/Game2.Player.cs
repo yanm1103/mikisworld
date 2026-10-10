@@ -8,7 +8,7 @@ public sealed partial class Game2
     {
         ProcessInteract();
         _frame++;
-        if (_stage == 2 && _area == Area.Main && _frame % 35 == 0) SpawnProjectile(-1, _camY - ExtraView);
+        if (_stage == 2 && _area == Area.Main && _frame % 35 == 0) SpawnProjectile(-1, StormSpawnY);
 
         int dx = 0, dy = 0;
         if (_state != State.Cutscene && _state != State.Ending) StepMotion(out dx, out dy, 2);

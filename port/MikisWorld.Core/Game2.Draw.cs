@@ -65,6 +65,9 @@ public sealed partial class Game2
         _cache?.OnTileChanged(x, y, tile);
     }
 
+    /// <summary>The "Mork is after you" warning is driven by a clock that only runs in the world: skipping ahead from under it would leave it on for good.</summary>
+    protected override void OnSkipLevel() => _markCooldown = 6000;
+
     protected override bool DrawsTileZero => true;          // tile 0 is this game's sky
 
     protected override void DrawTile(Canvas g, int tile, int px, int py) => g.DrawImage(_tileImages[tile], px, py, TL);

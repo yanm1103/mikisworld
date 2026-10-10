@@ -122,6 +122,47 @@ internal static class AppTest
         Check(o.Pixels.Any(p => (p & 0xFFFFFF) != 0), $"{name}: and it draws normally");
     }
 
+    /// <summary>The last stage's lightning in the extended view, with the camera at the very top of the level: bolts must not start outside the map
+    /// (that crashed the tile collision). Also: the sky hangs from the bottom of the picture, and skipping ahead under the "Mork" warning clears it.</summary>
+    private static void CheckStormAtTop(string name, Func<App> make, Action<GameBase> teleportTop)
+    {
+        var app = make();
+        app.Settings.View = DisplayView.Extended;
+        app.SetView(330, 300);
+        app.Debug.Invincible = true;
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+        var g = (GameBase)app.Game;
+        g.DebugSetStage(2);
+        teleportTop(g);
+        for (int t = 0; t < 4000; t++)
+        {
+            app.Update(20);
+            if (t % 7 == 0) app.Draw(new Canvas(new Bitmap(app.ViewWidth, app.ViewHeight)));
+        }
+        Check(app.DebugScreen == "Game", $"{name}: bolts at the top of the level in the extended view: no crash");
+    }
+
+    /// <summary>Game 2: "Mork is after you!" is on screen right after the intro; the debug level skip must not leave it there for good.</summary>
+    private static void CheckMorkWarningSkip(App app)
+    {
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        List<string> Texts() { var c = new Canvas(new Bitmap(app.ViewWidth, app.ViewHeight)); app.Draw(c); return c.Texts.Select(t => t.Text).ToList(); }
+        bool warned = false;
+        for (int i = 0; i < 900 && !warned; i++)
+        {
+            if (app.Game.CurrentState != State.Playing) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); }
+            app.Update(20);
+            warned = app.Game.CurrentState == State.Playing && Texts().Any(t => t.Contains("Mork is after you"));
+        }
+        Check(warned, "game 2: the Mork warning shows right after the intro");
+        ((GameBase)app.Game).DebugSkipLevel();
+        for (int i = 0; i < 400; i++) app.Update(20);
+        Check(app.Game.CurrentState == State.FinalStage && !Texts().Any(t => t.Contains("Mork is after you")), "game 2: skipping ahead clears the Mork warning (it stayed on for good)");
+    }
+
     /// <summary>Random play in several extended view sizes, drawing along the way (portals, areas, lords, game over...): no exception, always a picture.</summary>
     private static void CheckWideStress(string name, Func<App> make)
     {
@@ -366,6 +407,8 @@ internal static class AppTest
         CheckFilterLive("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckWideView("game 2", () => NewMw2(assets, new MemoryStorage()), 16 * 12);
         CheckWideStress("game 2", () => NewMw2(assets, new MemoryStorage()));
+        CheckMorkWarningSkip(NewMw2(assets, new MemoryStorage()));
+        CheckStormAtTop("game 2", () => NewMw2(assets, new MemoryStorage()), b => ((Game2)b).DebugTeleport(100 << 4, 60 << 4));
         CheckBubbles("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckDebugMenu("game 2", () => { var h = new CountingHost(); return (NewMw2(assets, new MemoryStorage(), h), h); });
         var m2 = NewMw2(assets, new MemoryStorage());
@@ -479,6 +522,7 @@ internal static class AppTest
         CheckFilterLive("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckWideView("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3), 16 * 14);
         CheckWideStress("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
+        CheckStormAtTop("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3), b => ((Game)b).DebugTeleport(100 << 4, 60 << 4));
         CheckBubbles("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckDebugMenu("game 1", () => { var h = new CountingHost(); return (new App(assets, h, new MemoryStorage(), 3), h); });
         Console.WriteLine("mouse");
