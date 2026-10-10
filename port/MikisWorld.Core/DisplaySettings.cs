@@ -20,6 +20,9 @@ public sealed class DisplaySettings
     /// <summary>The original's "Vibrator" option: rumble the controller when Miki is hit (never for the keyboard).</summary>
     public bool Vibration { get; set; } = true;
 
+    /// <summary>Debug: draw the hit boxes over the game (also F3). Not persisted.</summary>
+    public bool ShowHitboxes { get; set; }
+
     /// <summary>Borderless full screen. Not persisted: the game always starts in a window.</summary>
     public bool Fullscreen { get; set; }
 

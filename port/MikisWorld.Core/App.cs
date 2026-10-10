@@ -325,6 +325,7 @@ public sealed class App
         var t = _game.Tweaks;
         t.SlowJump = true;
         t.SlowWalkAnimation = true;
+        _game.ShowHitboxes = _set.ShowHitboxes;
         t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
     }
@@ -377,6 +378,7 @@ public sealed class App
             _set.NotifyChanged();
             if (_set.Vibration) _host.VibrateFeedback(100, 100);       // feedback: a short rumble when it is switched back on
         }, false));
+        rows.Add(new("Hitboxes", () => _s.Ui(_set.ShowHitboxes ? 12 : 13), _ => { _set.ShowHitboxes = !_set.ShowHitboxes; _set.NotifyChanged(); }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
@@ -537,6 +539,7 @@ public sealed class App
         if (_game.Draw(gc)) _gameTexts = new List<TextCommand>(gc.Texts);
         g.SetClip(0, 0, W, H);
         g.DrawImage(_gameBuf, 0, 0, TL);
+        _game.DrawHitboxes(g);                                  // debug wireframe (does nothing unless it is switched on)
         if (!_menuOpen) g.Texts.AddRange(_gameTexts);          // the game's text ("Hurry up!"...) is drawn on top of the picture: keep it away from the menu
     }
 

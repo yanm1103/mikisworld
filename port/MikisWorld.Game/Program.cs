@@ -196,6 +196,7 @@ internal static class Program
                     Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
                 }
                 if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
+                if (Raylib.IsKeyPressed(KeyboardKey.F3)) { settings.ShowHitboxes = !settings.ShowHitboxes; settings.NotifyChanged(); }
                 bool borderless = SyncFullscreen(settings);
                 ApplyWindowScale(settings, sw0, sh0, borderless, ref resizedAt);
 
@@ -211,6 +212,7 @@ internal static class Program
                         var dev = n.StartsWith("Pad:", StringComparison.OrdinalIgnoreCase) ? BindingDevice.Gamepad : BindingDevice.Keyboard;
                         if (dev == BindingDevice.Gamepad) n = n[4..];
                         else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
+                        else if (n.Equals("F3", StringComparison.OrdinalIgnoreCase)) { settings.ShowHitboxes = !settings.ShowHitboxes; settings.NotifyChanged(); continue; }
                         else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
                         else continue;
                         if (mode != '-') router.Press(dev, n, now);

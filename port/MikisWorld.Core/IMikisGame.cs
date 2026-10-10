@@ -20,6 +20,10 @@ public interface IMikisGame
     void KeyReleased(int key, int action);
     void ChooseMode(int index);
 
+    /// <summary>Debug wireframe of the hit boxes (drawn by <see cref="DrawHitboxes"/> on top of the frame, every frame).</summary>
+    bool ShowHitboxes { get; set; }
+    void DrawHitboxes(Canvas g);
+
     /// <summary>Optional departures from the original engine (off by default; the application sets them from the user's options).</summary>
     EngineTweaks Tweaks { get; }
     /// <summary>The frontend stops delivering key events (e.g. a menu opens): forget which keys are held.</summary>

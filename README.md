@@ -45,6 +45,7 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 | Filter | só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 | Movement | `new` (padrão) ou `original` — veja abaixo |
 | Vibration | o **controle** vibra quando o Miki é atingido (e um pulso curto ao religar a opção) (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
+| Hitboxes | `F3` também: desenha por cima do jogo os retângulos que a lógica realmente usa (veja abaixo). Não é salvo |
 
 ## O que é diferente do original
 
@@ -52,6 +53,22 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 - **Ritmo:** o celular rodava a lógica bem mais devagar que um PC. O pulo dura o dobro do tempo (mesma altura e distância), a animação de andar do Miki é duas vezes mais lenta e, no jogo 2, o **Mork anda a 2/3 da velocidade**.
 - **Menus e controles de PC:** gamepad, mouse, teclas remapeáveis, volume, tela cheia e zoom inteiro.
 - **Corrigido:** apertar "entrar no portal" várias vezes durante a transição causava uma transição dupla e podia travar o jogo (um bug do original; no `Movement: original` continua assim, de propósito).
+
+## Wireframe dos hitboxes (`F3`)
+
+Útil para artistas e modders: mostra o que a física de fato testa, em qualquer um dos dois jogos.
+
+| Cor | O que é |
+|---|---|
+| verde | caixa de colisão do jogador com os tiles |
+| amarelo | linha de pouso nas plataformas (e, no jogo 2, o ponto central do jogador, que o Mork usa) |
+| cinza | o quadro do sprite do jogador |
+| vermelho / laranja | tiles sólidos / plataformas de mão única |
+| ciano | borda de cima das plataformas (nuvens) |
+| azul-claro | os tiles que o jogador pega ou entra (moedas, chave, portais) |
+| rosa | a zona dos pés que um projétil precisa atingir para causar dano |
+| branco | projéteis (a caixa do sprite e o ponto que o teste de dano usa) |
+| magenta | jogo 2: a zona do Mork |
 
 ## Código secreto do minigame bônus
 
@@ -136,6 +153,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
+| Wireframe de hitboxes | `F3` / opção *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
 
 ### Como rodar a partir do código
 

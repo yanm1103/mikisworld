@@ -84,6 +84,7 @@ public sealed partial class Game : GameBase, IMikisGame
     }
 
     protected override void LoadCutscene(string name) => Cutscene.Load(name);
+    protected override int[] TileFlags => _tileFlags;
     protected override int GateMarkerTile => Tile.GateMarker;
     protected override void UpdateFx() => UpdateBirdFx();
 

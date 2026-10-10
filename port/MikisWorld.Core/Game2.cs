@@ -67,7 +67,19 @@ public sealed partial class Game2 : GameBase, IMikisGame
     }
 
     protected override void LoadCutscene(string name) => Cutscene.Load(name);
+    protected override int[] TileFlags => _tileFlags;
+    protected override int ColliderShrink => 1;
     protected override int GateMarkerTile => Tile2.GateTL;
+
+    /// <summary>Mork hurts when the player's centre point is inside his box (centred on the lord sprite, half the pose width / half the height).</summary>
+    protected override void DrawGameSpecificHitboxes(Canvas g)
+    {
+        if (_area == Area.SubArea || _state == State.Cutscene || _state == State.Ending) return;
+        int halfW = Layout2.LordPoseW >> 1, halfH = _lordH >> 1;
+        int mcx = (_morkX >> 4) + halfW, mcy = (_morkY >> 4) - halfH;
+        Box(g, ColMork, mcx - halfW, mcy - halfH, 2 * halfW + 1, 2 * halfH + 1);
+        Cross(g, ColLanding, (_px >> 4) + (_playerW >> 1), (_py >> 4) - (_playerH >> 1));
+    }
     protected override void UpdateFx() => UpdateRainbowFx();
 
     protected override void ScanOtherTile(int x, int y, int tile)

@@ -40,6 +40,27 @@ internal static class AppTest
         return rc1 | rc2;
     }
 
+    /// <summary>Starts a game, skips the intro and counts the pixels of one colour in the drawn frame (the hit box wireframe is pure green).</summary>
+    private static void CheckHitboxes(string name, Func<App> make)
+    {
+        var app = make();
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+        for (int i = 0; i < 60; i++) app.Update(20);
+        int Green(bool on)
+        {
+            app.Settings.ShowHitboxes = on;
+            app.Update(20);
+            var bmp = new Bitmap(app.ScreenWidth, app.ScreenHeight);
+            app.Draw(new Canvas(bmp));
+            return bmp.Pixels.Count(p => (p & 0xFFFFFF) == 0x00FF00);
+        }
+        int off = Green(false), on = Green(true);
+        Check(off == 0 && on > 20, $"{name}: the hit box wireframe appears only when switched on (green pixels {off} -> {on})");
+        app.Settings.ShowHitboxes = false;
+    }
+
     private static App NewMw2(DirAssets assets, IStorage store, IGameHost host = null)
         => new App(h => new Game2(assets, h, 7), assets, host ?? new CountingHost(), store, AppInfo.MikisWorld2);
 
@@ -89,6 +110,7 @@ internal static class AppTest
             Check(om.DebugOptionsScroll.Sel == sc.Sel - 1, "the mouse wheel moves through the options");
         }
 
+        CheckHitboxes("game 2", () => NewMw2(assets, new MemoryStorage()));
         var m2 = NewMw2(assets, new MemoryStorage());
         m2.Update(20);
         Check(m2.Game.Tweaks.MorkSpeedPercent == 67 && m2.Game.Tweaks.SlowJump, "the application turns the engine tweaks on (Mork at 2/3 speed)");
@@ -195,6 +217,7 @@ internal static class AppTest
         Select(m1a, "New game");
         Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
+        CheckHitboxes("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         Console.WriteLine("mouse");
         {
             var pm = new App(assets, new CountingHost(), new MemoryStorage(), 1);
@@ -287,7 +310,7 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Hitboxes", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
         Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
         Tap(app, Down);
@@ -307,7 +330,7 @@ internal static class AppTest
             bind.Changed += () => bchanges++;
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
             Select(app, "Options");
-            for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);
+            for (int i2 = 0; i2 < 6; i2++) Tap(app, Down);
             Tap(app, Fire);
             Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
             Tap(app, Down); Tap(app, Down);
