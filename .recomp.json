@@ -1,0 +1,15 @@
+{
+  "game": "Miki's World + Miki's World 2",
+  "system": "J2ME",
+  "type": "port",
+  "status": "released",
+  "targets": ["Windows"],
+  "toolchain": ["CFR", "C# / .NET 8", "raylib"],
+  "project": "Miki's World Collection",
+  "approach": "Hand-written C# port of both Nokia J2ME games, checked tick by tick against traces of the original bytecode.",
+  "notes": "Both games are playable end to end: platformer logic, rendering, menus, hall of fame, bonus minigame and sound. Validated with 37 golden state traces (17 + 20) and 19 rendered frame sets, all identical to the original. Adds gamepad and key remapping, mouse menus, shader filters (xBRZ, ScaleFX, CRT, LCD), LCD ghosting and a debug menu with hitbox wireframes. Mod support is planned.",
+  "tags": ["j2me", "nokia", "csharp", "raylib", "platformer"],
+  "links": [
+    { "label": "Releases", "url": "https://github.com/yanm1103/mikisworld/releases" }
+  ]
+}
