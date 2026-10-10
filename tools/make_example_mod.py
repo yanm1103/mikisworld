@@ -6,7 +6,7 @@
 It takes Miki's sprite sheet (player.png) out of the JAR, swaps its red and blue channels and writes
     <mods-folder>/blue-miki/mod.json
     <mods-folder>/blue-miki/player.png
-The artwork is Sumea's, so the result is not kept in the repository (mods/ is in .gitignore): it is made on your machine.
+This is how the sample mod mods/blue-miki was made. The artwork is Sumea's: the sample mods only recolour or replace sprites.
 
 Needs Pillow:  pip install pillow
 Then switch it on in the game: Options -> Mods (start screen), or press F5 in a game to reload after editing the picture.

@@ -113,7 +113,7 @@ Useful for artists and modders: shows what the physics actually tests, in either
 
 ## Mods
 
-Mods are folders that go over the game's own files: new sprites and tiles, a different title picture, other sounds (the Nokia `.ott` format, or plain `.wav`/`.ogg` recordings), and, for the adventurous, texts, cutscenes and levels. Put them in a `mods` folder next to the executable (or in `%APPDATA%/MikisWorld/mods`), then switch them on in **Options → Mods** on the start screen. While playing, **F5** reads the pictures and sounds again, so you can edit a file and see the result at once. The game warns about things that are likely to break (a picture of the wrong size, a misspelt file name). A mod that only changes pictures and sounds keeps your saved high scores; one that changes the game itself gets its own save.
+Mods are folders that go over the game's own files: new sprites and tiles, a different title picture, other sounds (the Nokia `.ott` format, or plain `.wav`/`.ogg` recordings), and, for the adventurous, texts, cutscenes and levels. Some simple sample mods come in the `mods` folder of the repository and in the zip of each release. Put mods in a `mods` folder next to the executable (or in `%APPDATA%/MikisWorld/mods`), then switch them on in **Options → Mods** on the start screen. While playing, **F5** reads the pictures and sounds again, so you can edit a file and see the result at once. The game warns about things that are likely to break (a picture of the wrong size, a misspelt file name). A mod that only changes pictures and sounds keeps your saved high scores; one that changes the game itself gets its own save.
 
 How to make one, with the sizes and names of every file: [docs/MODDING.md](docs/MODDING.md). Planned next: new levels as extra entries of the menu, and rules (lives, speeds, timers) in readable files.
 
@@ -158,7 +158,7 @@ If you hit an error, please let us know!
 
 > This table is updated **on every commit**. Percentages are effort estimates, not lines of code.
 > Weights: decompilation 10 · logic 30 · rendering 20 · window/input 10 · menus/saves 15 · audio 15.
-> Current version: **1.1.0** (see the [CHANGELOG](CHANGELOG.md)). Reference milestone of the base: tag `base-1.0`.
+> Current version: **1.2.0** (see the [CHANGELOG](CHANGELOG.md)). Reference milestone of the base: tag `base-1.0`.
 
 #### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 

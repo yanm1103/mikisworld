@@ -15,5 +15,3 @@ sons/
 # distributable build
 dist/
 
-# mods made on your machine (they may contain the original artwork)
-mods/

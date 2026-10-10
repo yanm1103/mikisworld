@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- Fixed bugs
+- Added extended resolution, you can now see way more map at once. Zoom in or out with `+`/`-` keys
+- Added mod support and included some simple sample mods
+
 ## 1.1.0
 
 - Fixed bugs

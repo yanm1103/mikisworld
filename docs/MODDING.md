@@ -16,7 +16,7 @@ The goal: Miki of game 1 with different colours. It takes five minutes.
 5. **Switch it on.** Start the game, then *Options → Mods*, select *Blue Miki*, press Enter (`[x]` means on). Start Miki's World 1.
 6. **Edit and look again.** While playing, change `player.png` and press **F5**: the new picture appears at once.
 
-The repository has a script that does steps 1 to 4 for you, from your own copy of the JAR (the artwork is Sumea's, so the result is not kept in the repository): `python tools/make_example_mod.py` (needs `pip install pillow`) writes `mods/blue-miki/` with Miki's red and blue swapped. Open the files to see what a mod looks like.
+The repository's `mods/` folder (and the zip of each release) has finished sample mods, `blue-miki` and `amie`: open their files to see what a mod looks like. `python tools/make_example_mod.py` (needs `pip install pillow`) rebuilds Blue Miki from your own copy of the JAR, steps 1 to 4 done for you.
 
 If something is wrong (a picture of another size, a file name with a typo), *Options → Mods* shows a `!` next to the mod and the first remarks below the list.
 
