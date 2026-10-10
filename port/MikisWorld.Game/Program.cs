@@ -47,7 +47,7 @@ internal static class Program
         Raylib.InitWindow(640, 400, "Miki's World");
         Raylib.SetExitKey(KeyboardKey.Null);
         Raylib.SetTargetFPS(60);
-        if (game == 0) game = ChooseGame();
+        if (game == 0) game = Launcher.Run(settings, ParseFrames(ArgStr(args, "--launcher-inject", "")), ParseFrames(ArgStr(args, "--launcher-shoot", "")), ArgInt(args, "--launcher-quit-after", -1));
         if (game == 0) { Raylib.CloseWindow(); return 0; }
 
         using var assets = new JarAssets(game == 2 ? jar2 : jar1);
@@ -102,18 +102,13 @@ internal static class Program
             acc += Math.Min(Raylib.GetFrameTime(), 0.25);
 
             // ---- window: always an integer multiple of the native resolution (no blurry/uneven pixels)
-            bool borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
             if (resizeSpec != null && frameNo == 10)
             {
                 var wh = resizeSpec.Split('x');
                 Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
             }
             if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
-            if (settings.Fullscreen != borderless)                  // the option (menu or F11) is the source of truth
-            {
-                Raylib.ToggleBorderlessWindowed();
-                borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
-            }
+            bool borderless = SyncFullscreen(settings);
             if (settings.IntegerScale && !borderless && !Raylib.IsWindowMaximized())
             {
                 int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
@@ -228,44 +223,17 @@ internal static class Program
             Raylib.SetWindowSize(w * scale, h * scale);
     }
 
-    /// <summary>Small start-up screen shown when both games are available.</summary>
-    private static int ChooseGame()
+    /// <summary>The Fullscreen option (menu, launcher or F11) is the source of truth: bring the window in line with it.
+    /// Returns whether the window is borderless afterwards.</summary>
+    internal static bool SyncFullscreen(DisplaySettings settings)
     {
-        int sel = 0;
-        string[] titles = { "Miki's World 1", "Miki's World 2" };
-        string[] subs = { "The Lost Tiara", "The Storm Master" };
-        while (!Raylib.WindowShouldClose())
+        bool borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
+        if (settings.Fullscreen != borderless)
         {
-            if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1)) return 1;
-            if (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2)) return 2;
-            if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.A) || Raylib.IsKeyPressed(KeyboardKey.W)) sel = 0;
-            if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.D) || Raylib.IsKeyPressed(KeyboardKey.S)) sel = 1;
-            if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.Space) || Raylib.IsKeyPressed(KeyboardKey.KpEnter)) return sel + 1;
-            if (Raylib.IsKeyPressed(KeyboardKey.Escape)) return 0;
-            for (int pad = 0; pad < 4; pad++)
-            {
-                if (!Raylib.IsGamepadAvailable(pad)) continue;
-                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.LeftFaceLeft) || Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftX) < -0.6f) sel = 0;
-                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.LeftFaceRight) || Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftX) > 0.6f) sel = 1;
-                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.RightFaceDown) || Raylib.IsGamepadButtonPressed(pad, GamepadButton.MiddleRight)) return sel + 1;
-                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.RightFaceRight)) return 0;
-            }
-            Raylib.BeginDrawing();
-            Raylib.ClearBackground(new Color(60, 179, 210, 255));
-            Raylib.DrawText("Choose a game", 220, 30, 36, Color.White);
-            for (int i = 0; i < 2; i++)
-            {
-                var box = new Rectangle(60 + i * 280, 120, 240, 160);
-                Raylib.DrawRectangleRec(box, i == sel ? new Color(160, 90, 20, 255) : new Color(99, 48, 0, 255));
-                Raylib.DrawRectangleLinesEx(box, i == sel ? 4 : 2, Color.White);
-                Raylib.DrawText(titles[i], (int)box.X + 20, (int)box.Y + 40, 28, Color.White);
-                Raylib.DrawText(subs[i], (int)box.X + 20, (int)box.Y + 80, 22, new Color(255, 224, 160, 255));
-                Raylib.DrawText($"[{i + 1}]", (int)box.X + 20, (int)box.Y + 120, 20, Color.White);
-            }
-            Raylib.DrawText("1 / 2 or arrows + Enter (gamepad: D-pad + A)", 195, 330, 22, Color.White);
-            Raylib.EndDrawing();
+            Raylib.ToggleBorderlessWindowed();
+            borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
         }
-        return 0;
+        return borderless;
     }
 
     private static string DefaultSave(int game)
@@ -363,7 +331,7 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 /// Full screen is deliberately not saved: the game always starts in a window.</summary>
 internal static class SettingsStore
 {
-    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool KeepDirection = true);
+    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
 
@@ -373,7 +341,7 @@ internal static class SettingsStore
         var d = new Dto();
         try { if (File.Exists(_path)) d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path)) ?? d; }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, KeepDirection = d.KeepDirection };
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, RevampedMovement = d.RevampedMovement };
     }
 
     public static void Save(DisplaySettings s)
@@ -381,7 +349,7 @@ internal static class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.KeepDirection), Opt));
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

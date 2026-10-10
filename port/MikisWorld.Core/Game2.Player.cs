@@ -49,17 +49,23 @@ public sealed partial class Game2
         int dx = 0, dy = 0;
         if (_state != State.Cutscene && _state != State.Ending)
         {
+            // revamped movement: real held directions, and a jump needs a fresh key press
+            int hx = Tweaks.RevampedMovement ? _held.X : _inputX;
+            bool wantJump = Tweaks.RevampedMovement ? _jumpBuffer > 0 : _inputJump < 0;
             if (_motion == 0 || _motion == 1 || _motion == 2)
             {
-                if (_inputJump < 0 && _inputX < 0) { _motion = 3; _jumpStep = 0; _sprite = 1; _airControl = true; }
-                else if (_inputJump < 0 && _inputX > 0) { _motion = 5; _jumpStep = 0; _sprite = 3; _airControl = true; }
-                else if (_inputJump < 0) { _motion = 4; _jumpStep = 0; }
-                else if (_inputX < 0) _motion = 1;
-                else if (_inputX > 0) _motion = 2;
+                if (wantJump && hx < 0) { _motion = 3; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 1; _airControl = true; }
+                else if (wantJump && hx > 0) { _motion = 5; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 3; _airControl = true; }
+                else if (wantJump) { _motion = 4; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; }
+                else if (hx < 0) _motion = 1;
+                else if (hx > 0) _motion = 2;
             }
-            if (_inputX == 0 && (_motion == 1 || _motion == 2)) _motion = 0;
+            if (hx == 0 && (_motion == 1 || _motion == 2)) _motion = 0;
+            if (_jumpBuffer > 0) _jumpBuffer--;
             dx = 0;
             dy = 2;
+            int prevCase = _lastCase;
+            _lastCase = _motion;
             switch (_motion)
             {
                 case 0:
@@ -67,11 +73,11 @@ public sealed partial class Game2
                     else _sprite = 0;
                     break;
                 case 1:
-                    _sprite = _frame / 3 % 2;
+                    _sprite = _frame / (Tweaks.SlowWalkAnimation ? 6 : 3) % 2;
                     dx -= _walkSpeed;
                     break;
                 case 2:
-                    _sprite = 2 + _frame / 3 % 2;
+                    _sprite = 2 + _frame / (Tweaks.SlowWalkAnimation ? 6 : 3) % 2;
                     dx += _walkSpeed;
                     break;
                 case 3:
@@ -79,15 +85,17 @@ public sealed partial class Game2
                     if (_inputX < 0 && _inputJump == 0) { dx = -_airSpeed; _airControl = false; _sprite = 1; }
                     else if (_inputX > 0 && _inputJump == 0) { dx = _airSpeed; _airControl = false; _sprite = 3; }
                     else if (_airControl) dx -= _walkSpeed;
+                    if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
                     _jumpStep++;
                     if (_jumpStep != _jumpTable.Length) break;
                     _jumpStep = 0;
                     _motion = 0;
                     break;
                 case 4:
-                    if (_inputX < 0) { _sprite = 1; dx = -_walkSpeed; }
-                    else if (_inputX > 0) { _sprite = 3; dx = _walkSpeed; }
+                    if (hx < 0) { _sprite = 1; dx = -_walkSpeed; }
+                    else if (hx > 0) { _sprite = 3; dx = _walkSpeed; }
                     dy = -_jumpTable[_jumpStep];
+                    if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
                     _jumpStep++;
                     if (_jumpStep != _jumpTable.Length) break;
                     _jumpStep = 0;
@@ -98,14 +106,17 @@ public sealed partial class Game2
                     if (_airControl) dx += _walkSpeed;
                     if (_inputX < 0 && _inputJump == 0) { dx = -_walkSpeed; _airControl = false; _sprite = 1; }
                     else if (_inputX > 0 && _inputJump == 0) { dx = _walkSpeed; _airControl = false; _sprite = 3; }
+                    if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
                     _jumpStep++;
                     if (_jumpStep != _jumpTable.Length) break;
                     _jumpStep = 0;
                     _motion = 0;
                     break;
                 case 6:
-                    if (_inputX < 0) { _sprite = 1; dx = -_airSpeed; }
-                    else if (_inputX > 0) { _sprite = 3; dx = _airSpeed; }
+                    // walking on flat ground flips between motion 6 and 0 every tick in the original; its air pose would make the walk flicker
+                    bool pose = !Tweaks.SlowWalkAnimation || prevCase == 6;
+                    if (hx < 0) { if (pose) _sprite = 1; dx = -_airSpeed; }
+                    else if (hx > 0) { if (pose) _sprite = 3; dx = _airSpeed; }
                     dy += _fallSpeed;
                     break;
             }

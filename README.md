@@ -21,7 +21,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), "manter direção" |
+| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/revamped, tela inicial com opções |
 | Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **~99%** | |
@@ -59,12 +59,15 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Sons uma oitava abaixo | Padrão −1 oitava (`--octave N`); áudio conferido de ouvido nos dois jogos | ~98% · ~97% |
 | Documentação | README e análises atualizados; splash do jogo 2 opcional; créditos | ~98% · ~97% |
 | Opções de janela e volume | Tela *Options* (volume 0–100 % na amplitude da onda, tela cheia, escala inteira, filtro nearest/bilinear); os dois JARs passam a ser obrigatórios | ~98% · ~97% |
-| Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle, "manter direção"; roteador de entrada com testes | ~99% · ~98% |
+| Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle; roteador de entrada com testes | ~99% · ~98% |
+| Ajustes de engine e tela inicial | Pulo e animação do protagonista mais lentos, opção *Movement* original/revamped (sem pulo contínuo ao segurar ↑, direção segurada vale ao cair/pousar), tela inicial com jogos + opções compartilhadas; `EngineTweaks` desligado nos testes (traces continuam idênticos) | ~99% · ~98% |
 
 ## Como rodar
 
 Precisa dos **dois** arquivos, `MikisWorld.jar` e `MikisWorld2.jar` (em `JAR/`), e do .NET 8 SDK. Se faltar algum, o programa não inicia:
-ele diz qual falta e onde procurar. Uma tela inicial deixa escolher o jogo (`1`/`2`); `--game 1` ou `--game 2` pula essa tela.
+ele diz qual falta e onde procurar. Uma **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, ou D-pad + `A`) e já configura o que vale para os dois jogos:
+*Movement* (original/revamped), *Fullscreen*, *Integer scale*, *Filter* e *Sound*; tudo é salvo na hora. `--game 1` ou `--game 2` pula essa tela
+(as mesmas opções ficam em *Options* dentro do jogo).
 
 **Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
 Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
@@ -84,6 +87,10 @@ dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave 
 (andar), `A` (pular), `X` (interagir), `Y` (confirmar), `Start` (menu/pausa). Nos menus: D-pad/analógico navegam, `A` confirma e
 `B`/`Start` voltam. Em cutscenes e no minigame, `A` confirma. No campo de nome dos hi-scores: ↑/↓ trocam a letra, → acrescenta
 uma, ←/`B` apaga e `A`/`Start` salva (nome vazio vira `MIKI`).
+
+**Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
+e a animação de andar do protagonista mostra cada sprite pelo dobro do tempo. No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
+estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
 
 **Remapear** (menu → *Options* → *Keyboard keys* ou *Gamepad*): cada ação tem **duas** entradas. `Enter`/`A` começa a captura
 ("Press a key…"), a próxima tecla/botão é gravada (`Esc` no teclado, `Start` no controle cancelam); `Backspace` limpa a célula,
@@ -105,7 +112,7 @@ a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação 
 | Fullscreen | tela cheia sem bordas (também `F11`) |
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
 | Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
-| Keep direction | o original **zera todo o movimento ao soltar qualquer tecla** (era assim no teclado do celular). Ligado (padrão), a direção que continua apertada volta a valer ao soltar outro botão (ex.: segurar → e tocar pular). Desligado = comportamento original |
+| Movement | `revamped` (padrão) ou `original`. **Revamped**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo ou ao pousar. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
 | Keyboard keys / Gamepad | telas de remapeamento (acima) |
 
 **Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.
@@ -118,10 +125,10 @@ a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação 
 ```
 docs/                      análise dos dois jogos e dos formatos de arquivo
 port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
-                             Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento)
+                             Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento) · EngineTweaks.cs
 port/MikisWorld.Game/      frontend Raylib (janela, texto, áudio); lê os recursos direto dos JARs
-                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib)
-port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes e roteador de entrada
+                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib) · Launcher.cs (tela inicial)
+port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes, roteador de entrada e ajustes de engine
 tools/harness/             roda os JARs originais sem tela (stubs do MIDP, Graphics real) e grava traces/quadros
 tools/record_*.sh          gravam as referências a partir dos JARs originais (traces, quadros, hi-scores, sons)
 tools/run_*.sh             comparam o C# com as referências;  tools/run_tests.sh  roda tudo

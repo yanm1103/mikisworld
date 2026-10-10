@@ -39,6 +39,13 @@ public sealed partial class Game2 : IMikisGame
     public CutscenePlayer2 Cutscene { get; private set; }
     public GameStrings Strings { get; }
 
+    /// <summary>Optional departures from the original engine (all off by default).</summary>
+    public EngineTweaks Tweaks { get; } = new();
+    private const int JumpBufferTicks = 5;
+
+    /// <summary>Forget which keys are held (the frontend stops delivering key events, e.g. while a menu is open).</summary>
+    public void ReleaseAll() { _held.Clear(); _jumpBuffer = 0; }
+
     // ---------------------------------------------------------------- scale / constants
     private readonly int _tileW = Layout2.TileW, _tileH = Layout2.TileH;
     private int _scaleX, _scaleY;                    // cy, cx: 16 * tile / 8 (set on every level load)
@@ -104,6 +111,8 @@ public sealed partial class Game2 : IMikisGame
     private int _motion, _jumpStep, _sprite;
     private bool _airControl;
     private int _inputX, _inputJump;
+    private readonly HeldDirections _held = new();   // revamped movement: directions really held
+    private int _jumpBuffer, _jumpSub, _lastCase;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
     private int _standingOn = -1;
 
     // camera
@@ -209,6 +218,8 @@ public sealed partial class Game2 : IMikisGame
         }
         if (_state >= State.ModeMenu && _state <= State.BonusAiMoving) BonusKey(key, action);
 
+        _held.Press(key, action);
+        if (key == 51 || key == 49 || key == 50 || action == 1) _jumpBuffer = JumpBufferTicks;
         if (key == 51) { _inputJump = -1; _inputX = 2; }
         else if (key == 54 || action == 5) _inputX = 2;
         else if (key == 49) { _inputJump = -1; _inputX = -2; }
@@ -219,6 +230,7 @@ public sealed partial class Game2 : IMikisGame
 
     public void KeyReleased(int key, int action)
     {
+        _held.Release(key);
         _inputX = 0;
         _inputJump = 0;
     }

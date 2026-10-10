@@ -125,6 +125,7 @@ public sealed class App
     // ------------------------------------------------------------------ time
     public void Update(int dt)
     {
+        SyncTweaks();
         _ms += dt;
         if (_screen == Screen.Splash && _ms >= 4000) EndSplash();
         if (_screen == Screen.Title && !_titleSoundPlayed)
@@ -290,7 +291,17 @@ public sealed class App
         return items;
     }
 
-    private void OpenMenu() { _menuOpen = true; _menuSel = 0; }
+    private void OpenMenu() { _menuOpen = true; _menuSel = 0; _game.ReleaseAll(); }
+
+    /// <summary>The engine departures the user asked for. The slower jump and walking animation are always on here (they only fix the
+    /// pace of the original on a PC); "revamped movement" is the option. The traces/frame tests use a bare game, so they stay original.</summary>
+    private void SyncTweaks()
+    {
+        var t = _game.Tweaks;
+        t.SlowJump = true;
+        t.SlowWalkAnimation = true;
+        t.RevampedMovement = _set.RevampedMovement;
+    }
 
     private void MenuKey(int key, int action)
     {
@@ -330,7 +341,7 @@ public sealed class App
         // smoothing only makes sense when the picture is not magnified by a whole number
         if (!_set.IntegerScale)
             rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
-        rows.Add(new("Keep direction", () => _s.Ui(_set.KeepDirection ? 12 : 13), _ => { _set.KeepDirection = !_set.KeepDirection; _set.NotifyChanged(); }, false));
+        rows.Add(new("Movement", () => _set.RevampedMovement ? "revamped" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;

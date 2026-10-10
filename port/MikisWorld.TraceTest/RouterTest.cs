@@ -8,7 +8,6 @@ internal static class RouterTest
     private sealed class Fake : IInputTarget
     {
         public App.InputContext Context { get; set; } = App.InputContext.Gameplay;
-        public DisplaySettings Settings { get; } = new();
         public InputBindings Bindings { get; } = new();
         public bool CapturingInput { get; set; }
         public bool AcceptsRepeat { get; set; }
@@ -45,19 +44,12 @@ internal static class RouterTest
             r.Release(K, "Right"); Check("first release while the other is held: nothing", t.Take(), "");
             r.Release(K, "D"); Check("last release: key released", t.Take(), "R-4/5");
         }
-        // ---- keep direction: hold right, tap jump
-        foreach (bool keep in new[] { true, false })
+        // ---- every release is delivered for its own key (the engine decides what stays held)
         {
-            var t = new Fake(); t.Settings.KeepDirection = keep; var r = new InputRouter(t);
+            var t = new Fake(); var r = new InputRouter(t);
             r.Press(K, "Right", 0); r.Press(K, "Up", 0); t.Take();
-            r.Release(K, "Up");
-            Check($"jump released, keep={keep}", t.Take(), keep ? "R-1/1 P-4/5" : "R-1/1");
+            r.Release(K, "Up"); Check("only the released key is reported", t.Take(), "R-1/1");
             r.Release(K, "Right"); Check("right released", t.Take(), "R-4/5");
-        }
-        {
-            var t = new Fake(); var r = new InputRouter(t);       // two directions held: the latest press wins again
-            r.Press(K, "Left", 0); r.Press(K, "Right", 0); r.Press(K, "E", 0); t.Take();
-            r.Release(K, "E"); Check("keep direction re-applies in press order", t.Take(), "R51/0 P-3/2 P-4/5");
         }
         // ---- digits stay on the phone keypad (cheat codes), arrows etc. come from the bindings
         {

@@ -20,6 +20,11 @@ public interface IMikisGame
     void KeyReleased(int key, int action);
     void ChooseMode(int index);
 
+    /// <summary>Optional departures from the original engine (off by default; the application sets them from the user's options).</summary>
+    EngineTweaks Tweaks { get; }
+    /// <summary>The frontend stops delivering key events (e.g. a menu opens): forget which keys are held.</summary>
+    void ReleaseAll();
+
     /// <summary>Paints the frame; returns false when the game decided nothing changed since the last paint.</summary>
     bool Draw(Canvas g);
     /// <summary>Animated background for screens outside the game world (menus).</summary>

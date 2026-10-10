@@ -31,6 +31,9 @@ step "$EXE" cutscene "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 echo "== application flow"
 step "$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 
+echo "== engine tweaks (slow jump/animation, revamped movement)"
+step "$EXE" tweaks "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
+
 echo "== input router (keyboard/gamepad -> keypad events)"
 step "$EXE" router
 

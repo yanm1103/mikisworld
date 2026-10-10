@@ -13,9 +13,9 @@ public sealed class DisplaySettings
     /// <summary>Only used when <see cref="IntegerScale"/> is off: smooth the magnification (bilinear) instead of nearest-neighbour.</summary>
     public bool Bilinear { get; set; }
 
-    /// <summary>The original games zero ALL movement whenever ANY key is released (phone keypads). With this on, a direction that is
-    /// still held keeps working after you release another button (e.g. hold right, tap jump).</summary>
-    public bool KeepDirection { get; set; } = true;
+    /// <summary>true: "revamped" movement (a held jump key does not jump again and again; held directions survive releasing another key,
+    /// so you can steer while falling). false: exactly the original behaviour. Same for both games.</summary>
+    public bool RevampedMovement { get; set; } = true;
 
     /// <summary>Borderless full screen. Not persisted: the game always starts in a window.</summary>
     public bool Fullscreen { get; set; }

@@ -116,6 +116,8 @@ public sealed partial class Game : IMikisGame
     private int _jumpStep, _sprite;                  // bp, cv
     private bool _airControl;                        // cn
     private int _inputX, _inputJump;                 // bS (-2/0/2), bR (-1/0)
+    private readonly HeldDirections _held = new();   // revamped movement: directions really held
+    private int _jumpBuffer, _jumpSub, _lastCase;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
     private int _standingOn = -1;                    // aQ platform index
 
     // camera
@@ -174,6 +176,13 @@ public sealed partial class Game : IMikisGame
     }
 
     public GameStrings Strings { get; }
+
+    /// <summary>Optional departures from the original engine (all off by default).</summary>
+    public EngineTweaks Tweaks { get; } = new();
+    private const int JumpBufferTicks = 5;
+
+    /// <summary>Forget which keys are held (the frontend stops delivering key events, e.g. while a menu is open).</summary>
+    public void ReleaseAll() { _held.Clear(); _jumpBuffer = 0; }
 
     // ---- IMikisGame
     public int ScreenWidth => Layout.ScreenW;
@@ -237,6 +246,8 @@ public sealed partial class Game : IMikisGame
         }
         if (_state >= State.ModeMenu && _state <= State.BonusAiMoving) BonusKey(key, action);
 
+        _held.Press(key, action);
+        if (key == 51 || key == 49 || key == 50 || action == 1) _jumpBuffer = JumpBufferTicks;
         if (key == 51) { _inputJump = -1; _inputX = 2; }
         else if (key == 54 || action == 5) _inputX = 2;
         else if (key == 49) { _inputJump = -1; _inputX = -2; }
@@ -248,6 +259,7 @@ public sealed partial class Game : IMikisGame
     /// <summary>Original cfr_renamed_3(int,int): any key release stops all input.</summary>
     public void KeyReleased(int key, int action)
     {
+        _held.Release(key);
         _inputX = 0;
         _inputJump = 0;
     }

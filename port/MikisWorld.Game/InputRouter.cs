@@ -25,7 +25,6 @@ internal readonly record struct Logical(int Code, int Action)
 internal interface IInputTarget
 {
     App.InputContext Context { get; }
-    DisplaySettings Settings { get; }
     InputBindings Bindings { get; }
     bool CapturingInput { get; }
     bool AcceptsRepeat { get; }
@@ -46,7 +45,6 @@ internal sealed class AppTarget : IInputTarget
     private readonly App _a;
     public AppTarget(App a) { _a = a; }
     public App.InputContext Context => _a.Context;
-    public DisplaySettings Settings => _a.Settings;
     public InputBindings Bindings => _a.Bindings;
     public bool CapturingInput => _a.CapturingInput;
     public bool AcceptsRepeat => _a.AcceptsRepeat;
@@ -64,7 +62,7 @@ internal sealed class AppTarget : IInputTarget
 
 /// <summary>Turns raw inputs (keyboard keys, gamepad buttons, left-stick directions) into the key events the games understand,
 /// using the remappable <see cref="InputBindings"/> in the world and fixed navigation in menus. Also handles control capture,
-/// key repeat in menus and the "keep direction" option.</summary>
+/// key repeat in menus. Which directions are still held is the engine's business (see EngineTweaks.RevampedMovement).</summary>
 internal sealed class InputRouter
 {
     private const double RepeatDelay = 0.4, RepeatEvery = 0.07;
@@ -80,7 +78,6 @@ internal sealed class InputRouter
     private readonly IInputTarget _app;
     private readonly Dictionary<(BindingDevice, string), Held> _held = new();
     private readonly Dictionary<Logical, int> _count = new();
-    private readonly List<Logical> _dirs = new();            // directions held outside menus, oldest first
 
     public InputRouter(IInputTarget app) { _app = app; }
 
@@ -111,7 +108,6 @@ internal sealed class InputRouter
         {
             _count[l] = _count.GetValueOrDefault(l) + 1;
             if (_count[l] > 1) continue;                      // another input already holds the same key
-            if (l.IsDirection && !h.Menu) _dirs.Add(l);
             _app.KeyPressed(l.Code, l.Action);
         }
     }
@@ -119,18 +115,12 @@ internal sealed class InputRouter
     public void Release(BindingDevice dev, string name)
     {
         if (!_held.Remove((dev, name), out var h)) return;
-        bool released = false;
         foreach (var l in h.Logicals)
         {
             if (--_count[l] > 0) continue;
             _count.Remove(l);
-            _dirs.Remove(l);
             _app.KeyReleased(l.Code, l.Action);
-            released = true;
         }
-        // the original zeroes ALL movement when ANY key is released; optionally re-apply the directions still held
-        if (released && _app.Settings.KeepDirection && _app.Context != App.InputContext.Menu)
-            foreach (var l in _dirs.ToList()) _app.KeyPressed(l.Code, l.Action);
     }
 
     public void ReleaseAll(BindingDevice dev)
