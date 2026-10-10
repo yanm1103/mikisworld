@@ -31,5 +31,8 @@ step "$EXE" cutscene "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 echo "== application flow"
 step "$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 
+echo "== input router (keyboard/gamepad -> keypad events)"
+step "$EXE" router
+
 [ $fail -eq 0 ] && echo "ALL VALIDATIONS PASSED" || echo "SOME VALIDATIONS FAILED"
 exit $fail

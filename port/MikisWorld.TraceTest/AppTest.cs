@@ -89,6 +89,7 @@ internal static class AppTest
         app.KeyPressed(53, 8);
         for (int i = 0; i < 20 && app.Game.CurrentState == State.Cutscene; i++) app.Update(20);
         Check(app.Game.CurrentState == State.Playing, "cutscene skipped");
+        Check(app.Context == App.InputContext.Gameplay, "playing: the remappable world controls apply (input context Gameplay)");
         int[] wrong = { 55, 55, 55, 55, 51, 51, 50, 50, 50, 55, 55, 55, 51, 51, 56 };           // the first game's code
         foreach (int k in wrong) { app.KeyPressed(k, 0); app.KeyReleased(k, 0); }
         app.Update(20);
@@ -131,6 +132,7 @@ internal static class AppTest
         Console.WriteLine("title and menu");
         app.Update(20);
         Check(app.DebugScreen == "Title" && !app.DebugMenuOpen, "starts on the title screen with the menu closed");
+        Check(app.Context == App.InputContext.Menu, "the title screen uses the fixed menu controls");
         Check(host.Played.Contains(Sfx.Title), "title jingle plays");
         Tap(app, Fire);
         Check(app.DebugMenuOpen, "Fire opens the menu");
@@ -170,7 +172,7 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Keep direction", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
         Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
         Tap(app, Down);
@@ -183,13 +185,68 @@ internal static class AppTest
         Check(app.DebugScreen == "Title" && app.DebugMenuOpen, "Back returns to the menu");
         app.Back();
 
+        Console.WriteLine("controls: remapping keyboard keys and gamepad buttons");
+        {
+            var bind = app.Bindings;
+            int bchanges = 0;
+            bind.Changed += () => bchanges++;
+            Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
+            Select(app, "Options");
+            for (int i2 = 0; i2 < 4; i2++) Tap(app, Down);
+            Tap(app, Fire);
+            Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
+            Tap(app, Down); Tap(app, Down);
+            Check(app.DebugControlsCursor == (2, 0), "cursor on the Jump row, first cell");
+            Tap(app, Fire);
+            Check(app.CapturingInput && app.CaptureDevice == BindingDevice.Keyboard, "Fire starts waiting for a key");
+            app.CaptureInput(BindingDevice.Gamepad, "B");
+            Check(app.CapturingInput && bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up", "a gamepad button is ignored while waiting for a key");
+            app.CaptureInput(BindingDevice.Keyboard, "J");
+            Check(!app.CapturingInput && bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "J" && bchanges > 0, "the key is bound and the change is announced");
+            app.KeyPressed(54, 5); app.KeyReleased(54, 5);            // Right: second cell
+            Tap(app, Fire);
+            app.CaptureInput(BindingDevice.Keyboard, "Left");          // was Left's first key
+            Check(bind.Get(BindingDevice.Keyboard, GameAction.Left, 0) == "" && bind.Get(BindingDevice.Keyboard, GameAction.Jump, 1) == "Left",
+                  "an input can drive only one action: binding 'Left' to Jump takes it away from Left");
+            app.Backspace();
+            Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 1) == "", "Backspace clears the cell");
+            Tap(app, Fire);
+            app.Back();
+            Check(!app.CapturingInput && app.DebugScreen == "ControlsKeyboard", "Esc cancels a pending capture without leaving the screen");
+            for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);             // row 7 = Defaults
+            Tap(app, Fire);
+            Check(bind.Get(BindingDevice.Keyboard, GameAction.Left, 0) == "Left" && bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up", "Defaults restores the keyboard bindings");
+            app.Back();
+            Check(app.DebugScreen == "Options", "Esc returns to the options");
+            Tap(app, Down);
+            Tap(app, Fire);
+            Check(app.DebugScreen == "ControlsPad", "Options > Gamepad opens the controller screen");
+            Tap(app, Fire);
+            app.CaptureInput(BindingDevice.Keyboard, "K");
+            Check(app.CapturingInput, "a key is ignored while waiting for a button");
+            app.CaptureInput(BindingDevice.Gamepad, "L1");
+            Check(bind.Get(BindingDevice.Gamepad, GameAction.Left, 0) == "L1", "the button is bound: Left = L1");
+            app.Back(); app.Back(); app.Back();
+
+            // pure bindings logic
+            var b2 = new InputBindings();
+            b2.Set(BindingDevice.Gamepad, GameAction.Jump, 0, "R2");
+            var copy = new InputBindings();
+            copy.Import(BindingDevice.Gamepad, b2.Export(BindingDevice.Gamepad));
+            Check(copy.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "R2" && copy.Get(BindingDevice.Gamepad, GameAction.Left, 1) == "SLeft", "export/import keeps every binding");
+            Check(b2.ActionsFor(BindingDevice.Keyboard, "W").SequenceEqual(new[] { GameAction.Jump }) && !b2.ActionsFor(BindingDevice.Keyboard, "Z").Any(), "ActionsFor finds the action of an input");
+            Check(InputBindings.Short("LeftShift") == "LShift" && InputBindings.Short("") == "-" && InputBindings.Short("DLeft") == "DLeft", "cell texts are shortened for the small screens");
+        }
+
         Console.WriteLine("new game, pause, continue");
         Select(app, "New game");
         Check(app.DebugScreen == "Game" && app.Game.CurrentState == State.Cutscene, "New game starts the intro cutscene");
+        Check(app.Context == App.InputContext.Scene, "during a cutscene the controller buttons mean Confirm (input context Scene)");
         for (int i = 0; i < 50; i++) app.Update(20);
         int frameBefore = app.Game.Frame;
         app.Back();
         Check(app.DebugMenuOpen && app.DebugMenuLabels()[0] == "Continue game", "Esc in game opens the menu with 'Continue game' first");
+        Check(app.Context == App.InputContext.Menu, "with the menu open the input context is Menu");
         for (int i = 0; i < 50; i++) app.Update(20);
         Check(app.Game.Frame == frameBefore, "game is paused while the menu is open");
         Select(app, "Continue game");

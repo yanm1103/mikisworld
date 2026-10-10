@@ -21,10 +21,10 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, teclado | **97%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; falta gamepad e remapear teclas |
+| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), "manter direção" |
 | Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
-| **Total estimado** | **~98%** | |
+| **Total estimado** | **~99%** | |
 
 ### MikisWorld2.jar (Miki's World 2: The Storm Master)
 
@@ -39,8 +39,8 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
 | Menus, hi-scores, salvamento | **90%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
 | Áudio | **100%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3×; **conferido de ouvido** |
-| Janela, escala, teclado | **97%** | mesma janela e opções do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
-| **Total estimado** | **~97%** | mesmos pesos do jogo 1 |
+| Janela, escala, entrada | **100%** | mesma janela, opções e controles (remapeáveis) do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
+| **Total estimado** | **~98%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -59,6 +59,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Sons uma oitava abaixo | Padrão −1 oitava (`--octave N`); áudio conferido de ouvido nos dois jogos | ~98% · ~97% |
 | Documentação | README e análises atualizados; splash do jogo 2 opcional; créditos | ~98% · ~97% |
 | Opções de janela e volume | Tela *Options* (volume 0–100 % na amplitude da onda, tela cheia, escala inteira, filtro nearest/bilinear); os dois JARs passam a ser obrigatórios | ~98% · ~97% |
+| Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle, "manter direção"; roteador de entrada com testes | ~99% · ~98% |
 
 ## Como rodar
 
@@ -71,12 +72,23 @@ Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou
 Com um .NET 8 SDK instalado no sistema, o equivalente é:
 
 ```
-dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [caminho/para/o.jar]
+dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [caminho/para/o.jar]
 ```
 
-**Controles.** Setas/WASD (andar, pular, interagir) e `Enter`/`Espaço` (pular cutscene), ou o teclado numérico como no
-celular (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar). `Esc` abre/fecha o menu (na partida
-ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome digite normalmente.
+**Controles.** Padrão do teclado: setas/`A` `D` (andar), seta ↑/`W` (pular), ↓/`S` (interagir), `Q`/`E` (pulo diagonal),
+`Enter`/`Espaço` (confirmar e pular cutscene). Os **dígitos** continuam sendo o teclado do celular e não são remapeáveis
+(`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar), porque o código secreto é digitado com eles.
+`Esc` abre/fecha o menu (na partida ele pausa e mostra "Continue game"); nos menus as setas, `Enter` e `Esc` são fixas.
+
+**Gamepad** (o primeiro controle conectado; Xbox/PlayStation/Switch via mapeamento do Raylib): D-pad ou analógico esquerdo
+(andar), `A` (pular), `X` (interagir), `Y` (confirmar), `Start` (menu/pausa). Nos menus: D-pad/analógico navegam, `A` confirma e
+`B`/`Start` voltam. Em cutscenes e no minigame, `A` confirma. No campo de nome dos hi-scores: ↑/↓ trocam a letra, → acrescenta
+uma, ←/`B` apaga e `A`/`Start` salva (nome vazio vira `MIKI`).
+
+**Remapear** (menu → *Options* → *Keyboard keys* ou *Gamepad*): cada ação tem **duas** entradas. `Enter`/`A` começa a captura
+("Press a key…"), a próxima tecla/botão é gravada (`Esc` no teclado, `Start` no controle cancelam); `Backspace` limpa a célula,
+a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação por dispositivo (a anterior é desfeita). `F11` e
+`Backspace` não podem ser atribuídos. Fica em `%APPDATA%/MikisWorld/bindings.json`, igual para os dois jogos.
 
 **Código secreto do minigame bônus** (digitado durante a partida; também é liberado coletando todas as moedas):
 
@@ -93,8 +105,10 @@ ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome digite
 | Fullscreen | tela cheia sem bordas (também `F11`) |
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
 | Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
+| Keep direction | o original **zera todo o movimento ao soltar qualquer tecla** (era assim no teclado do celular). Ligado (padrão), a direção que continua apertada volta a valer ao soltar outro botão (ex.: segurar → e tocar pular). Desligado = comportamento original |
+| Keyboard keys / Gamepad | telas de remapeamento (acima) |
 
-**Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`.
+**Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.
 
 **Som.** Só um som toca por vez, como no aparelho. `--octave N` ajusta a oitava (padrão `-1`; `0` = como decodificado). O volume é o da tela *Options*.
 `--export-sounds pasta` grava um WAV por som; `--sound-test` testa o dispositivo de áudio.
@@ -104,9 +118,10 @@ ele pausa e mostra "Continue game"); `Enter` confirma, e no campo de nome digite
 ```
 docs/                      análise dos dois jogos e dos formatos de arquivo
 port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
-                             Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs
-port/MikisWorld.Game/      frontend Raylib (janela, entrada, texto, áudio); lê os recursos direto dos JARs
-port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores e cutscenes
+                             Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento)
+port/MikisWorld.Game/      frontend Raylib (janela, texto, áudio); lê os recursos direto dos JARs
+                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib)
+port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes e roteador de entrada
 tools/harness/             roda os JARs originais sem tela (stubs do MIDP, Graphics real) e grava traces/quadros
 tools/record_*.sh          gravam as referências a partir dos JARs originais (traces, quadros, hi-scores, sons)
 tools/run_*.sh             comparam o C# com as referências;  tools/run_tests.sh  roda tudo

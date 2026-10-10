@@ -33,6 +33,8 @@ internal static class Program
         if (game == 0 && (exportDir != null || soundTest || inject.Count > 0 || quitAfter >= 0)) game = 1;
         var settings = SettingsStore.Load(ArgStr(args, "--settings", null));
         settings.Changed += () => SettingsStore.Save(settings);
+        var bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
+        bindings.Changed += () => BindingsStore.Save(bindings);
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         if (exportDir != null)
@@ -63,8 +65,8 @@ internal static class Program
         long seed = Environment.TickCount64;
         string saveFile = savePath ?? DefaultSave(game);
         App app = game == 2
-            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings)
-            : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings);
+            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, bindings)
+            : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, bindings);
 
         int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
         Raylib.SetWindowSize(sw0 * scale, sh0 * scale);
@@ -91,7 +93,9 @@ internal static class Program
         int frameNo = 0;
         double resizedAt = -1;
         string resizeSpec = ArgStr(args, "--resize", null);       // dev aid: "--resize 700x500" at frame 10
-        var injectedUp = new List<KeyboardKey>();
+        var router = new InputRouter(new AppTarget(app));
+        var poller = new DevicePoller(router);
+        var injectedUp = new List<(BindingDevice, string)>();
 
         while (!Raylib.WindowShouldClose() && !app.WantsExit)
         {
@@ -123,20 +127,26 @@ internal static class Program
                 }
             }
 
-            foreach (var k in injectedUp) HandleKey(app, k, false);
+            double now = Raylib.GetTime();
+            foreach (var (dev, n) in injectedUp) router.Release(dev, n);
             injectedUp.Clear();
             if (inject.TryGetValue(frameNo, out var names))
-                foreach (string n in names)
+                foreach (string raw in names)
                 {
-                    if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
-                    if (Enum.TryParse<KeyboardKey>(n, true, out var k)) { HandleKey(app, k, true); injectedUp.Add(k); }
+                    // "Name" = tap, "+Name" = press and hold, "-Name" = release; "Pad:A" / "Pad:SRight" address the gamepad
+                    char mode = raw[0] is '+' or '-' ? raw[0] : ' ';
+                    string n = mode == ' ' ? raw : raw[1..];
+                    var dev = n.StartsWith("Pad:", StringComparison.OrdinalIgnoreCase) ? BindingDevice.Gamepad : BindingDevice.Keyboard;
+                    if (dev == BindingDevice.Gamepad) n = n[4..];
+                    else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
+                    else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
+                    else continue;
+                    if (mode != '-') router.Press(dev, n, now);
+                    if (mode == ' ') injectedUp.Add((dev, n));
+                    if (mode == '-') router.Release(dev, n);
                 }
 
-            foreach (var key in Input.AllKeys)
-            {
-                if (Raylib.IsKeyPressed(key) || Raylib.IsKeyPressedRepeat(key) && (Input.Repeats(key) || app.AcceptsRepeat && Input.IsHorizontal(key))) HandleKey(app, key, true);
-                if (Raylib.IsKeyReleased(key)) HandleKey(app, key, false);
-            }
+            poller.Poll(now);
             int ch;
             while ((ch = Raylib.GetCharPressed()) != 0) app.TextInput((char)ch);
 
@@ -232,6 +242,14 @@ internal static class Program
             if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.D) || Raylib.IsKeyPressed(KeyboardKey.S)) sel = 1;
             if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.Space) || Raylib.IsKeyPressed(KeyboardKey.KpEnter)) return sel + 1;
             if (Raylib.IsKeyPressed(KeyboardKey.Escape)) return 0;
+            for (int pad = 0; pad < 4; pad++)
+            {
+                if (!Raylib.IsGamepadAvailable(pad)) continue;
+                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.LeftFaceLeft) || Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftX) < -0.6f) sel = 0;
+                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.LeftFaceRight) || Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftX) > 0.6f) sel = 1;
+                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.RightFaceDown) || Raylib.IsGamepadButtonPressed(pad, GamepadButton.MiddleRight)) return sel + 1;
+                if (Raylib.IsGamepadButtonPressed(pad, GamepadButton.RightFaceRight)) return 0;
+            }
             Raylib.BeginDrawing();
             Raylib.ClearBackground(new Color(60, 179, 210, 255));
             Raylib.DrawText("Choose a game", 220, 30, 36, Color.White);
@@ -244,25 +262,10 @@ internal static class Program
                 Raylib.DrawText(subs[i], (int)box.X + 20, (int)box.Y + 80, 22, new Color(255, 224, 160, 255));
                 Raylib.DrawText($"[{i + 1}]", (int)box.X + 20, (int)box.Y + 120, 20, Color.White);
             }
-            Raylib.DrawText("1 / 2 or arrows + Enter", 195, 330, 22, Color.White);
+            Raylib.DrawText("1 / 2 or arrows + Enter (gamepad: D-pad + A)", 195, 330, 22, Color.White);
             Raylib.EndDrawing();
         }
         return 0;
-    }
-
-    private static void HandleKey(App app, KeyboardKey key, bool down)
-    {
-        if (down)
-        {
-            if (key == KeyboardKey.Escape) { app.Back(); return; }
-            if (key == KeyboardKey.Backspace) { app.Backspace(); return; }
-            if (key == KeyboardKey.Enter || key == KeyboardKey.KpEnter) app.ConfirmName();
-        }
-        foreach (var (k, code, action) in Input.Map)
-        {
-            if (k != key) continue;
-            if (down) app.KeyPressed(code, action); else app.KeyReleased(code, action);
-        }
     }
 
     private static string DefaultSave(int game)
@@ -335,37 +338,6 @@ internal sealed class FileStorage : IStorage
     }
 }
 
-/// <summary>Keyboard to MIDP key codes. Digits are the phone keypad (the game's original controls);
-/// arrows/WASD/Enter map to the corresponding game actions.</summary>
-internal static class Input
-{
-    // (key, MIDP key code, game action); game actions: UP=1 LEFT=2 RIGHT=5 DOWN=6 FIRE=8
-    public static readonly (KeyboardKey, int, int)[] Map =
-    {
-        (KeyboardKey.Left, -3, 2), (KeyboardKey.A, -3, 2),
-        (KeyboardKey.Right, -4, 5), (KeyboardKey.D, -4, 5),
-        (KeyboardKey.Up, -1, 1), (KeyboardKey.W, -1, 1),
-        (KeyboardKey.Down, -2, 6), (KeyboardKey.S, -2, 6),
-        (KeyboardKey.Enter, -5, 8), (KeyboardKey.Space, -5, 8),
-        (KeyboardKey.One, 49, 0), (KeyboardKey.Two, 50, 1), (KeyboardKey.Three, 51, 0),
-        (KeyboardKey.Four, 52, 2), (KeyboardKey.Five, 53, 8), (KeyboardKey.Six, 54, 5),
-        (KeyboardKey.Seven, 55, 0), (KeyboardKey.Eight, 56, 6), (KeyboardKey.Nine, 57, 0),
-        (KeyboardKey.Kp1, 49, 0), (KeyboardKey.Kp2, 50, 1), (KeyboardKey.Kp3, 51, 0),
-        (KeyboardKey.Kp4, 52, 2), (KeyboardKey.Kp5, 53, 8), (KeyboardKey.Kp6, 54, 5),
-        (KeyboardKey.Kp7, 55, 0), (KeyboardKey.Kp8, 56, 6), (KeyboardKey.Kp9, 57, 0),
-    };
-
-    /// <summary>Every key the app reacts to, including Esc/Backspace/KpEnter.</summary>
-    public static readonly KeyboardKey[] AllKeys =
-        Map.Select(m => m.Item1).Concat(new[] { KeyboardKey.Escape, KeyboardKey.Backspace, KeyboardKey.KpEnter }).Distinct().ToArray();
-
-    /// <summary>Only menu navigation/editing repeats while held; game keys must not (the original had no key repeat).</summary>
-    public static bool Repeats(KeyboardKey k) => k is KeyboardKey.Up or KeyboardKey.Down or KeyboardKey.Backspace;
-
-    /// <summary>Left/right repeat only while a slider is on screen (the games themselves never had key repeat).</summary>
-    public static bool IsHorizontal(KeyboardKey k) => k is KeyboardKey.Left or KeyboardKey.Right or KeyboardKey.A or KeyboardKey.D;
-}
-
 /// <summary>Text for bubbles/menus/ending screen, drawn with Raylib's built-in font on top of the scaled pixel frame.</summary>
 internal sealed class RaylibFontMetrics : IFontMetrics
 {
@@ -391,17 +363,17 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 /// Full screen is deliberately not saved: the game always starts in a window.</summary>
 internal static class SettingsStore
 {
-    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false);
+    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool KeepDirection = true);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
 
     public static DisplaySettings Load(string path)
     {
-        _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "settings.json");
+        _path = Path.GetFullPath(path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "settings.json"));
         var d = new Dto();
         try { if (File.Exists(_path)) d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path)) ?? d; }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear };
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, KeepDirection = d.KeepDirection };
     }
 
     public static void Save(DisplaySettings s)
@@ -409,7 +381,47 @@ internal static class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear), Opt));
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.KeepDirection), Opt));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+}
+
+/// <summary>Remapped keyboard keys and gamepad buttons (<c>%APPDATA%/MikisWorld/bindings.json</c>), shared by both games.</summary>
+internal static class BindingsStore
+{
+    private sealed class Dto
+    {
+        public Dictionary<string, string[]> Keyboard { get; set; }
+        public Dictionary<string, string[]> Gamepad { get; set; }
+    }
+
+    private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
+    private static string _path;
+
+    public static InputBindings Load(string path)
+    {
+        _path = Path.GetFullPath(path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "bindings.json"));
+        var b = new InputBindings();
+        try
+        {
+            if (File.Exists(_path))
+            {
+                var d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path));
+                b.Import(BindingDevice.Keyboard, d?.Keyboard);
+                b.Import(BindingDevice.Gamepad, d?.Gamepad);
+            }
+        }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
+        return b;
+    }
+
+    public static void Save(InputBindings b)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto { Keyboard = b.Export(BindingDevice.Keyboard), Gamepad = b.Export(BindingDevice.Gamepad) }, Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

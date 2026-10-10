@@ -10,6 +10,9 @@
     <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\MikisWorld.Game\InputRouter.cs" Link="InputRouter.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\MikisWorld.Core\MikisWorld.Core.csproj" />
   </ItemGroup>
 </Project>

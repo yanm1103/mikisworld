@@ -7,7 +7,7 @@ namespace MikisWorld.Core;
 /// </summary>
 public sealed class App
 {
-    private enum Screen { Splash, Title, Help, About, HighScores, NameEntry, Options, Game }
+    private enum Screen { Splash, Title, Help, About, HighScores, NameEntry, Options, ControlsKeyboard, ControlsPad, Game }
 
     private readonly IStorage _storage;
     private readonly SaveData _save;
@@ -16,7 +16,10 @@ public sealed class App
     private readonly IMikisGame _game;
     private readonly AppInfo _info;
     private readonly DisplaySettings _set;
+    private readonly InputBindings _bind;
     private int _optSel;
+    private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
+    private bool _capturing;                      // waiting for the next key / button to bind
     private readonly Bitmap _titleArt, _splash;
     private readonly GameStrings _s;
     private readonly string _helpText;
@@ -46,8 +49,9 @@ public sealed class App
         : this(h => new Game(assets, h, seed), assets, host, storage, AppInfo.MikisWorld1) { }
 
     public App(Func<IGameHost, IMikisGame> createGame, IAssets assets, IGameHost host, IStorage storage, AppInfo info,
-               DisplaySettings settings = null)
+               DisplaySettings settings = null, InputBindings bindings = null)
     {
+        _bind = bindings ?? new InputBindings();
         _storage = storage;
         _info = info;
         _set = settings ?? new DisplaySettings();
@@ -67,9 +71,46 @@ public sealed class App
 
     public IMikisGame Game => _game;
     public DisplaySettings Settings => _set;
+    public InputBindings Bindings => _bind;
+
+    /// <summary>Where the keys go, so the frontend knows how to translate a controller: <c>Menu</c> = fixed navigation (arrows, confirm, back);
+    /// <c>Scene</c> = cutscene / ending / bonus minigame (confirm on the main button); <c>Gameplay</c> = the remappable world controls.</summary>
+    public enum InputContext { Menu, Scene, Gameplay }
+
+    public InputContext Context
+    {
+        get
+        {
+            if (_screen != Screen.Game || _menuOpen) return InputContext.Menu;
+            int st = _game.CurrentState;
+            if (st == State.ModeMenu) return InputContext.Menu;
+            if (st == State.Cutscene || st == State.Ending || st >= State.BonusPlayerTurn && st <= State.BonusAiMoving) return InputContext.Scene;
+            return InputContext.Gameplay;
+        }
+    }
+
+    /// <summary>True on the high-score name form (a controller has no keyboard, so the frontend edits <see cref="EnteredName"/> itself).</summary>
+    public bool InNameEntry => _screen == Screen.NameEntry;
+    public string EnteredName => _name;
+
+    /// <summary>True while the controls screen waits for a key/button (the frontend must then send raw inputs to <see cref="CaptureInput"/>).</summary>
+    public bool CapturingInput => _capturing;
+
+    /// <summary>Which device the pending capture is for (valid while <see cref="CapturingInput"/>).</summary>
+    public BindingDevice CaptureDevice => _screen == Screen.ControlsPad ? BindingDevice.Gamepad : BindingDevice.Keyboard;
+
+    /// <summary>Binds the next input to the selected cell. Inputs of the other device are ignored.</summary>
+    public void CaptureInput(BindingDevice device, string name)
+    {
+        if (!_capturing || device != CaptureDevice || string.IsNullOrEmpty(name)) return;
+        _bind.Set(device, InputBindings.Actions[_ctrlRow], _ctrlCol, name);
+        _capturing = false;
+    }
+
+    public void CancelCapture() => _capturing = false;
 
     /// <summary>The frontend should deliver key repeats (held key) while this is true: the options sliders use them.</summary>
-    public bool AcceptsRepeat => _screen == Screen.Options;
+    public bool AcceptsRepeat => _screen == Screen.Options || _screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad;
     public int ScreenWidth => _game.ScreenWidth;
     public int ScreenHeight => _game.ScreenHeight;
 
@@ -78,6 +119,7 @@ public sealed class App
     internal bool DebugMenuOpen => _menuOpen;
     internal List<string> DebugMenuLabels() => MenuItems().Select(i => i.Label).ToList();
     internal string DebugName => _name;
+    internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
 
     // ------------------------------------------------------------------ time
@@ -163,6 +205,10 @@ public sealed class App
             case Screen.Options:
                 OptionsKey(key, action);
                 break;
+            case Screen.ControlsKeyboard:
+            case Screen.ControlsPad:
+                ControlsKey(key, action);
+                break;
         }
     }
 
@@ -193,6 +239,11 @@ public sealed class App
             case Screen.Options:
                 CloseForm();
                 break;
+            case Screen.ControlsKeyboard:
+            case Screen.ControlsPad:
+                if (_capturing) _capturing = false;
+                else _screen = Screen.Options;
+                break;
             case Screen.NameEntry:
                 break;
         }
@@ -207,6 +258,8 @@ public sealed class App
 
     public void Backspace()
     {
+        if ((_screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad) && !_capturing && _ctrlRow < InputBindings.Actions.Length)
+            _bind.Clear(CaptureDevice, InputBindings.Actions[_ctrlRow], _ctrlCol);
         if (_screen == Screen.NameEntry && _name.Length > 0) _name = _name[..^1];
     }
 
@@ -277,7 +330,32 @@ public sealed class App
         // smoothing only makes sense when the picture is not magnified by a whole number
         if (!_set.IntegerScale)
             rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
+        rows.Add(new("Keep direction", () => _s.Ui(_set.KeepDirection ? 12 : 13), _ => { _set.KeepDirection = !_set.KeepDirection; _set.NotifyChanged(); }, false));
+        rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
+        rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
+    }
+
+    private void OpenControls(Screen f)
+    {
+        _screen = f;
+        _ctrlRow = 0;
+        _ctrlCol = 0;
+        _capturing = false;
+    }
+
+    private void ControlsKey(int key, int action)
+    {
+        if (_capturing) return;                       // raw inputs go to CaptureInput
+        int rows = InputBindings.Actions.Length + 1;
+        if (IsUp(key, action)) _ctrlRow = (_ctrlRow + rows - 1) % rows;
+        else if (IsDown(key, action)) _ctrlRow = (_ctrlRow + 1) % rows;
+        else if (IsLeft(key, action) || IsRight(key, action)) _ctrlCol = 1 - _ctrlCol;
+        else if (IsSelect(key, action))
+        {
+            if (_ctrlRow == InputBindings.Actions.Length) _bind.Reset(CaptureDevice);
+            else _capturing = true;
+        }
     }
 
     private void OptionsKey(int key, int action)
@@ -346,6 +424,8 @@ public sealed class App
             case Screen.HighScores: DrawBackdrop(g); DrawScores(g); break;
             case Screen.NameEntry: DrawBackdrop(g); DrawNameEntry(g); break;
             case Screen.Options: DrawBackdrop(g); DrawOptions(g); break;
+            case Screen.ControlsKeyboard: DrawBackdrop(g); DrawControls(g, BindingDevice.Keyboard); break;
+            case Screen.ControlsPad: DrawBackdrop(g); DrawControls(g, BindingDevice.Gamepad); break;
         }
     }
 
@@ -507,10 +587,10 @@ public sealed class App
     {
         DrawTitled(g, OptionsLabel, out int x, out int y, out int w, out int h);
         var rows = OptionRows();
-        int lh = g.Metrics.Height(FontKind.Bold) + 3;
+        int lh = g.Metrics.Height(FontKind.Bold) + 1;
         for (int i = 0; i < rows.Count; i++)
         {
-            int ty = y + 2 + i * lh;
+            int ty = y + 1 + i * lh;
             bool sel = i == _optSel;
             if (sel)
             {
@@ -534,7 +614,45 @@ public sealed class App
                 g.DrawRect(bx, by, barW, bh);
             }
         }
-        DrawShadowed(g, "< >", x, y + h - g.Metrics.Height(FontKind.Small) - 1, FontKind.Small, 0xFFE0A0, 0);
+    }
+
+    private void DrawControls(Canvas g, BindingDevice device)
+    {
+        DrawTitled(g, device == BindingDevice.Keyboard ? "Keyboard keys" : "Gamepad", out int x, out int y, out int w, out int h);
+        var acts = InputBindings.Actions;
+        int hintH = g.Metrics.Height(FontKind.Small) + 2;
+        int lh = Math.Min(g.Metrics.Height(FontKind.Small) + 2, (h - hintH) / (acts.Length + 1));   // all rows + the hint line must fit
+        int labelW = acts.Max(a => g.Metrics.StringWidth(InputBindings.Label(a), FontKind.Small)) + 4;
+        int cellW = (w - labelW) / 2;
+        for (int r = 0; r <= acts.Length; r++)
+        {
+            int ty = y + r * lh;
+            bool last = r == acts.Length;
+            if (last)
+            {
+                bool sel = r == _ctrlRow;
+                if (sel) { g.SetClip(0, 0, W, H); g.SetColor(160, 90, 20); g.FillRect(x - 3, ty - 1, w + 5, lh); }
+                DrawShadowed(g, "Defaults", x, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+                continue;
+            }
+            DrawShadowed(g, InputBindings.Label(acts[r]), x, ty, FontKind.Small, 0xFFE0A0, 0);
+            for (int c = 0; c < InputBindings.Slots; c++)
+            {
+                int cx = x + labelW + c * cellW;
+                bool sel = r == _ctrlRow && c == _ctrlCol;
+                if (sel)
+                {
+                    g.SetClip(0, 0, W, H);
+                    g.SetColor(_capturing ? 200 : 160, _capturing ? 60 : 90, 20);
+                    g.FillRect(cx - 2, ty - 1, cellW, lh);
+                }
+                string text = sel && _capturing ? "..." : InputBindings.Short(_bind.Get(device, acts[r], c));
+                DrawShadowed(g, text, cx, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFFFFF, 0);
+            }
+        }
+        string hint = _capturing ? (device == BindingDevice.Keyboard ? "Press a key (Esc: cancel)" : "Press a button (Start: cancel)")
+                                 : "Enter: change  Bksp: clear";
+        DrawShadowed(g, hint, x, y + h - g.Metrics.Height(FontKind.Small) + 1, FontKind.Small, 0xFFE060, 0);
     }
 
     private void DrawNameEntry(Canvas g)
