@@ -1,12 +1,32 @@
 # Making mods
 
+## Your first mod, step by step: Blue Miki
+
+The goal: Miki of game 1 with different colours. It takes five minutes.
+
+1. **Make the folder.** Create `mods/blue-miki/` next to the executable (when running from the repository with `play.bat`, use the `mods/` folder at the root of the repository: `play.bat` looks there too).
+2. **Get the picture to change.** Miki's frames are in `player.png`, inside `JAR/MikisWorld.jar` (a JAR is a ZIP: open it with any archiver and take the file out). Copy it into `mods/blue-miki/`.
+3. **Edit it** in any image editor, **keeping the size** (128x23: eight frames of 16 px). Keep the transparent background transparent.
+4. **Say what it is.** Create `mods/blue-miki/mod.json`:
+
+   ```json
+   { "name": "Blue Miki", "author": "you", "version": "1.0", "game": 1 }
+   ```
+
+5. **Switch it on.** Start the game, then *Options → Mods*, select *Blue Miki*, press Enter (`[x]` means on). Start Miki's World 1.
+6. **Edit and look again.** While playing, change `player.png` and press **F5**: the new picture appears at once.
+
+The repository has a script that does steps 1 to 4 for you, from your own copy of the JAR (the artwork is Sumea's, so the result is not kept in the repository): `python tools/make_example_mod.py` (needs `pip install pillow`) writes `mods/blue-miki/` with Miki's red and blue swapped. Open the files to see what a mod looks like.
+
+If something is wrong (a picture of another size, a file name with a typo), *Options → Mods* shows a `!` next to the mod and the first remarks below the list.
+
 A mod is a folder. The game puts the mods you switch on **over** its own files: for each resource it looks in the mods first (the last mod in the list wins) and falls back to the original.
 
 ## Where mods go
 
 Put one folder per mod in any of these places (the first one found wins if two folders have the same name):
 
-- `mods/` next to the executable
+- `mods/` next to the executable (and, with `play.bat`, the `mods/` folder at the root of the repository)
 - `%APPDATA%/MikisWorld/mods/`
 - any folder given with `--mods-dir <folder>`
 
