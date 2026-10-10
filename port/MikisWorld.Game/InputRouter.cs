@@ -100,7 +100,16 @@ internal sealed class InputRouter
                 _held[key] = new Held { Backspace = true, Since = now, Last = now };
                 return;
             }
-            if (name is "Enter" or "KpEnter") _app.ConfirmName();
+            if (name is "Enter" or "KpEnter")
+            {
+                bool entering = _app.InNameEntry;
+                _app.ConfirmName();
+                if (entering)                               // the Enter that saves the name must not also act on the list it opens (it closed it at once)
+                {
+                    _held[key] = new Held { Since = now, Last = now };
+                    return;
+                }
+            }
         }
         else if (PadSpecial(name)) return;
 

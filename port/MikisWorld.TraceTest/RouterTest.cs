@@ -19,7 +19,7 @@ internal static class RouterTest
         public void KeyReleased(int code, int action) => Log.Add($"R{code}/{action}");
         public void Back() => Log.Add("Back");
         public void Backspace() { Log.Add("Bksp"); if (EnteredName.Length > 0) EnteredName = EnteredName[..^1]; }
-        public void ConfirmName() => Log.Add("Confirm");
+        public void ConfirmName() { Log.Add("Confirm"); InNameEntry = false; }      // like the real app: the form is left
         public void TextInput(char c) { Log.Add("T" + c); EnteredName += c; }
         public void CaptureInput(BindingDevice device, string name) => Log.Add($"Cap:{device}:{name}");
         public void CancelCapture() => Log.Add("CancelCap");
@@ -126,6 +126,14 @@ internal static class RouterTest
             r.Press(P, "A", 0); Check("A saves the name", t.Take().EndsWith("Confirm") ? "saved" : "no", "saved");
             var u = new Fake { InNameEntry = true }; var r2 = new InputRouter(u);
             r2.Press(P, "Start", 0); Check("saving an empty name gives MIKI", u.EnteredName, "MIKI");
+        }
+        // ---- the Enter that saves a name does not also reach the high-score list it opens
+        {
+            var t = new Fake { InNameEntry = true, Context = App.InputContext.Menu }; var r = new InputRouter(t);
+            r.Press(K, "Enter", 0); r.Release(K, "Enter");
+            Check("Enter on the name form only saves", t.Take(), "Confirm");
+            r.Press(K, "Enter", 1); r.Release(K, "Enter");
+            Check("a later Enter is an ordinary confirm", t.Take(), "Confirm P-5/8 R-5/8");
         }
         return fails;
     }

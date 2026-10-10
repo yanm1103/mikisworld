@@ -24,7 +24,11 @@ public sealed class App
     /// <summary>Debug switches (F3 menu). Shared with the game.</summary>
     public DebugSettings Debug { get; } = new();
     private bool _settingsDirty;                 // an option or a key binding changed since the options were opened
-    private int _savedUntil;                      // until when the "Saved." note is shown
+    private int _savedUntil;                      // until when the corner note is shown
+    private string _note = "Saved.";              // ...and what it says
+    private int _scoreHold = -1;                  // ms the confirm key has been held on the high-score list (-1: not held)
+    private bool _scoreCleared;                   // the table was cleared by this hold: the release must not close the list
+    private const int ScoreClearMs = 3000;
     private int _resetShownUntil;                   // until when the controls screens say "Defaults restored"
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
@@ -148,6 +152,7 @@ public sealed class App
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
     internal bool DebugSavedNote => _ms < _savedUntil;
+    internal string DebugNote => _note;
     internal bool DebugDefaultsNotice => _ms < _resetShownUntil;
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
@@ -170,6 +175,8 @@ public sealed class App
             if (_titleIdle >= TitleMenuDelayMs) OpenMenu();
         }
         else _titleIdle = 0;
+        if (_screen != Screen.HighScores) _scoreHold = -1;
+        else if (_scoreHold >= 0 && !_scoreCleared && (_scoreHold += dt) >= ScoreClearMs) ClearScores();
         if (_screen != Screen.Game || _menuOpen || _debugOpen) return;
         _gameClock += dt;
         _game.Update(dt, _gameClock);
@@ -241,8 +248,10 @@ public sealed class App
                 else if (IsSelect(key, action)) CloseForm();
                 break;
             case Screen.About:
-            case Screen.HighScores:
                 if (IsSelect(key, action)) CloseForm();
+                break;
+            case Screen.HighScores:
+                if (IsSelect(key, action)) { _scoreHold = 0; _scoreCleared = false; }      // closes on release; held for 3 s it clears the table
                 break;
             case Screen.NameEntry:
                 break;
@@ -258,6 +267,14 @@ public sealed class App
 
     public void KeyReleased(int key, int action)
     {
+        if (_screen == Screen.HighScores && IsSelect(key, action) && _scoreHold >= 0)
+        {
+            bool cleared = _scoreCleared;
+            _scoreHold = -1;
+            _scoreCleared = false;
+            if (!cleared) CloseForm();
+            return;
+        }
         if (_screen == Screen.Game && !_menuOpen && !_debugOpen && _game.CurrentState != State.ModeMenu) _game.KeyReleased(key, action);
     }
 
@@ -532,7 +549,7 @@ public sealed class App
 
     private void CloseForm()
     {
-        if (_screen == Screen.Options && _settingsDirty) { _savedUntil = _ms + 1800; _settingsDirty = false; }   // the options are saved as they change: say so
+        if (_screen == Screen.Options && _settingsDirty) { ShowNote("Saved."); _settingsDirty = false; }   // the options are saved as they change: say so
         _screen = _formReturn;
         _menuOpen = _formReopensMenu;
         _menuSel = 0;
@@ -633,9 +650,15 @@ public sealed class App
         if (_ms < _savedUntil) DrawSavedNote(g);
     }
 
+    private void ShowNote(string text)
+    {
+        _note = text;
+        _savedUntil = _ms + 1800;
+    }
+
     private void DrawSavedNote(Canvas g)
     {
-        const string text = "Saved.";
+        string text = _note;
         int tw = g.Metrics.StringWidth(text, FontKind.Small), th = g.Metrics.Height(FontKind.Small);
         int w = tw + 8, h = th + 4;
         Panel(g, W - w - 3, H - h - 3, w, h);
@@ -854,6 +877,17 @@ public sealed class App
         var lines = Wrap(g, _info.About, w, FontKind.Small);
         int lh = g.Metrics.Height(FontKind.Small) + 1;
         for (int i = 0; i < lines.Count; i++) DrawShadowed(g, lines[i], x, y + i * lh, FontKind.Small, 0xFFFFFF, 0);
+    }
+
+    /// <summary>Holding confirm for 3 s on the list wipes it (a test aid: the table is otherwise hard to empty).</summary>
+    private void ClearScores()
+    {
+        _scoreCleared = true;
+        _hof.Clear(0, "aaa", 0);
+        _save.HighScores = _hof.Export(0).Select(e => new ScoreEntry { Name = e.Name, Score = e.Score }).ToList();
+        _storage.Save(_save);
+        _scoreHighlight = -1;
+        ShowNote("Scores cleared");
     }
 
     private void DrawScores(Canvas g)

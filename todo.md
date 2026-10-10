@@ -1,7 +1,7 @@
 # Bugs
 
-1. ~~Terminar o jogo não exibe o high score mais.~~ (feito: a lista aparece sempre ao fim da partida, sem destaque se a pontuação não entrou; aguardando teste)
-2. ~~O fullscreen do jogo tem prioridade e não deixa outras coisas entrarem por cima quando aberto.~~ (feito: o topmost do raylib é desfeito ao ligar o fullscreen; aguardando teste)
+1. ~~Terminar o jogo não exibe o high score mais.~~ (feito: a lista aparece sempre ao fim da partida, sem destaque se a pontuação não entrou; o Enter que salva o nome fechava a lista na hora (corrigido no roteador de entrada); segurar Enter 3 s na lista zera os recordes; aguardando teste)
+2. ~~O fullscreen do jogo tem prioridade e não deixa outras coisas entrarem por cima quando aberto.~~ (feito: o topmost do raylib é desfeito ao ligar o fullscreen; testado, funcionou)
 3. ~~O scroll do mouse só funciona no menu dos jogos e não no do seletor de jogo.~~ (feito: a roda move a seleção no seletor)
 4. ~~Gaiolas de pássaros e moedas não possuem hitbox visível no modo hitboxes on.~~ (feito: moedas, chaves e gaiolas/arco-íris têm caixa amarelo-clara)
 5. ~~A opção logs não faz nada no menu de debug.~~ (removida do menu F3; os logs continuam com `--logs`)

@@ -26,6 +26,12 @@ public sealed class HallOfFame
         }
     }
 
+    /// <summary>Back to the factory table (every entry the default name and score).</summary>
+    public void Clear(int table, string defaultName, int defaultScore)
+    {
+        for (int i = 0; i < Entries; i++) { _names[table][i] = defaultName; _scores[table][i] = defaultScore; }
+    }
+
     public string Name(int table, int index) => _names[table][index];
     public int Score(int table, int index) => _scores[table][index];
 

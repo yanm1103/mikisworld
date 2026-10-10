@@ -45,6 +45,7 @@ https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
 - **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções). No minigame bônus, passar o mouse sobre uma casa move o cursor e o clique coloca a esfera ali.
 - **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
 - **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
+- **Zerar os recordes:** na tela de recordes, segure `Enter` (ou `A`) por 3 segundos. Um toque curto continua só fechando a tela.
 
 ## Opções
 
@@ -204,7 +205,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
-| Lote de ajustes (debug, mouse no bônus, remapeamento) | Menu F3 com *Unlock bonus* e *Skip level*; aviso "Saved." ao fechar as opções; mouse no minigame bônus; remapear teclado/controle também na tela inicial; *Reset to defaults* destacado; fim da partida sempre mostra os recordes | 100% · 100% |
+| Lote de ajustes (debug, mouse no bônus, remapeamento) | Menu F3 com *Unlock bonus* e *Skip level*; aviso "Saved." ao fechar as opções; mouse no minigame bônus; remapear teclado/controle também na tela inicial; *Reset to defaults* destacado; fim da partida sempre mostra os recordes; o `Enter` que salva o nome não fecha mais a lista na hora; segurar confirmar 3 s na lista zera os recordes | 100% · 100% |
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
 | Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
 | Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes; só durante a execução | 100% · 100% |

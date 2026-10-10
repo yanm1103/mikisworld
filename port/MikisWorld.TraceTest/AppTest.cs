@@ -578,6 +578,22 @@ internal static class AppTest
         Check(app2.DebugScreen == "HighScores" && app2.DebugScoreHighlight == 1, "after a game the NEW entry is highlighted (row " + app2.DebugScoreHighlight + ", it ranks second)");
         app2.Back();
 
+        Console.WriteLine("high scores: a tap closes the list, holding confirm for 3 s clears it");
+        Select(app2, "High scores");
+        Tap(app2, Fire);
+        Check(app2.DebugScreen == "Title" && app2.DebugMenuOpen, "a tap on confirm closes the list");
+        Select(app2, "High scores");
+        app2.KeyPressed(Fire, 8);
+        for (int i = 0; i < 140; i++) app2.Update(20);                    // 2.8 s
+        Check(app2.DebugScreen == "HighScores" && store.Data.HighScores[0].Score == 17, "held for 2.8 s: nothing happens yet");
+        for (int i = 0; i < 20; i++) app2.Update(20);                     // 3.2 s
+        Check(store.Data.HighScores.All(e => e.Score == 0 && e.Name == "aaa") && app2.DebugNote == "Scores cleared", "held for 3 s: the table is cleared and saved");
+        app2.KeyReleased(Fire, 8);
+        Check(app2.DebugScreen == "HighScores", "letting go after clearing does not close the list");
+        Tap(app2, Fire);
+        Check(app2.DebugScreen == "Title", "...the next tap does");
+        app2.Back();
+
         Console.WriteLine("vibration only for a controller, and only when switched on");
         var vh = new CountingHost();
         var sh = new SettingsHost(vh) { VibrationAllowed = () => true };
