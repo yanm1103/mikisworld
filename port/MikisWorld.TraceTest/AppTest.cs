@@ -206,7 +206,7 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
         Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
         Tap(app, Down);
@@ -226,7 +226,7 @@ internal static class AppTest
             bind.Changed += () => bchanges++;
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
             Select(app, "Options");
-            for (int i2 = 0; i2 < 4; i2++) Tap(app, Down);
+            for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);
             Tap(app, Fire);
             Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
             Tap(app, Down); Tap(app, Down);
@@ -329,6 +329,22 @@ internal static class AppTest
         Check(app2.DebugScreen == "HighScores" && app2.DebugScoreHighlight == 1, "after a game the NEW entry is highlighted (row " + app2.DebugScoreHighlight + ", it ranks second)");
         app2.Back();
 
+        Console.WriteLine("vibration only for a controller, and only when switched on");
+        var vh = new CountingHost();
+        var sh = new SettingsHost(vh) { VibrationAllowed = () => true };
+        sh.Vibrate(100, 200);
+        Check(vh.Vibes == 1, "a hit rumbles when allowed");
+        sh.VibrationAllowed = () => false;
+        sh.Vibrate(100, 200);
+        Check(vh.Vibes == 1, "and not when it is not");
+        Check(!app2.DebugVibrationAllowed, "keyboard in use: no rumble");
+        app2.LastDevice = BindingDevice.Gamepad;
+        Check(app2.DebugVibrationAllowed, "controller in use: rumble");
+        app2.Settings.Vibration = false;
+        Check(!app2.DebugVibrationAllowed, "the Vibrator option switches it off");
+        app2.Settings.Vibration = true;
+        app2.LastDevice = BindingDevice.Keyboard;
+
         Console.WriteLine("instructions follow the configured controls");
         string h1 = app2.DebugHelp();
         Check(h1.Contains("Left/A, Right/D = run sideways") && h1.Contains("Up/W = jump up") && h1.Contains("Q, E = jump diagonally")
@@ -367,8 +383,8 @@ internal static class AppTest
     {
         public readonly List<Sfx> Played = new();
         public void Play(Sfx sound) { Played.Add(sound); }
-        public int Stops;
+        public int Stops, Vibes;
         public void StopSound() { Stops++; }
-        public void Vibrate(int frequency, int milliseconds) { }
+        public void Vibrate(int frequency, int milliseconds) { Vibes++; }
     }
 }

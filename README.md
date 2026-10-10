@@ -22,7 +22,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
 | Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/new, tela inicial com opções |
-| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
+| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; a opção "Vibrator" vibra o **controle** quando o Miki é atingido (no teclado não há o que vibrar) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **~99%** | |
 
@@ -63,6 +63,8 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Ajustes de engine e tela inicial | Pulo e animação do protagonista mais lentos, opção *Movement* original/revamped (sem pulo contínuo ao segurar ↑, direção segurada vale ao cair/pousar), tela inicial com jogos + opções compartilhadas; `EngineTweaks` desligado nos testes (traces continuam idênticos) | ~99% · ~98% |
 | Fechando a decomp do jogo 2 | Leitura de `GameMIDlet`, `a`, `j`, `k`, `h`, `b`, `g`; teste diferencial do hi-score contra o `k` do jogo 2 (achou o nome vazio); ordem do menu do jogo 2, título abre com qualquer tecla / após 5 s, som do título parado ao entrar no jogo 2 | ~99% · ~99% |
 | Correções de bugs reportados | Virar no ar em pulo diagonal (revamped); aperto de portal durante a transição ignorado (causa da transição dupla e do crash de `IndexOutOfRange`); tela cheia da tela inicial vale no jogo; *Exit* volta à seleção de jogo; zoom inteiro na tela inicial; crash log e tela de erro | ~99% · ~99% |
+| Recordes e instruções | Linha nova destacada nos recordes, Instructions e dicas seguem os controles configurados e o último dispositivo (teclado/controle), *Movement*: "new", entrada reiniciada ao sair da tela inicial | ~99% · ~99% |
+| Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
 
 ## Como rodar
 
@@ -126,6 +128,7 @@ a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação 
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
 | Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 | Movement | `new` (padrão) ou `original`. **New**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo, ao pousar e **no meio de um pulo diagonal**; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino são ignorados. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
+| Vibration | a opção "Vibrator" do original: faz o **controle** vibrar (200 ms) quando o Miki é atingido. Só vibra se o último dispositivo usado foi o controle; no teclado não faz nada. Usa XInput (controles compatíveis com Xbox, ou outros via Steam Input/DS4Windows), só no Windows |
 | Keyboard keys / Gamepad | telas de remapeamento (acima) |
 
 **Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.

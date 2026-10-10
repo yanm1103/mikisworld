@@ -76,6 +76,7 @@ internal static class Launcher
             new("Miki's World 1", () => "The Lost Tiara", _ => { }, Game: 1),
             new("Miki's World 2", () => "The Storm Master", _ => { }, Game: 2),
             new("Movement", () => s.RevampedMovement ? "new" : "original", _ => { s.RevampedMovement = !s.RevampedMovement; s.NotifyChanged(); }),
+            new("Vibration", () => s.Vibration ? "on" : "off", _ => { s.Vibration = !s.Vibration; s.NotifyChanged(); }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };

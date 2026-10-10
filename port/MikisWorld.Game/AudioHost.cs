@@ -84,6 +84,7 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
     /// <summary>Call once per frame: restarts a sound that still has loops left and applies a pending volume change.</summary>
     public void Tick()
     {
+        Rumble.Update();
         if (!Ready) return;
         if (_pendingVolume >= 0 && Raylib.GetTime() - _pendingSince > 0.15)
         {
@@ -100,10 +101,12 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
         }
     }
 
-    public void Vibrate(int frequency, int milliseconds) { }
+    /// <summary>The original's <c>DeviceControl.startVibra(frequency, ms)</c>: rumbles the controller (the App only calls this while a controller is the active device).</summary>
+    public void Vibrate(int frequency, int milliseconds) => Rumble.Pulse(frequency, milliseconds);
 
     public void Dispose()
     {
+        Rumble.Stop();
         if (!Ready) return;
         StopSound();
         foreach (var s in _sounds.Values) Raylib.UnloadSound(s);

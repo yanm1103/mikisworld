@@ -42,6 +42,15 @@ internal static class Program
         int game = ArgInt(args, "--game", 0);                       // 0 = ask (when both JARs are present)
         string exportDir = ArgStr(args, "--export-sounds", null);
         bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
+        if (Array.IndexOf(args, "--rumble-test") >= 0)               // dev aid: pulse every XInput controller for half a second
+        {
+            Rumble.Pulse(100, 500);
+            Console.WriteLine("rumble api: " + Rumble.Api);
+            System.Threading.Thread.Sleep(600);
+            Rumble.Update();
+            Rumble.Stop();
+            return 0;
+        }
 
         // both games are required: the start-up screen lets you choose, and missing files are reported instead of silently
         // falling back to the one that exists
@@ -455,7 +464,7 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 /// Full screen is deliberately not saved: the game always starts in a window.</summary>
 internal static class SettingsStore
 {
-    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true);
+    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
 
@@ -465,7 +474,7 @@ internal static class SettingsStore
         var d = new Dto();
         try { if (File.Exists(_path)) d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path)) ?? d; }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, RevampedMovement = d.RevampedMovement };
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
     }
 
     public static void Save(DisplaySettings s)
@@ -473,7 +482,7 @@ internal static class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement), Opt));
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement, s.Vibration), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

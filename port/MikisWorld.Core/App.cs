@@ -64,7 +64,7 @@ public sealed class App
         _hof = new HallOfFame("aaa", 0, 1, 10, true, info.EmptyNameBecomesSpace);
         _set = settings ?? new DisplaySettings();
         _save = storage.Load() ?? new SaveData();
-        _host = new SettingsHost(host) { Enabled = _set.Volume > 0 };
+        _host = new SettingsHost(host) { Enabled = _set.Volume > 0, VibrationAllowed = () => _set.Vibration && LastDevice == BindingDevice.Gamepad };
         _game = createGame(_host);
         _game.BonusUnlocked = _save.BonusUnlocked;
         _game.EnableRendering();
@@ -127,6 +127,7 @@ public sealed class App
     internal bool DebugMenuOpen => _menuOpen;
     internal List<string> DebugMenuLabels() => MenuItems().Select(i => i.Label).ToList();
     internal string DebugName => _name;
+    internal bool DebugVibrationAllowed => _host.VibrationAllowed();
     internal int DebugScoreHighlight => _scoreHighlight;
     internal string DebugHelp() => HelpWithBindings();
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
@@ -364,6 +365,7 @@ public sealed class App
         if (!_set.IntegerScale)
             rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
         rows.Add(new("Movement", () => _set.RevampedMovement ? "new" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
+        rows.Add(new(_s.Ui(15).TrimEnd(' ', ':'), () => _s.Ui(_set.Vibration ? 12 : 13), _ => { _set.Vibration = !_set.Vibration; _set.NotifyChanged(); }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
@@ -753,5 +755,7 @@ public sealed class SettingsHost : IGameHost
     public SettingsHost(IGameHost inner) { _inner = inner; }
     public void Play(Sfx sound) { if (_enabled) _inner.Play(sound); }
     public void StopSound() => _inner.StopSound();
-    public void Vibrate(int frequency, int milliseconds) { _inner.Vibrate(frequency, milliseconds); }
+    /// <summary>The original's vibrator switch; here also "only when the player is using a controller".</summary>
+    public Func<bool> VibrationAllowed { get; set; } = () => true;
+    public void Vibrate(int frequency, int milliseconds) { if (VibrationAllowed()) _inner.Vibrate(frequency, milliseconds); }
 }

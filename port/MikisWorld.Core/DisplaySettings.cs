@@ -17,6 +17,9 @@ public sealed class DisplaySettings
     /// so you can steer while falling). false: exactly the original behaviour. Same for both games.</summary>
     public bool RevampedMovement { get; set; } = true;
 
+    /// <summary>The original's "Vibrator" option: rumble the controller when Miki is hit (never for the keyboard).</summary>
+    public bool Vibration { get; set; } = true;
+
     /// <summary>Borderless full screen. Not persisted: the game always starts in a window.</summary>
     public bool Fullscreen { get; set; }
 
