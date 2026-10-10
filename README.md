@@ -56,7 +56,8 @@ Menu → *Options* . As configurações alteradas se aplicam para os dois jogos.
 | Sound | Volume de 0 a 100 % (←/→, passos de 5); 0 % é mudo |
 | Fullscreen | Tela cheia sem bordas (também pode ser alternado apertando `F11`) |
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (os pixels ficam perfeitos) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` alteram o zoom da janela). Desligado: a imagem preenche a janela |
-| Filter | Só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
+| Filter | Como a imagem é ampliada (funciona com *Integer scale* ligado ou desligado): `nearest` (pixels duros), `bilinear` (suavizado), `sharp` (bilinear só na borda do pixel: nítido em qualquer zoom), `xBRZ` e `ScaleFX` (suavizam as bordas e diagonais da pixel art sem borrar), `LCD` (grade entre os pixels, como a tela de um celular) e `CRT` (curvatura leve, scanlines, máscara de fósforo e brilho). Dentro de uma fase, trocar o filtro esconde o menu e mostra só `< filtro >` no canto superior direito, com o jogo pausado, para você ver o resultado na hora (←/→ trocam; qualquer outra tecla volta ao menu) |
+| Ghosting | Efeito de rastro das telas LCD de celular: um pixel leva alguns quadros para chegar à cor nova. Combina com qualquer filtro |
 | Movement | `new` (padrão) ou `original` — veja abaixo |
 | Vibration | O controle vibra quando o Miki é atingido (no original, o celular vibraria). Somente Xinput (ou outros via Steam Input/DS4Windows) |
 
@@ -157,7 +158,7 @@ Em caso de erro, por favor nos informe!
 | Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options* e tela inicial), movimento original/new, tela inicial com opções |
+| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional, filtros de imagem por shader (sharp, xBRZ, ScaleFX, LCD, CRT) e ghosting, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options* e tela inicial), movimento original/new, tela inicial com opções |
 | Tela-título, menus, hi-scores, opções, salvamento | **100%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; a opção "Vibrator" vibra o **controle** quando o Miki é atingido (no teclado não há o que vibrar) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **100%** | tudo o que o original faz está portado e validado (ver "Limites conhecidos" em *Validação*) |
@@ -205,6 +206,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
+| Filtros de imagem | `Filter`: nearest, bilinear, sharp, xBRZ, ScaleFX, LCD, CRT (shaders GLSL embutidos; combinam com a escala inteira); `Ghosting`; troca ao vivo dentro da fase; configurável também na tela inicial; um shader que não compila cai para `nearest` | 100% · 100% |
 | Lote de ajustes (debug, mouse no bônus, remapeamento) | Menu F3 com *Unlock bonus* e *Skip level*; aviso "Saved." ao fechar as opções; mouse no minigame bônus; remapear teclado/controle também na tela inicial; *Reset to defaults* destacado; fim da partida sempre mostra os recordes; o `Enter` que salva o nome não fecha mais a lista na hora; segurar confirmar 3 s na lista zera os recordes | 100% · 100% |
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
 | Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
@@ -251,7 +253,7 @@ docs/                      análise dos dois jogos e dos formatos de arquivo
 port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
                              GameBase*.cs (o que os dois jogos têm em comum: estado, entrada, movimento do jogador, minigame bônus, projéteis, câmera…) · Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento) · EngineTweaks.cs
 port/MikisWorld.Game/      frontend Raylib (janela, texto, áudio); lê os recursos direto dos JARs
-                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib) · Launcher.cs + LauncherControls.cs (tela inicial e seu remapeamento)
+                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib) · Launcher.cs + LauncherControls.cs (tela inicial e seu remapeamento) · PostProcessor.cs + Shaders/ (filtros) · Ghosting.cs
 port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes, roteador de entrada e ajustes de engine
 tools/harness/             roda os JARs originais sem tela (stubs do MIDP, Graphics real) e grava traces/quadros
 tools/record_*.sh          gravam as referências a partir dos JARs originais (traces, quadros, hi-scores, sons)
@@ -304,3 +306,11 @@ e a oitava de cada nota. Como quase todos os sons decodificados ficavam entre 0,
 **uma oitava abaixo** — escolha confirmada de ouvido nos dois jogos. `--octave N` permite ajustar.
 
 </details>
+
+## Licenças de terceiros (shaders)
+
+Os shaders em `port/MikisWorld.Game/Shaders/` vêm do repositório [libretro/glsl-shaders](https://github.com/libretro/glsl-shaders), com os cabeçalhos de licença mantidos nos arquivos:
+
+- **ScaleFX** (`scalefx-pass0..4.glsl`), de Sp00kyFox: licença MIT.
+- **xBRZ freescale** (`xbrz-freescale.glsl`), de Hyllian (MIT), mas com trechos derivados do xBRZ de Zenju, que é **GPLv3**. Se o projeto for distribuído em binário, essa parte traz as obrigações da GPLv3.
+- `sharp.glsl`, `lcd.glsl`, `crt.glsl` e `vertex.glsl` foram escritos para este projeto (o `sharp` segue a ideia pública do "sharp-bilinear" do libretro). O CRT é uma versão simples, não o CRT-Royale.

@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\collectionlogo.png" LogicalName="collectionlogo.png" />
+    <EmbeddedResource Include="Shaders\*.glsl" LogicalName="shader-%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Raylib-cs" Version="6.1.1" />

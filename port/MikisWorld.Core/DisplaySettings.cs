@@ -1,5 +1,9 @@
 namespace MikisWorld.Core;
 
+/// <summary>How the picture is magnified onto the window. The first two are plain texture filters; the rest are shader effects the
+/// frontend implements (the Core only keeps the choice).</summary>
+public enum DisplayFilter { Nearest, Bilinear, Sharp, XBRZ, ScaleFX, LCD, CRT }
+
 /// <summary>User options shared by both games: sound level and how the 176x144 / 128x128 picture is put on the window.
 /// The frontend reads/saves it; the <see cref="App"/> menu edits it.</summary>
 public sealed class DisplaySettings
@@ -10,8 +14,33 @@ public sealed class DisplaySettings
     /// <summary>true: the picture is magnified by a whole number (crisp pixels, black bars). false: it fills the window keeping its aspect ratio.</summary>
     public bool IntegerScale { get; set; } = true;
 
-    /// <summary>Only used when <see cref="IntegerScale"/> is off: smooth the magnification (bilinear) instead of nearest-neighbour.</summary>
-    public bool Bilinear { get; set; }
+    /// <summary>The magnification filter. It works with whole-number scaling too (the picture is then filtered at that exact size).</summary>
+    public DisplayFilter Filter { get; set; } = DisplayFilter.Nearest;
+
+    /// <summary>LCD-like ghosting: a pixel takes a few frames to reach its new colour, leaving a faint trail (the phone screens did this).</summary>
+    public bool Ghosting { get; set; }
+
+    public static readonly DisplayFilter[] Filters = (DisplayFilter[])Enum.GetValues(typeof(DisplayFilter));
+
+    public static string FilterName(DisplayFilter f) => f switch
+    {
+        DisplayFilter.Nearest => "nearest",
+        DisplayFilter.Bilinear => "bilinear",
+        DisplayFilter.Sharp => "sharp",
+        DisplayFilter.XBRZ => "xBRZ",
+        DisplayFilter.ScaleFX => "ScaleFX",
+        DisplayFilter.LCD => "LCD",
+        DisplayFilter.CRT => "CRT",
+        _ => f.ToString()
+    };
+
+    /// <summary>Next / previous filter in the list (wraps around).</summary>
+    public void StepFilter(int dir)
+    {
+        int n = Filters.Length;
+        Filter = Filters[((int)Filter + dir % n + n) % n];
+        NotifyChanged();
+    }
 
     /// <summary>true: "revamped" movement (a held jump key does not jump again and again; held directions survive releasing another key,
     /// so you can steer while falling). false: exactly the original behaviour. Same for both games.</summary>
@@ -28,6 +57,6 @@ public sealed class DisplaySettings
 
     public void NotifyChanged() => Changed?.Invoke();
 
-    /// <summary>Bilinear is only meaningful (and only offered) without integer scaling.</summary>
-    public bool UsesBilinear => !IntegerScale && Bilinear;
+    /// <summary>For the frontend's own text and logo: smooth them only when the filter is a smoothing one and the zoom is not a whole number.</summary>
+    public bool UsesBilinear => !IntegerScale && Filter is DisplayFilter.Bilinear or DisplayFilter.Sharp;
 }

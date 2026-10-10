@@ -10,10 +10,10 @@
 # Coisas a serem adicionadas de imediato
 
 ## Post-processing
-1. Adicionar outros filtros fora bilinear e nearest, tipo xBRZ, ScaleFX, e se possível, DTP e CRT-Royale
-2. Permitir filtros misturado com integer scaling
-3. Ao mudar o filtro, caso estiver dentro de uma fase, manter o jogo pausado mas esconder o menu e exibir apenas a opção que está sendo alterada do filtro no canto superior direito, com setinhas pra esquerda e pra direita, ou seja, ainda podendo modificar o filtro enquanto consegue enxergar o resultado em tempo real.
-4. Adicionar um toggle para um efeito de ghosting, pois o jogo original no celular nokia possuia um artefato de ghosting (talvez pela tela ser LCD? não sei)
+1. ~~Adicionar outros filtros fora bilinear e nearest, tipo xBRZ, ScaleFX, e se possível, DTP e CRT-Royale~~ (feito: sharp, xBRZ, ScaleFX, LCD e CRT simples; ficaram de fora o CRT-Royale, que tem dezenas de passes e texturas de apoio, e o "DTP", que não identifiquei)
+2. ~~Permitir filtros misturado com integer scaling~~ (feito)
+3. ~~Ao mudar o filtro, caso estiver dentro de uma fase, manter o jogo pausado mas esconder o menu e exibir apenas a opção que está sendo alterada do filtro no canto superior direito, com setinhas pra esquerda e pra direita, ou seja, ainda podendo modificar o filtro enquanto consegue enxergar o resultado em tempo real.~~ (feito)
+4. ~~Adicionar um toggle para um efeito de ghosting~~ (feito: opção *Ghosting*), pois o jogo original no celular nokia possuia um artefato de ghosting (talvez pela tela ser LCD? não sei)
 
 ## Funcionalidades
 

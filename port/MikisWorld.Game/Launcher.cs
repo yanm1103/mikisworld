@@ -148,8 +148,8 @@ internal static partial class Launcher
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };
-        if (!s.IntegerScale)
-            rows.Add(new("Filter", () => s.Bilinear ? "bilinear" : "nearest", _ => { s.Bilinear = !s.Bilinear; s.NotifyChanged(); }));
+        rows.Add(new("Filter", () => DisplaySettings.FilterName(s.Filter), d => s.StepFilter(d == 0 ? 1 : d), Slider: true));
+        rows.Add(new("Ghosting", () => s.Ghosting ? "on" : "off", _ => { s.Ghosting = !s.Ghosting; s.NotifyChanged(); }));
         rows.Add(new("Sound", () => s.Volume + "%", d => { s.Volume = Math.Clamp(s.Volume + d * 5, 0, 100); s.NotifyChanged(); }, Slider: true));
         rows.Add(new("Quit", () => "", _ => { }));
         return rows;

@@ -64,6 +64,41 @@ internal static class AppTest
         app.Debug.ShowHitboxes = false;
     }
 
+    /// <summary>Inside a level, changing the Filter hides the menu and shows only "&lt; filter &gt;" over the paused game.</summary>
+    private static void CheckFilterLive(string name, Func<App> make)
+    {
+        var app = make();
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+        for (int i = 0; i < 20; i++) app.Update(20);
+        List<string> Texts() { var bmp = new Bitmap(app.ScreenWidth, app.ScreenHeight); var c = new Canvas(bmp); app.Draw(c); return c.Texts.Select(t => t.Text).ToList(); }
+        Select(app, "Options");
+        for (int i = 0; i < 3; i++) Tap(app, Down);
+        Check(app.DebugOptionRows()[3] == "Filter", $"{name}: the fourth option is Filter");
+        int frame = app.Game.Frame;
+        app.KeyPressed(54, 5); app.KeyReleased(54, 5);
+        Check(app.Settings.Filter == DisplayFilter.Bilinear && app.DebugFilterLive, $"{name}: changing the filter in a level goes to the live view");
+        var t1 = Texts();
+        Check(t1.Contains("bilinear") && !t1.Contains("Sound") && !t1.Contains("Filter") && !t1.Any(t => t.StartsWith("Options")), $"{name}: only the filter note is shown ({string.Join("|", t1)})");
+        app.KeyPressed(54, 5); app.KeyReleased(54, 5);
+        app.KeyPressed(54, 5); app.KeyReleased(54, 5);
+        Check(app.Settings.Filter == DisplayFilter.XBRZ && app.DebugFilterLive && Texts().Contains("xBRZ"), $"{name}: Right keeps changing it");
+        app.KeyPressed(52, 2); app.KeyReleased(52, 2);
+        Check(app.Settings.Filter == DisplayFilter.Sharp, $"{name}: Left goes back");
+        app.PointerWheel(1);
+        Check(app.Settings.Filter == DisplayFilter.XBRZ, $"{name}: the mouse wheel changes it too");
+        for (int i = 0; i < 50; i++) app.Update(20);
+        Check(app.Game.Frame == frame, $"{name}: the game stays paused meanwhile");
+        Tap(app, Fire);
+        Check(!app.DebugFilterLive && app.DebugScreen == "Options", $"{name}: any other key goes back to the options");
+        app.KeyPressed(54, 5); app.KeyReleased(54, 5);
+        Check(app.DebugFilterLive, $"{name}: and the next change enters the live view again");
+        app.Back();
+        Check(!app.DebugFilterLive && app.DebugScreen == "Options", $"{name}: Esc leaves it");
+        app.Settings.Filter = DisplayFilter.Nearest;
+    }
+
     /// <summary>The F3 debug menu: pauses the game, toggles the switches, and the two life switches really change what a hit does.</summary>
     private static void CheckDebugMenu(string name, Func<(App app, CountingHost host)> make)
     {
@@ -240,6 +275,7 @@ internal static class AppTest
         }
 
         CheckHitboxes("game 2", () => NewMw2(assets, new MemoryStorage()));
+        CheckFilterLive("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckBubbles("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckDebugMenu("game 2", () => { var h = new CountingHost(); return (NewMw2(assets, new MemoryStorage(), h), h); });
         var m2 = NewMw2(assets, new MemoryStorage());
@@ -350,6 +386,7 @@ internal static class AppTest
         Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
         CheckHitboxes("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
+        CheckFilterLive("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckBubbles("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckDebugMenu("game 1", () => { var h = new CountingHost(); return (new App(assets, h, new MemoryStorage(), 3), h); });
         Console.WriteLine("mouse");
@@ -397,10 +434,12 @@ internal static class AppTest
             hits = pm.DebugHits();
             int opt2 = pm.DebugMenuLabels().IndexOf("Options");
             pm.PointerPressed(hits[1 + opt2].X + 3, hits[1 + opt2].Y + 2);
+            int kb = pm.DebugOptionRows().IndexOf("Keyboard keys");
+            for (int i2 = 0; i2 < kb; i2++) pm.KeyPressed(56, 6);                // the list scrolls: bring the row into view
             Frame();
             hits = pm.DebugHits();
-            int kb = pm.DebugOptionRows().IndexOf("Keyboard keys");
-            pm.PointerPressed(hits[kb].X + 3, hits[kb].Y + 2);
+            int shown = kb - pm.DebugOptionsScroll.Top;
+            pm.PointerPressed(hits[shown].X + 3, hits[shown].Y + 2);
             Check(pm.DebugScreen == "ControlsKeyboard", "clicking 'Keyboard keys' opens the remapping screen");
             Frame();
             hits = pm.DebugHits();
@@ -428,7 +467,7 @@ internal static class AppTest
         set.Changed += () => changes++;
         void Left() { app.KeyPressed(52, 2); app.KeyReleased(52, 2); }
         void Right() { app.KeyPressed(54, 5); app.KeyReleased(54, 5); }
-        Check(set.Volume == 100 && set.IntegerScale && !set.Bilinear && !set.Fullscreen, "defaults: volume 100 %, integer scale on, nearest, windowed");
+        Check(set.Volume == 100 && set.IntegerScale && set.Filter == DisplayFilter.Nearest && !set.Ghosting && !set.Fullscreen, "defaults: volume 100 %, integer scale on, nearest, no ghosting, windowed");
         for (int i2 = 0; i2 < 4; i2++) Left();
         Check(set.Volume == 80 && changes == 4, "Left lowers the volume in steps of 5 %: " + set.Volume);
         for (int i2 = 0; i2 < 30; i2++) Left();
@@ -444,15 +483,24 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Filter", "Ghosting", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "option rows: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
-        Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
+        Check(!set.IntegerScale, "Integer scale off");
+        Tap(app, Fire);
+        Check(set.IntegerScale, "...and on again (the Filter row stays either way)");
+        Tap(app, Down);
+        Right();
+        Check(set.Filter == DisplayFilter.Bilinear && !app.DebugFilterLive, "Filter: Right picks the next one (bilinear); outside a level the menu stays");
+        Left(); Left();
+        Check(set.Filter == DisplayFilter.CRT, "Left wraps around to the last filter (CRT)");
+        Tap(app, Fire);
+        Check(set.Filter == DisplayFilter.Nearest, "Fire goes to the next (wraps to nearest)");
+        Check(!set.UsesBilinear, "nearest does not smooth the frontend's text");
         Tap(app, Down);
         Tap(app, Fire);
-        Check(set.Bilinear && set.UsesBilinear, "Filter row switches nearest -> bilinear");
-        Tap(app, Up);
+        Check(set.Ghosting, "Ghosting row switches it on");
         Tap(app, Fire);
-        Check(set.IntegerScale && !set.UsesBilinear && !app.DebugOptionRows().Contains("Filter"), "Integer scale back on -> bilinear is not used and the row disappears");
+        Check(!set.Ghosting, "...and off");
         app.Back();
         Check(app.DebugScreen == "Title" && app.DebugMenuOpen, "Back returns to the menu");
         Check(app.DebugSavedNote, "closing the options after a change says \"Saved.\"");
@@ -470,7 +518,7 @@ internal static class AppTest
             bind.Changed += () => bchanges++;
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
             Select(app, "Options");
-            for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);
+            for (int i2 = 0; i2 < 7; i2++) Tap(app, Down);
             Tap(app, Fire);
             Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
             Tap(app, Down); Tap(app, Down);

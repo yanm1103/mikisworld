@@ -171,8 +171,9 @@ internal static class Program
                 }
             }
             haveTexture = true;
-            bool smooth = !settings.UsesBilinear;                      // forces the filter to be applied on the first frame
             Raylib.SetTextureFilter(tex, TextureFilter.Point);
+            using var post = new PostProcessor();
+            var ghost = new Ghosting(sw0 * sh0 * 4);
 
             double acc = 0;
             int frameNo = 0;
@@ -238,26 +239,20 @@ internal static class Program
                     int p = frame.Pixels[i];
                     rgba[i * 4] = (byte)(p >> 16); rgba[i * 4 + 1] = (byte)(p >> 8); rgba[i * 4 + 2] = (byte)p; rgba[i * 4 + 3] = 255;
                 }
+                ghost.Apply(rgba, settings.Ghosting);
                 unsafe { fixed (byte* p = rgba) Raylib.UpdateTexture(tex, p); }
 
-                // nearest-neighbour unless the user switched integer scaling off *and* chose bilinear
-                if (smooth != settings.UsesBilinear)
-                {
-                    smooth = settings.UsesBilinear;
-                    var f = smooth ? TextureFilter.Bilinear : TextureFilter.Point;
-                    Raylib.SetTextureFilter(tex, f);
-                    Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, f);
-                }
+                // the game's own text is drawn crisp on top of the picture, whatever the filter
+                Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, settings.UsesBilinear ? TextureFilter.Bilinear : TextureFilter.Point);
+                post.Prepare(tex, settings.Filter);
 
                 Raylib.BeginDrawing();
-                Raylib.ClearBackground(Color.Black);
                 int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
                 // integer scaling: a whole-number factor (black bars); otherwise fill the window keeping the aspect ratio
                 float scalef = settings.IntegerScale ? Math.Max(1, Math.Min(sw / sw0, sh / sh0)) : Math.Min((float)sw / sw0, (float)sh / sh0);
                 float dw = sw0 * scalef, dh = sh0 * scalef;
                 float ox = MathF.Floor((sw - dw) / 2), oy = MathF.Floor((sh - dh) / 2);
-                Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0), new Rectangle(ox, oy, dw, dh), Vector2.Zero, 0, Color.White);
-                foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef);
+                post.Present(tex, settings.Filter, new Rectangle(ox, oy, dw, dh), () => { foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef); });
                 Raylib.EndDrawing();
 
                 // mouse: window position -> game screen position (the picture is drawn at ox,oy with a zoom of scalef)
@@ -493,7 +488,8 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 /// Full screen is deliberately not saved: the game always starts in a window.</summary>
 internal static class SettingsStore
 {
-    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true);
+    private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true,
+                              string Filter = null, bool Ghosting = false);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
     private static int? _mutedFrom;                // --no-sound: the volume to keep in the file while this run is muted
@@ -511,7 +507,9 @@ internal static class SettingsStore
         var d = new Dto();
         try { if (File.Exists(_path)) d = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path)) ?? d; }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Bilinear = d.Bilinear, RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
+        // files from before the filter list only have the Bilinear switch
+        var filter = Enum.TryParse<DisplayFilter>(d.Filter, true, out var f) ? f : d.Bilinear ? DisplayFilter.Bilinear : DisplayFilter.Nearest;
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Filter = filter, Ghosting = d.Ghosting, RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
     }
 
     public static void Save(DisplaySettings s)
@@ -519,7 +517,8 @@ internal static class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(_mutedFrom is int kept && s.Volume == 0 ? kept : s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement, s.Vibration), Opt));
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(_mutedFrom is int kept && s.Volume == 0 ? kept : s.Volume, s.IntegerScale, s.Filter is DisplayFilter.Bilinear, s.RevampedMovement, s.Vibration,
+                s.Filter.ToString(), s.Ghosting), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

@@ -30,6 +30,7 @@ public sealed class App
     private bool _scoreCleared;                   // the table was cleared by this hold: the release must not close the list
     private const int ScoreClearMs = 3000;
     private int _resetShownUntil;                   // until when the controls screens say "Defaults restored"
+    private bool _filterLive;                    // the Filter option is being changed inside a level: only the filter note is shown, over the paused game
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
     private readonly Bitmap _titleArt, _splash;
@@ -135,7 +136,7 @@ public sealed class App
     public void CancelCapture() => _capturing = false;
 
     /// <summary>The frontend should deliver key repeats (held key) while this is true: the options sliders use them.</summary>
-    public bool AcceptsRepeat => _debugOpen || _screen == Screen.Options || _screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad;
+    public bool AcceptsRepeat => _debugOpen || _filterLive || _screen == Screen.Options || _screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad;
     public int ScreenWidth => _game.ScreenWidth;
     public int ScreenHeight => _game.ScreenHeight;
 
@@ -151,6 +152,7 @@ public sealed class App
     internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
+    internal bool DebugFilterLive => _filterLive;
     internal bool DebugSavedNote => _ms < _savedUntil;
     internal string DebugNote => _note;
     internal bool DebugDefaultsNotice => _ms < _resetShownUntil;
@@ -175,6 +177,7 @@ public sealed class App
             if (_titleIdle >= TitleMenuDelayMs) OpenMenu();
         }
         else _titleIdle = 0;
+        if (_screen != Screen.Options) _filterLive = false;
         if (_screen != Screen.HighScores) _scoreHold = -1;
         else if (_scoreHold >= 0 && !_scoreCleared && (_scoreHold += dt) >= ScoreClearMs) ClearScores();
         if (_screen != Screen.Game || _menuOpen || _debugOpen) return;
@@ -228,6 +231,13 @@ public sealed class App
     public void KeyPressed(int key, int action)
     {
         if (_debugOpen) { DebugKey(key, action); return; }
+        if (_filterLive)
+        {
+            if (IsLeft(key, action)) _set.StepFilter(-1);
+            else if (IsRight(key, action)) _set.StepFilter(+1);
+            else _filterLive = false;                 // anything else goes back to the options
+            return;
+        }
         switch (_screen)
         {
             case Screen.Splash:
@@ -282,6 +292,7 @@ public sealed class App
     public void Back()
     {
         if (_debugOpen) { _debugOpen = false; return; }
+        if (_filterLive) { _filterLive = false; return; }
         switch (_screen)
         {
             case Screen.Splash:
@@ -476,9 +487,12 @@ public sealed class App
             new("Fullscreen", () => _s.Ui(_set.Fullscreen ? 12 : 13), _ => { _set.Fullscreen = !_set.Fullscreen; _set.NotifyChanged(); }, false),
             new("Integer scale", () => _s.Ui(_set.IntegerScale ? 12 : 13), _ => { _set.IntegerScale = !_set.IntegerScale; _set.NotifyChanged(); }, false),
         };
-        // smoothing only makes sense when the picture is not magnified by a whole number
-        if (!_set.IntegerScale)
-            rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
+        rows.Add(new("Filter", () => DisplaySettings.FilterName(_set.Filter), dir =>
+        {
+            _set.StepFilter(dir);
+            if (_formReturn == Screen.Game) _filterLive = true;       // inside a level: hide the menu so the result can be seen while changing it
+        }, false));
+        rows.Add(new("Ghosting", () => _s.Ui(_set.Ghosting ? 12 : 13), _ => { _set.Ghosting = !_set.Ghosting; _set.NotifyChanged(); }, false));
         rows.Add(new("Movement", () => _set.RevampedMovement ? "new" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
         rows.Add(new(_s.Ui(15).TrimEnd(' ', ':'), () => _s.Ui(_set.Vibration ? 12 : 13), _ =>
         {
@@ -600,6 +614,7 @@ public sealed class App
     {
         if (_screen == Screen.Help) _scroll = Math.Max(0, _scroll + dir);
         else if (_debugOpen) _debugSel = Math.Clamp(_debugSel + dir, 0, DebugRows().Count - 1);
+        else if (_filterLive) _set.StepFilter(dir);
         else if (_screen == Screen.Options) _optSel = Math.Clamp(_optSel + dir, 0, OptionRows().Count - 1);
         else if (_menuOpen) _menuSel = Math.Clamp(_menuSel + dir, 0, MenuItems().Count - 1);
     }
@@ -607,6 +622,14 @@ public sealed class App
     public void Draw(Canvas g)
     {
         _hits.Clear();
+        if (_filterLive && !_debugOpen && _screen == Screen.Options)
+        {
+            DrawGame(g);
+            Hit(0, 0, W, H, (_, _) => Back());                              // a click anywhere else goes back to the options
+            DrawFilterNote(g);
+            if (_ms < _savedUntil) DrawSavedNote(g);
+            return;
+        }
         if (_debugOpen && _screen is Screen.Help or Screen.About or Screen.HighScores or Screen.NameEntry or Screen.Options or Screen.ControlsKeyboard or Screen.ControlsPad)
         {
             DrawBackdrop(g);                                                   // a form is hidden while the debug panel is open
@@ -654,6 +677,23 @@ public sealed class App
     {
         _note = text;
         _savedUntil = _ms + 1800;
+    }
+
+    /// <summary>Top right corner: "&lt; xBRZ &gt;" over the paused game, the only thing left of the menu while the filter is being changed.</summary>
+    private void DrawFilterNote(Canvas g)
+    {
+        string name = DisplaySettings.FilterName(_set.Filter);
+        int th = g.Metrics.Height(FontKind.Bold);
+        int aw = g.Metrics.StringWidth("<", FontKind.Bold) + 6;
+        int nw = Math.Max(g.Metrics.StringWidth(name, FontKind.Bold), 44);
+        int w = aw * 2 + nw + 4, h = th + 6;
+        int x = W - w - 3, y = 3;
+        Panel(g, x, y, w, h);
+        DrawShadowed(g, "<", x + 5, y + 3, FontKind.Bold, 0xFFE0A0, 0);
+        DrawShadowed(g, ">", x + w - aw, y + 3, FontKind.Bold, 0xFFE0A0, 0);
+        DrawShadowed(g, name, x + aw + 2 + (nw - g.Metrics.StringWidth(name, FontKind.Bold)) / 2, y + 3, FontKind.Bold, 0xFFFFFF, 0);
+        Hit(x, y, aw + 2, h, (_, _) => _set.StepFilter(-1));
+        Hit(x + w - aw - 2, y, aw + 2, h, (_, _) => _set.StepFilter(+1));
     }
 
     private void DrawSavedNote(Canvas g)
