@@ -9,7 +9,7 @@ namespace MikisWorld.Game;
 /// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
 internal static partial class Launcher
 {
-    public const int W0 = 320, H0 = 290;
+    public const int W0 = 320, H0 = 260;
     private const int RowH = 16, RowX = 30, RowW = 260, RowY = 60;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
@@ -36,8 +36,8 @@ internal static partial class Launcher
             var rows = Rows(s);
             if (_openControls != null) { ControlsScreen(s, bind, _openControls.Value); _openControls = null; rows = Rows(s); }
             sel = Math.Clamp(sel, 0, rows.Count - 1);
-            if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1)) return 1;
-            if (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2)) return 2;
+            if (!_options && (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1))) return 1;
+            if (!_options && (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2))) return 2;
             if (Raylib.IsKeyPressed(KeyboardKey.F11)) { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }
 
             var nav = Poll();
@@ -58,9 +58,12 @@ internal static partial class Launcher
                 case Nav.Select:
                     if (rows[sel].Game != 0) return rows[sel].Game;
                     if (rows[sel].Label == "Quit") return 0;
+                    if (Navigate(rows[sel].Label, ref sel)) break;
                     if (!rows[sel].Slider) rows[sel].Change(1);
                     break;
-                case Nav.Back: return 0;
+                case Nav.Back:
+                    if (_options) { _options = false; sel = OptionsRow; break; }
+                    return 0;
             }
             // mouse: hover highlights a row, a click activates it (left half of a slider lowers it, right half raises it)
             float wheel = Raylib.GetMouseWheelMove();            // the wheel moves the highlighted row, like in the game menus
@@ -77,7 +80,8 @@ internal static partial class Launcher
                     var r = rows[hover];
                     if (r.Game != 0) return r.Game;
                     if (r.Label == "Quit") return 0;
-                    if (r.Slider) r.Change(lx < RowX + RowW / 2 ? -1 : +1); else r.Change(1);
+                    if (Navigate(r.Label, ref sel)) { }
+                    else if (r.Slider) r.Change(lx < RowX + RowW / 2 ? -1 : +1); else r.Change(1);
                 }
             }
             _lastMouse = mouse;
@@ -128,14 +132,32 @@ internal static partial class Launcher
         _frame++;
     }
 
+    // the start-up screen has two pages: the games (and Options, Quit), and the Options page with everything else
+    private static bool _options;
+    private const int OptionsRow = 2;
+
+    /// <summary>Rows that only switch page. Returns true when <paramref name="label"/> was one of them.</summary>
+    private static bool Navigate(string label, ref int sel)
+    {
+        if (label == "Options") { _options = true; sel = 0; return true; }
+        if (label == "Back") { _options = false; sel = OptionsRow; return true; }
+        return false;
+    }
+
     private static BindingDevice? _openControls;                  // a "Keyboard keys" / "Gamepad" row was activated: open its screen next frame
 
     private static List<Row> Rows(DisplaySettings s)
     {
+        if (!_options)
+            return new List<Row>
+            {
+                new("Miki's World 1", () => "The Lost Tiara", _ => { }, Game: 1),
+                new("Miki's World 2", () => "The Storm Master", _ => { }, Game: 2),
+                new("Options", () => ">", _ => { }),
+                new("Quit", () => "", _ => { }),
+            };
         var rows = new List<Row>
         {
-            new("Miki's World 1", () => "The Lost Tiara", _ => { }, Game: 1),
-            new("Miki's World 2", () => "The Storm Master", _ => { }, Game: 2),
             new("Movement", () => s.RevampedMovement ? "new" : "original", _ => { s.RevampedMovement = !s.RevampedMovement; s.NotifyChanged(); }),
             new("Vibration", () => s.Vibration ? "on" : "off", _ =>
             {
@@ -151,7 +173,7 @@ internal static partial class Launcher
         rows.Add(new("Filter", () => DisplaySettings.FilterName(s.Filter), d => s.StepFilter(d == 0 ? 1 : d), Slider: true));
         rows.Add(new("Ghosting", () => s.Ghosting ? "on" : "off", _ => { s.Ghosting = !s.Ghosting; s.NotifyChanged(); }));
         rows.Add(new("Sound", () => s.Volume + "%", d => { s.Volume = Math.Clamp(s.Volume + d * 5, 0, 100); s.NotifyChanged(); }, Slider: true));
-        rows.Add(new("Quit", () => "", _ => { }));
+        rows.Add(new("Back", () => "", _ => { }));
         return rows;
     }
 
@@ -191,18 +213,18 @@ internal static partial class Launcher
             Text(r.Game != 0 ? "Play  " + r.Label : r.Label, x0 + 4, ry + 4, 10, Color.White);
             string v = r.Value();
             if (v.Length == 0) continue;
-            string shown = r.Game != 0 ? v : (r.Slider || i == sel ? $"< {v} >" : v);
+            string shown = r.Game != 0 || r.Label == "Options" ? v : (r.Slider || i == sel ? $"< {v} >" : v);
             Text(shown, x0 + boxW - 4 - Width(shown, 10), ry + 4, 10, r.Game != 0 ? Sub : Color.White);
         }
         if (_padLast)
         {
             Centered("D-pad: choose                  A: select", H0 - 24, 10, Sub);
-            Centered("Start: select     B: quit", H0 - 13, 10, Sub);
+            Centered(_options ? "Start: select     B: back" : "Start: select     B: quit", H0 - 13, 10, Sub);
         }
         else
         {
             Centered("Arrows: choose                  Enter: select", H0 - 24, 10, Sub);
-            Centered("1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
+            Centered(_options ? "F11: fullscreen     Esc: back" : "1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
         }
     }
 
