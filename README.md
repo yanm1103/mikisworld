@@ -67,6 +67,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
 | Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
+| Executável e `--logs` | `tools\publish.bat` gera um `.exe` autônomo de arquivo único; programa de janela, log só com `--logs` | 100% · 100% |
 
 ## Como rodar
 
@@ -81,8 +82,13 @@ Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou
 Com um .NET 8 SDK instalado no sistema, o equivalente é:
 
 ```
-dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [caminho/para/o.jar]
+dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [--logs] [caminho/para/o.jar]
 ```
+
+**Executável.** `tools\publish.bat` gera `dist\MikisWorld.exe`: um arquivo só (~35 MB), sem precisar instalar o .NET (`dist/` não é versionado).
+Os JARs não vão junto: coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta `JAR` ao lado do exe. É um programa de janela (não abre console).
+**Logs:** só com `--logs` (o log do raylib e o do programa: JARs usados, caminhos de configuração, início e fim de cada jogo). Aberto pelo Explorer, `--logs` abre uma
+janela de console; num terminal, escreve nele. Sem `--logs` nada é impresso; travamentos continuam indo para a tela de erro e para `%APPDATA%/MikisWorld/crash.log`.
 
 **Controles.** Padrão do teclado: setas/`A` `D` (andar), seta ↑/`W` (pular), ↓/`S` (interagir), `Q`/`E` (pulo diagonal),
 `Enter`/`Espaço` (confirmar e pular cutscene). Os **dígitos** continuam sendo o teclado do celular e não são remapeáveis

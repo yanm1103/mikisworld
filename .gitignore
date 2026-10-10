@@ -11,3 +11,6 @@ decompiled/
 tools/cfr.jar
 __pycache__/
 sons/
+
+# distributable build
+dist/

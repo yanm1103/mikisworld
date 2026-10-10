@@ -22,6 +22,7 @@ internal static class Program
 
     private static int Main(string[] args)
     {
+        LogConsole.Configure(Array.IndexOf(args, "--logs") >= 0);      // raylib's own log and ours: only with --logs
         var run = new Run
         {
             Jar1 = FindJar(args, "MikisWorld.jar"),
@@ -60,6 +61,7 @@ internal static class Program
         if (missing.Count > 0) return ShowMissingJars(missing, run.QuitAfter >= 0 || exportDir != null || soundTest);
         if (game == 0 && (exportDir != null || soundTest || run.LaunchInject.Count == 0 && (run.Inject.Count > 0 || run.QuitAfter >= 0))) game = 1;
         run.Fixed = game != 0;
+        LogConsole.Log($"games: {run.Jar1} | {run.Jar2}");
         run.Settings = SettingsStore.Load(ArgStr(args, "--settings", null));
         run.Settings.Changed += () => SettingsStore.Save(run.Settings);
         run.Bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
@@ -73,6 +75,7 @@ internal static class Program
             return 0;
         }
 
+        LogConsole.Log($"settings: {ArgStr(args, "--settings", "%APPDATA%/MikisWorld/settings.json")}  bindings: {ArgStr(args, "--bindings", "%APPDATA%/MikisWorld/bindings.json")}  crash log: {CrashLogPath}");
         Raylib.InitWindow(Launcher.W0 * 2, Launcher.H0 * 2, "Miki's World");
         Raylib.SetExitKey(KeyboardKey.Null);
         Raylib.SetTargetFPS(60);
@@ -130,6 +133,7 @@ internal static class Program
     private static SessionResult RunSession(Run run, int game)
     {
         var settings = run.Settings;
+        LogConsole.Log($"starting game {game}");
         using var assets = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
         using var audio = new AudioHost(assets, run.Octave, settings.Volume) { TitleLoops = game == 2 ? 3 : 1 };
         Action volumeSync = () => audio.SetVolume(settings.Volume);
@@ -280,6 +284,7 @@ internal static class Program
         }
         finally
         {
+            LogConsole.Log($"game {game} closed");
             settings.Changed -= volumeSync;
             if (haveTexture) Raylib.UnloadTexture(tex);
         }
@@ -301,7 +306,7 @@ internal static class Program
             File.AppendAllText(path, report + "\n");
         }
         catch (Exception) { path += " (could not be written)"; }
-        Console.Error.WriteLine(report);
+        if (LogConsole.Enabled) Console.Error.WriteLine(report);
 
         string[] lines = (e.GetType().Name + ": " + e.Message + "\n" + e.StackTrace).Split('\n').Select(l => l.TrimEnd('\r')).Select(l => l.Length > 78 ? l[..75] + "..." : l).Take(14).ToArray();
         string text = "The game crashed.\n\n" + string.Join("\n", lines)
