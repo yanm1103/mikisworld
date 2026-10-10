@@ -25,6 +25,7 @@ internal static class Launcher
     {
         int sel = 0, frame = 0;
         double resizedAt = -1;
+        Raylib.PollInputEvents();                // the Enter that left the game must not also select a row here
         while (!Raylib.WindowShouldClose())
         {
             var rows = Rows(s);
@@ -74,7 +75,7 @@ internal static class Launcher
         {
             new("Miki's World 1", () => "The Lost Tiara", _ => { }, Game: 1),
             new("Miki's World 2", () => "The Storm Master", _ => { }, Game: 2),
-            new("Movement", () => s.RevampedMovement ? "revamped" : "original", _ => { s.RevampedMovement = !s.RevampedMovement; s.NotifyChanged(); }),
+            new("Movement", () => s.RevampedMovement ? "new" : "original", _ => { s.RevampedMovement = !s.RevampedMovement; s.NotifyChanged(); }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };

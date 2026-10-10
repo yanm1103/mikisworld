@@ -318,6 +318,27 @@ internal static class AppTest
         Select(app2, "High scores");
         Check(app2.DebugScreen == "HighScores", "second launch opens the high scores");
         Check(store.Data.HighScores[0].Score == 17, "table survives a restart");
+        Check(app2.DebugScoreHighlight == 0, "opened from the menu: the best score is the highlighted one");
+        app2.Back(); app2.Back();
+        Select(app2, "New game");
+        ((Game)app2.Game).DebugSetCoins(10);
+        ((Game)app2.Game).DebugEndGame();
+        for (int i = 0; i < 200 && app2.DebugScreen == "Game"; i++) app2.Update(20);
+        foreach (char c in "Eve") app2.TextInput(c);
+        app2.ConfirmName();
+        Check(app2.DebugScreen == "HighScores" && app2.DebugScoreHighlight == 1, "after a game the NEW entry is highlighted (row " + app2.DebugScoreHighlight + ", it ranks second)");
+        app2.Back();
+
+        Console.WriteLine("instructions follow the configured controls");
+        string h1 = app2.DebugHelp();
+        Check(h1.Contains("Left/A, Right/D = run sideways") && h1.Contains("Up/W = jump up") && h1.Contains("Q, E = jump diagonally")
+              && h1.Contains("Down/S = enter passages") && h1.Contains("Enter/Space = skip animations"), "keyboard defaults are listed instead of the phone digits: " + h1.Replace("\n", " | "));
+        app2.Bindings.Set(BindingDevice.Keyboard, GameAction.Jump, 0, "Z");
+        Check(app2.DebugHelp().Contains("Z/W = jump up"), "a remapped key shows up");
+        app2.LastDevice = BindingDevice.Gamepad;
+        string h2 = app2.DebugHelp();
+        Check(h2.Contains("DLeft/SLeft, DRight/SRight = run sideways") && h2.Contains("A/DUp = jump up") && h2.Contains("A/DUp + direction = jump diagonally") && h2.Contains("X/DDown = enter passages"), "with a controller the buttons are listed: " + h2.Replace("\n", " | "));
+        app2.LastDevice = BindingDevice.Keyboard;
 
         Console.WriteLine("bonus unlock via cheat code");
         var store2 = new MemoryStorage();

@@ -164,6 +164,7 @@ internal static class Program
             var router = new InputRouter(new AppTarget(app));
             var poller = new DevicePoller(router);
             var injectedUp = new List<(BindingDevice, string)>();
+            Raylib.PollInputEvents();            // the key that picked the game on the start-up screen is still "pressed" in this frame: do not reuse it
 
             while (!app.WantsExit)
             {

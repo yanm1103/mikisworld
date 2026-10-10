@@ -10,6 +10,7 @@ internal static class RouterTest
         public App.InputContext Context { get; set; } = App.InputContext.Gameplay;
         public InputBindings Bindings { get; } = new();
         public bool CapturingInput { get; set; }
+        public BindingDevice LastDevice { get; set; }
         public bool AcceptsRepeat { get; set; }
         public bool InNameEntry { get; set; }
         public string EnteredName { get; set; } = "";

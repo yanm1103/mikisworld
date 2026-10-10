@@ -20,7 +20,16 @@ internal sealed class DevicePoller
     private readonly InputRouter _router;
     private readonly HashSet<string> _padDown = new();
 
-    public DevicePoller(InputRouter router) { _router = router; }
+    private bool _priming;
+
+    /// <summary>A button still held from the previous screen (e.g. the A that picked the game) must be released and pressed again to count.</summary>
+    public DevicePoller(InputRouter router)
+    {
+        _router = router;
+        _priming = true;
+        PollPad(0);
+        _priming = false;
+    }
 
     public static string KeyName(KeyboardKey k) => Keys.First(x => (int)x == (int)k).ToString();
 
@@ -58,6 +67,7 @@ internal sealed class DevicePoller
 
     private void Set(string name, bool down, double now)
     {
+        if (_priming) { if (down) _padDown.Add(name); return; }
         if (down && _padDown.Add(name)) _router.Press(BindingDevice.Gamepad, name, now);
         else if (!down && _padDown.Remove(name)) _router.Release(BindingDevice.Gamepad, name);
     }

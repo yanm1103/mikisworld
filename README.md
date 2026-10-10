@@ -21,7 +21,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/revamped, tela inicial com opções |
+| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/new, tela inicial com opções |
 | Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **~99%** | |
@@ -68,7 +68,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 
 Precisa dos **dois** arquivos, `MikisWorld.jar` e `MikisWorld2.jar` (em `JAR/`), e do .NET 8 SDK. Se faltar algum, o programa não inicia:
 ele diz qual falta e onde procurar. Uma **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, ou D-pad + `A`) e já configura o que vale para os dois jogos:
-*Movement* (original/revamped), *Fullscreen*, *Integer scale*, *Filter* e *Sound*; tudo é salvo na hora. `--game 1` ou `--game 2` pula essa tela
+*Movement* (original/new), *Fullscreen*, *Integer scale*, *Filter* e *Sound*; tudo é salvo na hora. `--game 1` ou `--game 2` pula essa tela
 (as mesmas opções ficam em *Options* dentro do jogo).
 
 **Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
@@ -95,11 +95,15 @@ uma, ←/`B` apaga e `A`/`Start` salva (nome vazio vira `MIKI`).
 por uma exceção, a janela **fica aberta** com o erro (`Enter` volta à tela inicial, `C` copia o texto, `Esc` fecha) e o detalhe vai para
 `%APPDATA%/MikisWorld/crash.log`. Um travamento conhecido é do **original**: apertar "entrar no portal" de novo durante a transição de uma subárea guarda o
 aperto, e depois da transição o jogo usa o portal da área que acabou de sair, que na área principal não tem destino (`IndexOutOfRange`); isso também
-causava a transição dupla. No modo *Movement: original* continua assim (de propósito); no *revamped* foi corrigido.
+causava a transição dupla. No modo *Movement: original* continua assim (de propósito); no *new* foi corrigido.
 
 **Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
 e a animação de andar do protagonista mostra cada sprite pelo dobro do tempo. No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
 estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
+
+**Instruções e dicas na tela.** A tela *Instructions* troca os botões do celular ("4,6 = ...") pelas teclas ou botões que você configurou, conforme o último
+dispositivo usado (teclado ou controle). Do mesmo modo, as dicas das telas de controles e do nome mostram "Enter / Bksp" ou "A / X". No controle, `X` limpa a célula
+na tela de remapear. Na lista de recordes aberta depois de uma partida, a linha **nova** aparece em amarelo (aberta pelo menu, é a primeira).
 
 **Remapear** (menu → *Options* → *Keyboard keys* ou *Gamepad*): cada ação tem **duas** entradas. `Enter`/`A` começa a captura
 ("Press a key…"), a próxima tecla/botão é gravada (`Esc` no teclado, `Start` no controle cancelam); `Backspace` limpa a célula,
@@ -121,7 +125,7 @@ a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação 
 | Fullscreen | tela cheia sem bordas (também `F11`) |
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
 | Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
-| Movement | `revamped` (padrão) ou `original`. **Revamped**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo, ao pousar e **no meio de um pulo diagonal**; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino são ignorados. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
+| Movement | `new` (padrão) ou `original`. **New**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo, ao pousar e **no meio de um pulo diagonal**; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino são ignorados. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
 | Keyboard keys / Gamepad | telas de remapeamento (acima) |
 
 **Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.

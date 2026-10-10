@@ -27,6 +27,7 @@ internal interface IInputTarget
     App.InputContext Context { get; }
     InputBindings Bindings { get; }
     bool CapturingInput { get; }
+    BindingDevice LastDevice { get; set; }
     bool AcceptsRepeat { get; }
     bool InNameEntry { get; }
     string EnteredName { get; }
@@ -47,6 +48,7 @@ internal sealed class AppTarget : IInputTarget
     public App.InputContext Context => _a.Context;
     public InputBindings Bindings => _a.Bindings;
     public bool CapturingInput => _a.CapturingInput;
+    public BindingDevice LastDevice { get => _a.LastDevice; set => _a.LastDevice = value; }
     public bool AcceptsRepeat => _a.AcceptsRepeat;
     public bool InNameEntry => _a.InNameEntry;
     public string EnteredName => _a.EnteredName;
@@ -86,6 +88,7 @@ internal sealed class InputRouter
     {
         var key = (dev, name);
         if (_held.ContainsKey(key)) return;
+        _app.LastDevice = dev;
         if (_app.CapturingInput) { Capture(dev, name); return; }
 
         if (dev == BindingDevice.Keyboard)
@@ -165,6 +168,7 @@ internal sealed class InputRouter
     {
         if (_app.InNameEntry) { NameEntryPad(name); return true; }
         if (name == "Start" || name == "B" && _app.Context == App.InputContext.Menu) { _app.Back(); return true; }
+        if (name == "X" && _app.Context == App.InputContext.Menu) { _app.Backspace(); return true; }      // clears a binding on the controls screens
         return false;
     }
 

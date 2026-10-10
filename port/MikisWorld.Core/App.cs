@@ -39,10 +39,15 @@ public sealed class App
     private string _name = "";
     private int _pendingScore;
     private bool _titleSoundPlayed;
+    private int _scoreHighlight;                  // row of the high-score list shown in yellow
     private int _titleIdle;                       // ms on the title without opening the menu
     private const int TitleMenuDelayMs = 5000;
 
     public bool WantsExit { get; private set; }
+
+    /// <summary>Which device the player touched last: the on-screen hints ("Enter" or "A") and the Instructions follow it.</summary>
+    public BindingDevice LastDevice { get; set; } = BindingDevice.Keyboard;
+    private bool Pad => LastDevice == BindingDevice.Gamepad;
     private int W => _game.ScreenWidth;
     private int H => _game.ScreenHeight;
 
@@ -122,6 +127,8 @@ public sealed class App
     internal bool DebugMenuOpen => _menuOpen;
     internal List<string> DebugMenuLabels() => MenuItems().Select(i => i.Label).ToList();
     internal string DebugName => _name;
+    internal int DebugScoreHighlight => _scoreHighlight;
+    internal string DebugHelp() => HelpWithBindings();
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
 
@@ -278,7 +285,7 @@ public sealed class App
     public void ConfirmName()
     {
         if (_screen != Screen.NameEntry) return;
-        _hof.Insert(0, _name, _pendingScore);
+        _scoreHighlight = Math.Max(0, _hof.Insert(0, _name, _pendingScore));
         _save.HighScores = _hof.Export(0).Select(e => new ScoreEntry { Name = e.Name, Score = e.Score }).ToList();
         _storage.Save(_save);
         _formReturn = Screen.Title;
@@ -356,7 +363,7 @@ public sealed class App
         // smoothing only makes sense when the picture is not magnified by a whole number
         if (!_set.IntegerScale)
             rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
-        rows.Add(new("Movement", () => _set.RevampedMovement ? "revamped" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
+        rows.Add(new("Movement", () => _set.RevampedMovement ? "new" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
@@ -404,6 +411,7 @@ public sealed class App
     {
         _formReturn = _screen;
         _formReopensMenu = true;
+        if (f == Screen.HighScores) _scoreHighlight = 0;          // from the menu the best score is the one highlighted
         _screen = f;
         _scroll = 0;
         _menuOpen = false;
@@ -438,7 +446,7 @@ public sealed class App
                 g.FillRect(0, 0, W, H);
                 g.DrawImage(_titleArt, (W - _titleArt.Width) / 2, (H - _titleArt.Height) / 2, TL);
                 if (_menuOpen) { Dim(g); DrawMenu(g); }
-                else if (_ms / 600 % 2 == 0) DrawShadowed(g, "Press any key", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
+                else if (_ms / 600 % 2 == 0) DrawShadowed(g, Pad ? "Press any button" : "Press any key", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
                 break;
             case Screen.Game:
                 DrawGame(g);
@@ -577,10 +585,46 @@ public sealed class App
         bodyX = 12; bodyY = 10 + th + 6; bodyW = W - 24; bodyH = H - 12 - bodyY - 4;
     }
 
+    private static readonly System.Text.RegularExpressions.Regex HelpKeyLine = new(@"^(4,6|2|1,3|8|5)(\s*[=-]\s*)(.*)$");
+
+    /// <summary>The "Controls" lines of the original help name the phone keys; show the keys / buttons the player really uses instead.</summary>
+    private string HelpWithBindings()
+    {
+        var lines = _helpText.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var m = HelpKeyLine.Match(lines[i].TrimEnd('\r'));
+            if (!m.Success) continue;
+            string keys = m.Groups[1].Value switch
+            {
+                "4,6" => BoundNames(GameAction.Left, GameAction.Right),
+                "2" => BoundNames(GameAction.Jump),
+                // no dedicated diagonal buttons (the controller default): it is just jump + a direction
+                "1,3" => BoundNames(GameAction.JumpLeft, GameAction.JumpRight) is "-, -" ? BoundNames(GameAction.Jump) + " + direction" : BoundNames(GameAction.JumpLeft, GameAction.JumpRight),
+                "8" => BoundNames(GameAction.Interact),
+                _ => BoundNames(GameAction.Confirm),
+            };
+            lines[i] = keys + m.Groups[2].Value + m.Groups[3].Value;
+        }
+        return string.Join("\n", lines);
+    }
+
+    private string BoundNames(params GameAction[] actions)
+    {
+        var parts = new List<string>();
+        foreach (var a in actions)
+        {
+            var names = Enumerable.Range(0, InputBindings.Slots).Select(s => _bind.Get(LastDevice, a, s)).Where(n => n != "").Select(InputBindings.Short);
+            string joined = string.Join("/", names);
+            parts.Add(joined.Length == 0 ? "-" : joined);
+        }
+        return string.Join(", ", parts);
+    }
+
     private void DrawHelp(Canvas g)
     {
         DrawTitled(g, _s.Ui(1), out int x, out int y, out int w, out int h);
-        var lines = Wrap(g, _helpText, w, FontKind.Small);
+        var lines = Wrap(g, HelpWithBindings(), w, FontKind.Small);
         int lh = g.Metrics.Height(FontKind.Small) + 1;
         int visible = Math.Max(1, h / lh);
         _scroll = Math.Max(0, Math.Min(_scroll, Math.Max(0, lines.Count - visible)));
@@ -605,7 +649,7 @@ public sealed class App
         for (int i = 0; i < _hof.Entries; i++)
         {
             string line = (i + 1) + ". " + _hof.Name(0, i) + " - " + _hof.Score(0, i);
-            DrawShadowed(g, line, x, y + i * lh, FontKind.Small, i == 0 ? 0xFFE060 : 0xFFFFFF, 0);
+            DrawShadowed(g, line, x, y + i * lh, FontKind.Small, i == _scoreHighlight ? 0xFFE060 : 0xFFFFFF, 0);
         }
     }
 
@@ -677,7 +721,7 @@ public sealed class App
             }
         }
         string hint = _capturing ? (device == BindingDevice.Keyboard ? "Press a key (Esc: cancel)" : "Press a button (Start: cancel)")
-                                 : "Enter: change  Bksp: clear";
+                                 : Pad ? "A: change  X: clear" : "Enter: change  Bksp: clear";
         DrawShadowed(g, hint, x, y + h - g.Metrics.Height(FontKind.Small) + 1, FontKind.Small, 0xFFE060, 0);
     }
 
@@ -696,7 +740,7 @@ public sealed class App
         string shown = _name + (_ms / 400 % 2 == 0 ? "_" : " ");
         DrawShadowed(g, shown, x + 4, by + 3, FontKind.Small, 0xFFFFFF, 0);
         DrawShadowed(g, _pendingScore + " ", x, by + lh + 12, FontKind.Small, 0xFFE060, 0);
-        DrawShadowed(g, "[Enter] " + _s.Ui(4), x, y + h - lh, FontKind.Small, 0xFFE0A0, 0);
+        DrawShadowed(g, (Pad ? "[A] " : "[Enter] ") + _s.Ui(4), x, y + h - lh, FontKind.Small, 0xFFE0A0, 0);
     }
 }
 

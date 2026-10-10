@@ -37,7 +37,8 @@ public sealed class HallOfFame
     }
 
     /// <summary>Original k.a(int,String,int): insert below equal scores, dropping the last entry.</summary>
-    public void Insert(int table, string name, int score)
+    /// <returns>the row the entry landed in, or -1 when it did not fit</returns>
+    public int Insert(int table, string name, int score)
     {
         if (name == null || name == (_emptyBecomesSpace ? "" : " ")) name = " ";
         int pos = Entries - 1;
@@ -49,11 +50,10 @@ public sealed class HallOfFame
             _names[table][i + 1] = _names[table][i];
             _scores[table][i + 1] = _scores[table][i];
         }
-        if (pos < Entries)
-        {
-            _names[table][pos] = name;
-            _scores[table][pos] = score;
-        }
+        if (pos >= Entries) return -1;
+        _names[table][pos] = name;
+        _scores[table][pos] = score;
+        return pos;
     }
 
     public (string Name, int Score)[] Export(int table)
