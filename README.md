@@ -1,19 +1,85 @@
-# Miki's World — PC port
+# Miki's World Collection — port para PC
 
-Port para PC dos jogos J2ME da Sumea (`MikisWorld.jar`, `MikisWorld2.jar`).
-Alvo: **C# / .NET 8** + Raylib-cs, com a lógica e o desenho traduzidos de forma literal a partir do bytecode
-original e validados contra ele (ver [Validação](#validação)).
+Port para PC dos dois jogos de celular da Sumea (2002): **Miki's World 1: The Lost Tiara** e **Miki's World 2: The Storm Master**.
+A lógica de cada jogo é a do original, traduzida literalmente e validada contra o código do celular, com menus, opções, controles de PC e gamepad.
 
 Port não oficial por TwistZero (github.com/yanm1103). Os jogos originais são © 2002 Sumea; este repositório
-contém apenas código novo e **não distribui os jogos**: o programa lê os recursos direto dos JARs que você fornece.
+contém apenas código novo e **não distribui os jogos**: o programa lê os recursos direto dos arquivos `.jar` que você fornece.
 
-## Progresso
+## Como jogar
+
+1. Pegue o `MikisWorldCollection.exe` (para gerá-lo, veja "Informações técnicas" no fim desta página).
+2. Coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta chamada **`JAR`** ao lado do exe. Os **dois** são necessários; se faltar um, o programa diz qual.
+3. Abra o exe. A **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, D-pad + `A` ou clique) e já configura o que vale para os dois:
+   *Movement*, *Vibration*, *Fullscreen*, *Integer scale*, *Filter* e *Sound*. Tudo é salvo na hora.
+
+Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` (tamanho inicial da janela) e `--logs` (mostra o log do programa, para relatar problemas).
+
+## Controles
+
+| | Teclado | Gamepad |
+|---|---|---|
+| Andar | setas ← → ou `A` `D` | D-pad ou analógico esquerdo |
+| Pular | ↑ ou `W` | `A` |
+| Pulo diagonal | `Q` / `E` (ou ↑ junto com uma direção) | `A` junto com uma direção |
+| Entrar em portais / interagir | ↓ ou `S` | `X` |
+| Confirmar / pular cutscene | `Enter` ou `Espaço` | `Y` (nos menus e cutscenes, `A` também) |
+| Menu / pausa | `Esc` | `Start` |
+
+- **Remapear tudo:** menu → *Options* → *Keyboard keys* ou *Gamepad* (duas entradas por ação; `Backspace`/`X` limpa; *Defaults* restaura).
+- **Teclado numérico do celular:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar) e **não** são remapeáveis, porque o código secreto é digitado com eles.
+- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções). Na partida o mouse não faz nada.
+- **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
+- **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
+- **Instruções na tela** mostram as teclas ou botões que você configurou (conforme o último dispositivo usado).
+
+## Opções
+
+Menu → *Options* (também na tela inicial). Valem para os dois jogos.
+
+| Opção | O que faz |
+|---|---|
+| Sound | volume de 0 a 100 % (←/→, passos de 5); 0 % é mudo |
+| Fullscreen | tela cheia sem bordas (também `F11`) |
+| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` mudam o zoom). Desligado: a imagem preenche a janela |
+| Filter | só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
+| Movement | `new` (padrão) ou `original` — veja abaixo |
+| Vibration | o **controle** vibra quando o Miki é atingido (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
+
+## O que é diferente do original
+
+- **Movement `new`:** segurar ↑ não faz o Miki pular sem parar (cada pulo precisa de um novo aperto); a direção que você segura continua valendo depois de soltar outra tecla, então dá para mudar de lado caindo, ao pousar e **no meio de um pulo diagonal**. `original` é o jogo como era no celular, que zerava todo o movimento ao soltar qualquer tecla.
+- **Ritmo:** o celular rodava a lógica bem mais devagar que um PC. O pulo dura o dobro do tempo (mesma altura e distância), a animação de andar do Miki é duas vezes mais lenta e, no jogo 2, o **Mork anda a 2/3 da velocidade**.
+- **Menus e controles de PC:** gamepad, mouse, teclas remapeáveis, volume, tela cheia e zoom inteiro.
+- **Corrigido:** apertar "entrar no portal" várias vezes durante a transição causava uma transição dupla e podia travar o jogo (um bug do original; no `Movement: original` continua assim, de propósito).
+
+## Código secreto do minigame bônus
+
+Digite durante a partida (o bônus também é liberado coletando todas as moedas):
+
+| Jogo | Código |
+|---|---|
+| 1 | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
+| 2 | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
+
+## Seus arquivos
+
+Tudo fica em `%APPDATA%/MikisWorld/`: `save.json` (jogo 1) e `save2.json` (jogo 2) com o bônus liberado e os recordes, `settings.json` com as opções, `bindings.json` com os controles remapeados.
+
+## Se o jogo travar
+
+A janela fica aberta com o erro: `Enter` volta à tela inicial, `C` copia o texto e `Esc` fecha. O detalhe também é gravado em `%APPDATA%/MikisWorld/crash.log`. Se for relatar o problema, rode com `--logs`.
+
+<details>
+<summary><b>Informações técnicas (para desenvolvedores)</b>: progresso, histórico, como compilar, estrutura, validação</summary>
+
+### Progresso
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Mouse nos menus" (2026-10-09). Marco de referência: tag `base-1.0`.
+> Última atualização: commit "Executável MikisWorldCollection" (2026-10-09). Marco de referência: tag `base-1.0`.
 
-### MikisWorld.jar (Miki's World 1: The Lost Tiara)
+#### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
 | Parte | Status | Notas |
 |---|---|---|
@@ -26,7 +92,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **100%** | tudo o que o original faz está portado e validado (ver "Limites conhecidos" em *Validação*) |
 
-### MikisWorld2.jar (Miki's World 2: The Storm Master)
+#### MikisWorld2.jar (Miki's World 2: The Storm Master)
 
 Mesmo motor do jogo 1 (~85% do bytecode da classe principal é idêntico), com resolução 128×128, tiles de 12 px,
 um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de camada de tiles. Detalhes em
@@ -42,7 +108,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Janela, escala, entrada | **100%** | mesma janela, opções e controles (remapeáveis) do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
 | **Total estimado** | **100%** | mesmos pesos do jogo 1 |
 
-### Histórico
+#### Histórico
 
 | Commit | O que mudou | Total MW1 · MW2 |
 |---|---|---|
@@ -67,14 +133,11 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
 | Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
-| Executável e `--logs` | `tools\publish.bat` gera um `.exe` autônomo de arquivo único; programa de janela, log só com `--logs` | 100% · 100% |
+| Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 
-## Como rodar
+### Como rodar a partir do código
 
-Precisa dos **dois** arquivos, `MikisWorld.jar` e `MikisWorld2.jar` (em `JAR/`), e do .NET 8 SDK. Se faltar algum, o programa não inicia:
-ele diz qual falta e onde procurar. Uma **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, ou D-pad + `A`) e já configura o que vale para os dois jogos:
-*Movement* (original/new), *Fullscreen*, *Integer scale*, *Filter* e *Sound*; tudo é salvo na hora. `--game 1` ou `--game 2` pula essa tela
-(as mesmas opções ficam em *Options* dentro do jogo).
+Precisa do .NET 8 SDK e dos JARs em `JAR/`.
 
 **Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
 Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
@@ -85,70 +148,27 @@ Com um .NET 8 SDK instalado no sistema, o equivalente é:
 dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [--logs] [caminho/para/o.jar]
 ```
 
-**Executável.** `tools\publish.bat` gera `dist\MikisWorld.exe`: um arquivo só (~35 MB), sem precisar instalar o .NET (`dist/` não é versionado).
+**Executável.** `tools\publish.bat` gera `dist\MikisWorldCollection.exe`: um arquivo só (~35 MB), autônomo (não precisa instalar o .NET); `dist/` não é versionado.
 Os JARs não vão junto: coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta `JAR` ao lado do exe. É um programa de janela (não abre console).
-**Logs:** só com `--logs` (o log do raylib e o do programa: JARs usados, caminhos de configuração, início e fim de cada jogo). Aberto pelo Explorer, `--logs` abre uma
-janela de console; num terminal, escreve nele. Sem `--logs` nada é impresso; travamentos continuam indo para a tela de erro e para `%APPDATA%/MikisWorld/crash.log`.
 
-**Controles.** Padrão do teclado: setas/`A` `D` (andar), seta ↑/`W` (pular), ↓/`S` (interagir), `Q`/`E` (pulo diagonal),
-`Enter`/`Espaço` (confirmar e pular cutscene). Os **dígitos** continuam sendo o teclado do celular e não são remapeáveis
-(`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar), porque o código secreto é digitado com eles.
-`Esc` abre/fecha o menu (na partida ele pausa e mostra "Continue game"); nos menus as setas, `Enter` e `Esc` são fixas.
-Na tela-título qualquer tecla abre o menu, e ele abre sozinho depois de 5 s sem tecla (como no original).
-
-**Gamepad** (o primeiro controle conectado; Xbox/PlayStation/Switch via mapeamento do Raylib): D-pad ou analógico esquerdo
-(andar), `A` (pular), `X` (interagir), `Y` (confirmar), `Start` (menu/pausa). Nos menus: D-pad/analógico navegam, `A` confirma e
-`B`/`Start` voltam. Em cutscenes e no minigame, `A` confirma. No campo de nome dos hi-scores: ↑/↓ trocam a letra, → acrescenta
-uma, ←/`B` apaga e `A`/`Start` salva (nome vazio vira `MIKI`).
-
-**Sair e travamentos.** *Exit* no menu de um jogo volta à tela inicial (fechar a janela fecha o programa; com `--game N` o *Exit* também fecha). Se o jogo travar
-por uma exceção, a janela **fica aberta** com o erro (`Enter` volta à tela inicial, `C` copia o texto, `Esc` fecha) e o detalhe vai para
-`%APPDATA%/MikisWorld/crash.log`. Um travamento conhecido é do **original**: apertar "entrar no portal" de novo durante a transição de uma subárea guarda o
-aperto, e depois da transição o jogo usa o portal da área que acabou de sair, que na área principal não tem destino (`IndexOutOfRange`); isso também
-causava a transição dupla. No modo *Movement: original* continua assim (de propósito); no *new* foi corrigido.
-
-**Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
-a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o **Mork anda a 2/3 da velocidade** original (cada movimento dele tem a mesma distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
-estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
-
-**Mouse.** Os menus (título, menu da partida, *Options*, remapear, lista do modo, tela inicial) são clicáveis: passar o mouse destaca a linha, o clique esquerdo ativa
-(numa barra como *Sound*, a metade esquerda diminui e a direita aumenta), o clique direito volta (como `Esc`), clicar fora do menu o fecha, clicar numa tela de texto
-(instruções, recordes, sobre) volta e a roda do mouse rola as instruções. Na tela-título qualquer clique abre o menu. Na partida o mouse não faz nada.
-
-**Instruções e dicas na tela.** A tela *Instructions* troca os botões do celular ("4,6 = ...") pelas teclas ou botões que você configurou, conforme o último
-dispositivo usado (teclado ou controle). Do mesmo modo, as dicas das telas de controles e do nome mostram "Enter / Bksp" ou "A / X". No controle, `X` limpa a célula
-na tela de remapear. Na lista de recordes aberta depois de uma partida, a linha **nova** aparece em amarelo (aberta pelo menu, é a primeira).
-
-**Remapear** (menu → *Options* → *Keyboard keys* ou *Gamepad*): cada ação tem **duas** entradas. `Enter`/`A` começa a captura
-("Press a key…"), a próxima tecla/botão é gravada (`Esc` no teclado, `Start` no controle cancelam); `Backspace` limpa a célula,
-a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação por dispositivo (a anterior é desfeita). `F11` e
-`Backspace` não podem ser atribuídos. Fica em `%APPDATA%/MikisWorld/bindings.json`, igual para os dois jogos.
-
-**Código secreto do minigame bônus** (digitado durante a partida; também é liberado coletando todas as moedas):
-
-| Jogo | Código |
-|---|---|
-| 1 | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
-| 2 | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
-
-**Opções** (menu → *Options*, vale para os dois jogos e é salvo em `%APPDATA%/MikisWorld/settings.json`; a tela cheia não é salva):
-
-| Opção | O que faz |
-|---|---|
-| Sound | volume de 0 a 100 % (←/→, passos de 5). Escala a **amplitude da onda quadrada** gerada; 0 % é mudo. Ao parar de mexer toca um blip para você ouvir o nível |
-| Fullscreen | tela cheia sem bordas (também `F11`) |
-| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
-| Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
-| Movement | `new` (padrão) ou `original`. **New**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo, ao pousar e **no meio de um pulo diagonal**; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino são ignorados. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
-| Vibration | a opção "Vibrator" do original: faz o **controle** vibrar (200 ms) quando o Miki é atingido. Só vibra se o último dispositivo usado foi o controle; no teclado não faz nada. Usa XInput (controles compatíveis com Xbox, ou outros via Steam Input/DS4Windows), só no Windows |
-| Keyboard keys / Gamepad | telas de remapeamento (acima) |
-
-**Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.
+**Logs.** Só com `--logs`: o log do raylib e o do programa (JARs usados, caminhos de configuração, início e fim de cada jogo). Aberto pelo Explorer, `--logs` abre uma
+janela de console; num terminal, escreve nele. Sem `--logs` nada é impresso; travamentos vão para a tela de erro e para `crash.log`.
 
 **Som.** Só um som toca por vez, como no aparelho. `--octave N` ajusta a oitava (padrão `-1`; `0` = como decodificado). O volume é o da tela *Options*.
-`--export-sounds pasta` grava um WAV por som; `--sound-test` testa o dispositivo de áudio.
+`--export-sounds pasta` grava um WAV por som; `--sound-test` testa o dispositivo de áudio; `--rumble-test` vibra os controles XInput por meio segundo.
 
-## Estrutura
+**Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância),
+a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o Mork anda a 2/3 da velocidade original (cada movimento dele tem a mesma
+distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
+estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados (`EngineTweaks`).
+
+**Movement `new`, em detalhe.** (1) Segurar ↑ não repete o pulo (um aperto até 100 ms antes de pousar vale); (2) só a tecla solta é liberada (a direção ainda segurada vale), inclusive
+no meio de um pulo diagonal; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino também. O travamento que isso evita é do **original**: o aperto
+extra fica guardado e, depois da transição, o jogo usa o portal da área que acabou de sair, que na área principal não tem destino (`IndexOutOfRange`).
+
+**Arquivos de configuração.** `settings.json` (opções, sem a tela cheia), `bindings.json`, `save.json`/`save2.json` e `crash.log` em `%APPDATA%/MikisWorld/`; `--settings`/`--bindings`/`--save` trocam os caminhos.
+
+### Estrutura
 
 ```
 docs/                      análise dos dois jogos e dos formatos de arquivo
@@ -169,7 +189,7 @@ tools/classmatch.py        casa classes ofuscadas dos dois JARs por bytecode (ta
 Não versionados (ver `.gitignore`): `extracted/`, `decompiled/`, `traces/`, `sons/`, `tools/dotnet/`, `tools/cfr.jar`.
 `JAR/` **não** está no `.gitignore`: os JARs são material da Sumea, então decida você se quer versioná-los.
 
-## Reproduzindo o ambiente de validação
+### Reproduzindo o ambiente de validação
 
 1. `jar xf JAR/MikisWorld.jar` em `extracted/MikisWorld/` e `jar xf JAR/MikisWorld2.jar` em `extracted/MikisWorld2/`.
 2. SDK .NET 8 portátil: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
@@ -180,7 +200,7 @@ Não versionados (ver `.gitignore`): `extracted/`, `decompiled/`, `traces/`, `so
 5. `tools/run_tests.sh` roda tudo e deve terminar com `ALL VALIDATIONS PASSED`: 17/17 traces e 10/10 conjuntos de quadros do
    jogo 1, 20/20 traces e 9/9 conjuntos de quadros do jogo 2, hi-scores, decoder de sons (24/24), balões de cutscene e fluxo do app.
 
-## Validação
+### Validação
 
 Os originais são executados sem tela (`tools/harness`) com passo fixo de 20 ms, `java.util.Random` com semente fixa e uma
 sequência de teclas + teleportes. O estado completo é gravado a cada tick e o C# precisa reproduzir **exatamente** as mesmas
@@ -197,7 +217,7 @@ Limites conhecidos: os inputs são aleatórios com teleportes (não partidas jog
 comparação de pixels; partidas longas jogadas à mão podem revelar o que os testes aleatórios não cobrem (foi assim que se achou
 o balão que vazava para a cutscene final).
 
-## Áudio
+### Áudio
 
 Os 12 efeitos/músicas de cada jogo são Nokia Ring Tones (`.ott`). O decoder (`RingTone.cs`) foi escrito a partir do layout de
 bits do formato Smart Messaging e validado contra um decoder independente em Python (`tools/decode_ott.py`). A síntese é uma
@@ -206,3 +226,5 @@ onda quadrada simples, como o buzzer do celular, e só um som toca por vez.
 Dois pontos foram **inferidos** (a especificação oficial não estava acessível): um padrão com valor de loop *n* toca *n+1* vezes,
 e a oitava de cada nota. Como quase todos os sons decodificados ficavam entre 0,7 e 2,6 kHz (agudos demais), o padrão do port é
 **uma oitava abaixo** — escolha confirmada de ouvido nos dois jogos. `--octave N` permite ajustar.
+
+</details>

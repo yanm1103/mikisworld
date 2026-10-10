@@ -1,5 +1,5 @@
 @echo off
-rem Builds the distributable game: dist\MikisWorld.exe (one self-contained file, no .NET install needed).
+rem Builds the distributable game: dist\MikisWorldCollection.exe (one self-contained file, no .NET install needed).
 rem The game files are NOT included: put MikisWorld.jar and MikisWorld2.jar in a JAR folder next to the exe.
 setlocal
 set "ROOT=%~dp0.."
@@ -10,4 +10,4 @@ set "DOTNET_CLI_TELEMETRY_OPTOUT=1"
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none ^
   -o "%ROOT%\dist" || exit /b 1
 echo.
-echo Done: %ROOT%\dist\MikisWorld.exe
+echo Done: %ROOT%\dist\MikisWorldCollection.exe
