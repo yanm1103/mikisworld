@@ -1,3 +1,7 @@
+<p align="center">
+<img width="300" alt="collectionlogo" src="https://github.com/user-attachments/assets/809e6c34-a18c-407d-a65c-f9b119c320d5" />
+</p>
+
 # Miki's World PC Collection (decomp + port)
 
 Port para PC dos dois jogos de celular da Sumea (2002):
@@ -11,6 +15,10 @@ Esse repositório inclui tanto o decomp quanto um port de PC não oficial TwistZ
 O port lê os recursos direto dos arquivos `.jar` que você fornece.
 
 # Informações do port para PC
+
+https://github.com/user-attachments/assets/2b874e0d-7876-4869-b7d0-14b03dbf071e
+
+https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
 
 ## Como jogar
 
