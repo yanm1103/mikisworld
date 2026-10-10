@@ -67,6 +67,13 @@ public sealed partial class Game2 : GameBase, IMikisGame
     }
 
     protected override void LoadCutscene(string name) => Cutscene.Load(name);
+    protected override int GateMarkerTile => Tile2.GateTL;
+    protected override void UpdateFx() => UpdateRainbowFx();
+
+    protected override void ScanOtherTile(int x, int y, int tile)
+    {
+        if (tile == Tile2.RainbowL) PutTile(x + 1, y, Tile2.RainbowR);
+    }
 
     private void SetTile(int x, int y, int tile) => PutTile(x, y, tile);
 

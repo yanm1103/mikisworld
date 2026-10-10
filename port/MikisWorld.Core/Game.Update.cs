@@ -305,18 +305,6 @@ public sealed partial class Game
     private short _lord2X2() => _finalLordX;
     private short _lord2Y2() => _finalLordY;
 
-    // Original d.cfr_renamed_11: game-over countdown
-    private void UpdateGameOver(int n)
-    {
-        _frame++;
-        UpdateMovingPlatforms();
-        UpdateBirdFx();
-        UpdateProjectiles();
-        if (_gameOverTimer == 0) _host.Play(Sfx.GameOver);
-        _gameOverTimer += n;
-        if (_gameOverTimer > 3000) { _running = false; _quit = true; }
-    }
-
     // Original d.j(): the freed-bird sprite flies right
     private void UpdateBirdFx()
     {

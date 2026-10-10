@@ -225,17 +225,6 @@ public sealed partial class Game2
         }
     }
 
-    private void UpdateGameOver(int n)
-    {
-        _frame++;
-        UpdateMovingPlatforms();
-        UpdateRainbowFx();
-        UpdateProjectiles();
-        if (_gameOverTimer == 0) _host.Play(Sfx.GameOver);
-        _gameOverTimer += n;
-        if (_gameOverTimer > 3000) { _running = false; _quit = true; }
-    }
-
     // Original c.R2(int,int): one hit (projectile or Mork)
     private void Damage()
     {

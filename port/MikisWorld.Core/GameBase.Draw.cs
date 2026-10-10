@@ -47,4 +47,20 @@ public abstract partial class GameBase
         if (value > 2) { g.SetClip(x, y + h, w, h); g.DrawImage(_imgBonus, x - colour, y + h, TL); }
         if (value > 3) { g.SetClip(x + w, y + h, w, h); g.DrawImage(_imgBonus, x + w - colour, y + h, TL); }
     }
+
+    // original d.a(Graphics,int,int,int,int,int,int): four orbs flying out of an exploding cell
+    protected void DrawExplosion(Canvas g, int gx, int gy, int cellX, int cellY, int owner, int progress)
+    {
+        g.SetClip(0, 0, L.ScreenW, L.ScreenH);
+        int x = gx + cellX * L.CellW + 2;
+        int y = gy + cellY * L.CellH + 2;
+        int w = L.OrbW, h = L.OrbH;
+        int colour = owner == 1 ? w : 0;
+        int dx = L.CellW * progress / 10;
+        int dy = L.CellH * progress / 10;
+        if (cellX > 0) { g.SetClip(x - dx, y, w, h); g.DrawImage(_imgBonus, x - colour - dx, y, TL); }
+        if (cellX < 4) { g.SetClip(x + dx + w, y, w, h); g.DrawImage(_imgBonus, x - colour + dx + w, y, TL); }
+        if (cellY > 0) { g.SetClip(x + w, y - dy, w, h); g.DrawImage(_imgBonus, x - colour + w, y - dy, TL); }
+        if (cellY < 3) { g.SetClip(x, y + dy + h, w, h); g.DrawImage(_imgBonus, x - colour, y + dy + h, TL); }
+    }
 }

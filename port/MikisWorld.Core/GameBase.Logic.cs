@@ -269,4 +269,218 @@ public abstract partial class GameBase
         }
         return _airDir * _walkSpeed;
     }
+
+    /// <summary>The player pressed "interact": enter / leave a portal or the golden gate (starts the wipe transition).</summary>
+    protected void ProcessInteract()
+    {
+        if (_interactPressed)
+        {
+            _hintTimer = 0;
+            if (_area == Area.SubArea)
+            {
+                SnapshotScene();
+                _frame = 0;
+                _returnState = _state;
+                _state = State.WipeIn;
+                _nextArea = 0;
+            }
+            else if (_interact == 65535)           // the golden gate
+            {
+                SnapshotScene();
+                _frame = 0;
+                _returnState = State.FinalStage;
+                _state = State.WipeIn;
+                _nextArea = 1;
+                _interact = -1;
+            }
+            else
+            {
+                for (int i = 0; i < _portalCells.Length; i++)
+                {
+                    // the original has no destination for portals past the sub-area table (it crashes); revamped movement just ignores them
+                    if (_interact == _portalCells[i] && (!Tweaks.RevampedMovement || i < _subAreaX.Length && i < _subAreaRows.Length))
+                    {
+                        SnapshotScene();
+                        _frame = 0;
+                        _returnState = _state;
+                        _state = State.WipeIn;
+                        _nextArea = (sbyte)(2 + i);
+                        _interact = -1;
+                        break;
+                    }
+                }
+            }
+            _interactPressed = false;
+        }
+    }
+
+    /// <summary>One tick of the player's motion: key input -> motion state, then the movement that state asks for.
+    /// <paramref name="restDy"/> is the vertical movement while standing / walking (0 in game 1, 2 in game 2).</summary>
+    protected void StepMotion(out int dx, out int dy, int restDy)
+    {
+        // revamped movement: real held directions, and a jump needs a fresh key press
+        int hx = Tweaks.RevampedMovement ? _held.X : _inputX;
+        bool wantJump = Tweaks.RevampedMovement ? _jumpBuffer > 0 : _inputJump < 0;
+        if (_motion == 0 || _motion == 1 || _motion == 2)
+        {
+            if (wantJump && hx < 0) { _motion = 3; _airDir = -1; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 1; _airControl = true; }
+            else if (wantJump && hx > 0) { _motion = 5; _airDir = 1; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 3; _airControl = true; }
+            else if (wantJump) { _motion = 4; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; }
+            else if (hx < 0) _motion = 1;
+            else if (hx > 0) _motion = 2;
+        }
+        if (hx == 0 && (_motion == 1 || _motion == 2)) _motion = 0;
+        if (_jumpBuffer > 0) _jumpBuffer--;
+
+        dx = 0; dy = restDy;
+        int prevCase = _lastCase;
+        _lastCase = _motion;
+        switch (_motion)
+        {
+            case 0:
+                if (_sprite >= 2) _sprite = 2;
+                else _sprite = 0;
+                break;
+            case 1:
+                _sprite = _frame / (Tweaks.SlowWalkAnimation ? 6 : 3) % 2;
+                dx -= _walkSpeed;
+                break;
+            case 2:
+                _sprite = 2 + _frame / (Tweaks.SlowWalkAnimation ? 6 : 3) % 2;
+                dx += _walkSpeed;
+                break;
+            case 3:
+                dy = -_jumpTable[_jumpStep];
+                if (Tweaks.RevampedMovement) dx = AirDrift(hx);
+                else
+                {
+                    if (_inputX < 0 && _inputJump == 0) { dx = -_airSpeed; _airControl = false; _sprite = 1; }
+                    else if (_inputX > 0 && _inputJump == 0) { dx = _airSpeed; _airControl = false; _sprite = 3; }
+                    else if (_airControl) dx -= _walkSpeed;
+                }
+                if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
+                _jumpStep++;
+                if (_jumpStep != _jumpTable.Length) break;
+                _jumpStep = 0;
+                _motion = 0;
+                break;
+            case 4:
+                if (hx < 0) { _sprite = 1; dx = -_walkSpeed; }
+                else if (hx > 0) { _sprite = 3; dx = _walkSpeed; }
+                dy = -_jumpTable[_jumpStep];
+                if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
+                _jumpStep++;
+                if (_jumpStep != _jumpTable.Length) break;
+                _jumpStep = 0;
+                _motion = 0;
+                break;
+            case 5:
+                dy = -_jumpTable[_jumpStep];
+                if (Tweaks.RevampedMovement) dx = AirDrift(hx);
+                else
+                {
+                    if (_airControl) dx += _walkSpeed;
+                    if (_inputX < 0 && _inputJump == 0) { dx = -_walkSpeed; _airControl = false; _sprite = 1; }
+                    else if (_inputX > 0 && _inputJump == 0) { dx = _walkSpeed; _airControl = false; _sprite = 3; }
+                }
+                if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
+                _jumpStep++;
+                if (_jumpStep != _jumpTable.Length) break;
+                _jumpStep = 0;
+                _motion = 0;
+                break;
+            case 6:
+                // walking on flat ground flips between motion 6 and 0 every tick in the original; its air pose would make the walk flicker
+                bool pose = !Tweaks.SlowWalkAnimation || prevCase == 6;
+                if (hx < 0) { if (pose) _sprite = 1; dx = -_airSpeed; }
+                else if (hx > 0) { if (pose) _sprite = 3; dx = _airSpeed; }
+                dy += _fallSpeed;
+                break;
+        }
+    }
+
+    // Original d.cfr_renamed_11: game-over countdown
+    protected void UpdateGameOver(int n)
+    {
+        _frame++;
+        UpdateMovingPlatforms();
+        UpdateFx();
+        UpdateProjectiles();
+        if (_gameOverTimer == 0) _host.Play(Sfx.GameOver);
+        _gameOverTimer += n;
+        if (_gameOverTimer > 3000) { _running = false; _quit = true; }
+    }
+
+    // Original d.if(byte[]): turn marker tiles into platforms / animated tile lists.
+    protected void ScanLevel(sbyte[] platformFlags)
+    {
+        var animated = new List<int>();     // map indices of coins + portals, row-major
+        var portals = new List<int>();
+        var markers = new List<int>();      // platform x, y, length triples
+        int[] tiles = _map.Tiles;
+        int w = _map.Width, h = _map.Height;
+        int idx = 0;
+        _totalCoins = 0;
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++, idx++)
+            {
+                if (tiles[idx] == Tile.Cloud)
+                {
+                    markers.Add(x);
+                    markers.Add(y);
+                    int len = 0;
+                    while (x < w && tiles[idx] == Tile.Cloud)
+                    {
+                        tiles[idx] = 0;
+                        len++; idx++; x++;
+                    }
+                    if (x == w) idx--;
+                    markers.Add(len);
+                }
+                else if (tiles[idx] == GateMarkerTile)
+                {
+                    _gateX = (short)x;
+                    _gateY = (short)y;
+                }
+                else if (tiles[idx] == Tile.PortalA)
+                {
+                    portals.Add(idx);
+                    animated.Add(idx);
+                }
+                else if (tiles[idx] == Tile.Coin)
+                {
+                    _totalCoins++;
+                    animated.Add(idx);
+                }
+                else
+                {
+                    ScanOtherTile(x, y, tiles[idx]);
+                }
+            }
+        }
+        _portalCells = new short[portals.Count];
+        for (int i = 0; i < portals.Count; i++) _portalCells[i] = (short)portals[i];
+        _animTiles = new short[animated.Count * 3];
+        for (int i = 0; i < animated.Count; i++)
+        {
+            _animTiles[i * 3] = (short)(animated[i] % _map.Width);
+            _animTiles[i * 3 + 1] = (short)(animated[i] / _map.Width);
+            _animTiles[i * 3 + 2] = -1;
+        }
+        _animFirst = 0;
+        _platforms = new short[platformFlags.Length][];
+        _platformX = new short[platformFlags.Length];
+        for (int i = 0; i < platformFlags.Length; i++)
+        {
+            short x = (short)markers[i * 3], y = (short)markers[i * 3 + 1], len = (short)markers[i * 3 + 2];
+            x = (short)(x * 8); y = (short)(y * 8);
+            short f = (short)(platformFlags[i] & 0xFF);
+            x = (short)(x * _scaleX / 16);
+            y = (short)(y * _scaleY / 16);
+            if (len == 0) len = (short)_map.Width;
+            _platforms[i] = new short[] { x, y, len, f };
+            _platformX[i] = x;
+        }
+    }
 }

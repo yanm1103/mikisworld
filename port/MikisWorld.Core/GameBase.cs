@@ -32,6 +32,9 @@ public abstract partial class GameBase
     protected abstract void LoadLevel();
     protected abstract void LoadCutscene(string name);
     public abstract void EnterArea(int n);
+    protected abstract int GateMarkerTile { get; }                         // tile that marks the gate position in the map
+    protected abstract void ScanOtherTile(int x, int y, int tile);         // game-specific tiles met while scanning a loaded level
+    protected abstract void UpdateFx();                                    // freed birds / floating rainbows
 
     /// <summary>Start of the main game: load the level and play the intro cutscene.</summary>
     protected void BeginIntro()

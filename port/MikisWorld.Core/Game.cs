@@ -84,6 +84,13 @@ public sealed partial class Game : GameBase, IMikisGame
     }
 
     protected override void LoadCutscene(string name) => Cutscene.Load(name);
+    protected override int GateMarkerTile => Tile.GateMarker;
+    protected override void UpdateFx() => UpdateBirdFx();
+
+    protected override void ScanOtherTile(int x, int y, int tile)
+    {
+        if (tile == Tile.CagedBird) _map.Set(x, y - 1, Tile.BirdSign);
+    }
     public void Update(int dt, int totalMs) => Update(dt);
     public void ChooseModeIndex(int i) => ChooseMode(i);
 

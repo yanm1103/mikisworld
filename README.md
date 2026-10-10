@@ -28,7 +28,7 @@ Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` 
 
 - **Remapear tudo:** menu → *Options* → *Keyboard keys* ou *Gamepad* (duas entradas por ação; `Backspace`/`X` limpa; *Defaults* restaura).
 - **Teclado numérico do celular:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar) e **não** são remapeáveis, porque o código secreto é digitado com eles.
-- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções). Na partida o mouse não faz nada.
+- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções).
 - **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
 - **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
 - **Instruções na tela** mostram as teclas ou botões que você configurou (conforme o último dispositivo usado).
@@ -134,6 +134,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
+| Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
 
 ### Como rodar a partir do código
 
@@ -173,7 +174,7 @@ extra fica guardado e, depois da transição, o jogo usa o portal da área que a
 ```
 docs/                      análise dos dois jogos e dos formatos de arquivo
 port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
-                             Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento) · EngineTweaks.cs
+                             GameBase*.cs (o que os dois jogos têm em comum: estado, entrada, movimento do jogador, minigame bônus, projéteis, câmera…) · Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento) · EngineTweaks.cs
 port/MikisWorld.Game/      frontend Raylib (janela, texto, áudio); lê os recursos direto dos JARs
                              InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib) · Launcher.cs (tela inicial)
 port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes, roteador de entrada e ajustes de engine
