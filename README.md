@@ -148,7 +148,7 @@ Em caso de erro, por favor nos informe!
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Executável MikisWorldCollection" (2026-10-09). Marco de referência: tag `base-1.0`.
+> Versão atual: **1.1.0** (veja o [CHANGELOG](CHANGELOG.md)). Marco de referência da base: tag `base-1.0`.
 
 #### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 

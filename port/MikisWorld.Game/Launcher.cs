@@ -98,6 +98,9 @@ internal static partial class Launcher
         return 0;
     }
 
+    /// <summary>"v1.1.0": the version of the program (set in the project file).</summary>
+    public static readonly string Version = "v" + (typeof(Launcher).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "?");
+
     private static Texture2D? _logo;
     private static bool _logoTried;
 
@@ -216,6 +219,7 @@ internal static partial class Launcher
             string shown = r.Game != 0 || r.Label == "Options" ? v : (r.Slider || i == sel ? $"< {v} >" : v);
             Text(shown, x0 + boxW - 4 - Width(shown, 10), ry + 4, 10, r.Game != 0 ? Sub : Color.White);
         }
+        Text(Version, W0 - Width(Version, 8) - 4, H0 - 11, 8, new Color(255, 224, 160, 140));
         if (_padLast)
         {
             Centered("D-pad: choose                  A: select", H0 - 24, 10, Sub);
