@@ -9,8 +9,8 @@ namespace MikisWorld.Game;
 /// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
 internal static class Launcher
 {
-    public const int W0 = 320, H0 = 230;
-    private const int RowH = 17, RowX = 30, RowW = 260, RowY = 40;     // the list of rows, in native units
+    public const int W0 = 320, H0 = 250;
+    private const int RowH = 16, RowX = 30, RowW = 260, RowY = 60;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
 
@@ -91,6 +91,29 @@ internal static class Launcher
         return 0;
     }
 
+    private static Texture2D? _logo;
+    private static bool _logoTried;
+
+    /// <summary>The collection logo (embedded in the executable); null when it cannot be loaded, then the title is plain text.</summary>
+    private static Texture2D? Logo()
+    {
+        if (_logoTried) return _logo;
+        _logoTried = true;
+        try
+        {
+            using var stream = typeof(Launcher).Assembly.GetManifestResourceStream("collectionlogo.png");
+            if (stream == null) return null;
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            var data = ms.ToArray();
+            var image = Raylib.LoadImageFromMemory(".png", data);
+            _logo = Raylib.LoadTextureFromImage(image);
+            Raylib.UnloadImage(image);
+        }
+        catch (Exception e) when (e is IOException or InvalidOperationException) { _logo = null; }
+        return _logo;
+    }
+
     private static List<Row> Rows(DisplaySettings s)
     {
         var rows = new List<Row>
@@ -130,7 +153,14 @@ internal static class Launcher
         void Centered(string t, float y, int size, Color c) => Text(t, (W0 - Width(t, size)) / 2, y, size, c);
 
         Rect(0, 0, W0, H0, Bg);
-        Centered("Miki's World", 6, 30, Color.White);
+        var logo = Logo();
+        if (logo.HasValue)
+        {
+            Raylib.SetTextureFilter(logo.Value, s.UsesBilinear ? TextureFilter.Bilinear : TextureFilter.Point);
+            Raylib.DrawTexturePro(logo.Value, new Rectangle(0, 0, logo.Value.Width, logo.Value.Height),
+                new Rectangle(ox + (W0 - logo.Value.Width) / 2 * k, oy + 4 * k, logo.Value.Width * k, logo.Value.Height * k), Vector2.Zero, 0, Color.White);
+        }
+        else Centered("Miki's World", 6, 30, Color.White);
 
         const int rowH = RowH, x0 = RowX, boxW = RowW, y0 = RowY;
         Rect(x0 - 4, y0 - 4, boxW + 8, rows.Count * rowH + 8, Color.White);
