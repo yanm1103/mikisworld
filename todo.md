@@ -4,7 +4,7 @@
 2. ~~O fullscreen do jogo tem prioridade e não deixa outras coisas entrarem por cima quando aberto.~~ (feito: o topmost do raylib é desfeito ao ligar o fullscreen; aguardando teste)
 3. ~~O scroll do mouse só funciona no menu dos jogos e não no do seletor de jogo.~~ (feito: a roda move a seleção no seletor)
 4. ~~Gaiolas de pássaros e moedas não possuem hitbox visível no modo hitboxes on.~~ (feito: moedas, chaves e gaiolas/arco-íris têm caixa amarelo-clara)
-5. ~~A opção logs não faz nada no menu de debug.~~ (feito: o console agora é anexado/aberto mesmo quando o programa herda um handle de console, como no play.bat; ao ligar imprime "logs on"; aguardando teste)
+5. ~~A opção logs não faz nada no menu de debug.~~ (removida do menu F3; os logs continuam com `--logs`)
 6. ~~Não existe hoje uma opção nas telas de rebind de "Voltar os controles para o padrão"~~ (feito: a linha já existia mas se chamava "Defaults" e era discreta; agora é "Reset to defaults", em rosa, com aviso "Defaults restored"; a dica não corta mais no jogo 2)
 
 # Coisas a serem adicionadas de imediato

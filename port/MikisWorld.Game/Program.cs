@@ -152,9 +152,6 @@ internal static class Program
                 ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, run.Bindings)
                 : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, run.Bindings);
 
-            app.LogsGet = () => LogConsole.Enabled;
-            app.LogsSet = LogConsole.SetEnabled;
-
             int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
             // a full-screen window keeps the monitor's size; only a normal window is sized to the game
             if (!settings.Fullscreen) Raylib.SetWindowSize(sw0 * run.Scale, sh0 * run.Scale);

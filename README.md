@@ -87,7 +87,6 @@ Aperte `F3` para abrir e fechar o menu de debug.
 | Invincible | nenhum dano: os acertos são ignorados (sem perder vida, sem som, sem vibração) |
 | Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida é instantaneamente restaurada |
 | Hitboxes | Permite ver o hitbox de todos os sprites nos dois jogos |
-| Logs | liga/desliga o log do programa e do raylib (o mesmo de `--logs`; abre um console se for preciso) |
 
 ### Wireframe dos hitboxes
 
@@ -205,7 +204,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
 | Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
-| Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes e liga/desliga dos logs; só durante a execução | 100% · 100% |
+| Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes; só durante a execução | 100% · 100% |
 | Dicas e transição | Dicas "Press 8/5" com as teclas configuradas, mensagem do bônus empilhada sobre a dica, transição de portal do jogo 2 com o snapshot inteiro (o original tem 12×12) | 100% · 100% |
 
 ### Como rodar a partir do código

@@ -103,7 +103,7 @@ internal static class AppTest
         a.ToggleDebugMenu();
         Check(a.DebugPanelOpen && a.Context == App.InputContext.Menu, "F3 opens it and the controls become menu controls");
         var rows = a.DebugDebugRows();
-        Check(rows.SequenceEqual(new[] { "Invincible", "Infinite lives", "Hitboxes" }), "rows: " + string.Join("|", rows) + " (Logs only when the frontend provides it)");
+        Check(rows.SequenceEqual(new[] { "Invincible", "Infinite lives", "Hitboxes" }), "rows: " + string.Join("|", rows));
         a.KeyPressed(Fire, 8);
         Check(a.Debug.Invincible, "Enter on the first row switches Invincible on");
         a.KeyPressed(Down, 6); a.KeyPressed(Down, 6); a.KeyPressed(Fire, 8);
@@ -124,8 +124,17 @@ internal static class AppTest
         b.ToggleDebugMenu();
         var over = new Canvas(bmp); b.Draw(over);
         Check(gameTexts.Count > 0 && !over.Texts.Any(t => gameTexts.Contains(t.Text)), $"{name}: the game's own text ({(gameTexts.Count > 0 ? gameTexts[0] : "none found")}) does not show through the debug menu");
-        a.LogsGet = () => true; a.LogsSet = _ => { };
-        Check(a.DebugDebugRows().Contains("Logs"), "with the frontend's hooks there is a Logs row");
+
+        // the main menu is hidden while the debug panel is open
+        var menuApp = make().app;
+        menuApp.KeyPressed(53, 8);                                      // title: any key opens the menu
+        var plain = new Canvas(bmp); menuApp.Draw(plain);
+        var labels = menuApp.DebugMenuLabels();
+        Check(plain.Texts.Any(t => labels.Contains(t.Text)), $"{name}: the main menu draws its entries");
+        menuApp.ToggleDebugMenu();
+        var withDebug = new Canvas(bmp); menuApp.Draw(withDebug);
+        Check(!withDebug.Texts.Any(t => labels.Contains(t.Text)) && withDebug.Texts.Any(t => t.Text.StartsWith("Invincible")),
+              $"{name}: the main menu text does not show through the debug panel");
     }
 
     /// <summary>The hint bubbles name the key / button really bound, and "Bonus game opened!" no longer sits on top of "Press ... to enter".</summary>

@@ -23,9 +23,6 @@ public sealed class App
     private int _debugSel;
     /// <summary>Debug switches (F3 menu). Shared with the game.</summary>
     public DebugSettings Debug { get; } = new();
-    /// <summary>The frontend plugs its log switch here; without it the debug menu has no "Logs" row.</summary>
-    public Func<bool> LogsGet { get; set; }
-    public Action<bool> LogsSet { get; set; }                         // first menu entry shown
     private int _resetShownUntil;                   // until when the controls screens say "Defaults restored"
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
@@ -335,7 +332,7 @@ public sealed class App
         return items;
     }
 
-    /// <summary>F3: opens / closes the debug menu (invincibility, infinite lives, hit boxes, logs).</summary>
+    /// <summary>F3: opens / closes the debug menu (invincibility, infinite lives, hit boxes).</summary>
     public void ToggleDebugMenu()
     {
         _debugOpen = !_debugOpen;
@@ -355,7 +352,6 @@ public sealed class App
             new("Infinite lives", () => Debug.InfiniteLives, () => Debug.InfiniteLives = !Debug.InfiniteLives),
             new("Hitboxes", () => Debug.ShowHitboxes, () => Debug.ShowHitboxes = !Debug.ShowHitboxes),
         };
-        if (LogsGet != null && LogsSet != null) rows.Add(new("Logs", LogsGet, () => LogsSet(!LogsGet())));
         return rows;
     }
 
@@ -572,6 +568,12 @@ public sealed class App
     public void Draw(Canvas g)
     {
         _hits.Clear();
+        if (_debugOpen && _screen is Screen.Help or Screen.About or Screen.HighScores or Screen.NameEntry or Screen.Options or Screen.ControlsKeyboard or Screen.ControlsPad)
+        {
+            DrawBackdrop(g);                                                   // a form is hidden while the debug panel is open
+            DrawDebugMenu(g);
+            return;
+        }
         switch (_screen)
         {
             case Screen.Splash:
@@ -583,7 +585,8 @@ public sealed class App
                 g.SetColor(0, 0, 0);
                 g.FillRect(0, 0, W, H);
                 g.DrawImage(_titleArt, (W - _titleArt.Width) / 2, (H - _titleArt.Height) / 2, TL);
-                if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
+                if (_debugOpen) { }                                            // the debug panel has the screen to itself
+                else if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
                 else
                 {
                     Hit(0, 0, W, H, (_, _) => OpenMenu());                     // any click opens the menu, like any key
@@ -592,7 +595,8 @@ public sealed class App
                 break;
             case Screen.Game:
                 DrawGame(g);
-                if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
+                if (_debugOpen) { }
+                else if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
                 else if (_game.CurrentState == State.ModeMenu) DrawModeList(g);
                 break;
             case Screen.Help: DrawBackdrop(g); DrawHelp(g); Hit(0, 0, W, H, (_, _) => Back()); break;
