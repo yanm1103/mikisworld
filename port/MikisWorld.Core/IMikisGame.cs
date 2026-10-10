@@ -50,12 +50,12 @@ public sealed class AppInfo
     public bool StopTitleSoundOnEnter { get; init; }
     public static AppInfo MikisWorld1 { get; } = new()
     {
-        About = "Miki's World 1: The Lost Tiara v1.1.2\nCopyright 2002 Sumea\nwww.sumea.com\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
+        About = "Miki's World 1: The Lost Tiara v1.1.2\nCopyright 2002 Sumea\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
         HasSplash = false
     };
     public static AppInfo MikisWorld2 { get; } = new()
     {
-        About = "Miki's World 2: The Storm Master v1.2.2\nCopyright 2002 Sumea\nwww.sumea.com\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
+        About = "Miki's World 2: The Storm Master v1.2.2\nCopyright 2002 Sumea\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
         HasSplash = false,
         HighScoresFirst = true,
         EmptyNameBecomesSpace = true,
