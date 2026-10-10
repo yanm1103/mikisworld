@@ -20,6 +20,11 @@ for f in "$ROOT"/traces/hall_*.txt; do
   sd=$(basename "$f" .txt); sd=${sd#hall_}
   "$EXE" hall "$sd" 400 "$f" || fail=1
 done
+echo "== hall of fame (class k of MikisWorld2.jar)"
+for f in "$ROOT"/traces/hall2_*.txt; do
+  sd=$(basename "$f" .txt); sd=${sd#hall2_}
+  "$EXE" hall "$sd" 400 "$f" mw2 || fail=1
+done
 
 echo "== ring tone decoder"
 step "$EXE" ott "$ROOT/extracted/MikisWorld" "$ROOT/traces"

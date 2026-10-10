@@ -22,7 +22,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
 | Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/revamped, tela inicial com opções |
-| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
+| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; falta a opção "Vibrator" (sem equivalente no PC) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
 | **Total estimado** | **~99%** | |
 
@@ -34,13 +34,13 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 
 | Parte | Status | Notas |
 |---|---|---|
-| Decompilação e análise | **~95%** | decompilado, lido e confirmado rodando o jar original no harness; `level.bin` validado (`parse_level.py --v2`) |
+| Decompilação e análise | **100%** | as 12 classes lidas e classificadas (tabela "Cobertura por classe" em [`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md)); `level.bin` validado (`parse_level.py --v2`); hi-score testado contra a classe `k` do próprio JAR 2. Menus/formulários (API de interface do MIDP) são verificados por leitura + `apptest`, não por execução do original |
 | Lógica do jogo (Mork, arco-íris, física alterada) | **100%** | `Game2`: 20/20 traces idênticos ao original (~100 mil ticks), incluindo Mork, Lords, subáreas e estágio final |
 | Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
 | Menus, hi-scores, salvamento | **90%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
 | Áudio | **100%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3×; **conferido de ouvido** |
 | Janela, escala, entrada | **100%** | mesma janela, opções e controles (remapeáveis) do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
-| **Total estimado** | **~98%** | mesmos pesos do jogo 1 |
+| **Total estimado** | **~99%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -61,6 +61,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Opções de janela e volume | Tela *Options* (volume 0–100 % na amplitude da onda, tela cheia, escala inteira, filtro nearest/bilinear); os dois JARs passam a ser obrigatórios | ~98% · ~97% |
 | Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle; roteador de entrada com testes | ~99% · ~98% |
 | Ajustes de engine e tela inicial | Pulo e animação do protagonista mais lentos, opção *Movement* original/revamped (sem pulo contínuo ao segurar ↑, direção segurada vale ao cair/pousar), tela inicial com jogos + opções compartilhadas; `EngineTweaks` desligado nos testes (traces continuam idênticos) | ~99% · ~98% |
+| Fechando a decomp do jogo 2 | Leitura de `GameMIDlet`, `a`, `j`, `k`, `h`, `b`, `g`; teste diferencial do hi-score contra o `k` do jogo 2 (achou o nome vazio); ordem do menu do jogo 2, título abre com qualquer tecla / após 5 s, som do título parado ao entrar no jogo 2 | ~99% · ~99% |
 
 ## Como rodar
 
@@ -82,6 +83,7 @@ dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave 
 `Enter`/`Espaço` (confirmar e pular cutscene). Os **dígitos** continuam sendo o teclado do celular e não são remapeáveis
 (`4`/`6` andar, `2` pular, `1`/`3` pulo diagonal, `8` interagir, `5` confirmar), porque o código secreto é digitado com eles.
 `Esc` abre/fecha o menu (na partida ele pausa e mostra "Continue game"); nos menus as setas, `Enter` e `Esc` são fixas.
+Na tela-título qualquer tecla abre o menu, e ele abre sozinho depois de 5 s sem tecla (como no original).
 
 **Gamepad** (o primeiro controle conectado; Xbox/PlayStation/Switch via mapeamento do Raylib): D-pad ou analógico esquerdo
 (andar), `A` (pular), `X` (interagir), `Y` (confirmar), `Start` (menu/pausa). Nos menus: D-pad/analógico navegam, `A` confirma e

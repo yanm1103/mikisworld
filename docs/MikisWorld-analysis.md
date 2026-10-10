@@ -103,6 +103,13 @@ Os sons: `title`, `onceuponatime`, `gamestart`, `gameend`, `gameover`, `lord`, `
 os sons agudos demais (0,7–2,6 kHz) numa onda quadrada, o port toca **uma oitava abaixo** por padrão (`--octave`), o que foi
 confirmado de ouvido.
 
+## Fluxo e menus (conferido por leitura)
+
+Ordem do menu por prioridade dos comandos: *Continue game, New game, Instructions, High scores, Sound, Vibrator, About, Exit* (no jogo 2 *High scores* vem antes de
+*Instructions*). A tela-título abre o menu com **qualquer tecla** ou sozinha após **5 s** sem tecla; ao voltar de um formulário aberto a partir do menu, o menu
+reaparece (o `Form` volta para a `List` que o abriu). A classe `k` testa `name.equals(" ")`, de modo que um nome vazio continua vazio (no jogo 2 é o contrário).
+Os menus usam `List`/`Form`/`TextField` do MIDP, que o harness não simula: são verificados por leitura e pelos testes `apptest`.
+
 ## Estado do port
 
 Concluído e validado (veja o README para os números): lógica, minigame, desenho, menus/hi-scores/salvamento, áudio e janela.

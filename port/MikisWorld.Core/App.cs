@@ -11,7 +11,7 @@ public sealed class App
 
     private readonly IStorage _storage;
     private readonly SaveData _save;
-    private readonly HallOfFame _hof = new("aaa", 0, 1, 10, true);
+    private readonly HallOfFame _hof;
     private readonly SettingsHost _host;
     private readonly IMikisGame _game;
     private readonly AppInfo _info;
@@ -39,6 +39,8 @@ public sealed class App
     private string _name = "";
     private int _pendingScore;
     private bool _titleSoundPlayed;
+    private int _titleIdle;                       // ms on the title without opening the menu
+    private const int TitleMenuDelayMs = 5000;
 
     public bool WantsExit { get; private set; }
     private int W => _game.ScreenWidth;
@@ -54,6 +56,7 @@ public sealed class App
         _bind = bindings ?? new InputBindings();
         _storage = storage;
         _info = info;
+        _hof = new HallOfFame("aaa", 0, 1, 10, true, info.EmptyNameBecomesSpace);
         _set = settings ?? new DisplaySettings();
         _save = storage.Load() ?? new SaveData();
         _host = new SettingsHost(host) { Enabled = _set.Volume > 0 };
@@ -133,6 +136,13 @@ public sealed class App
             _titleSoundPlayed = true;
             _host.Play(Sfx.Title);
         }
+        // original title canvas: 5 s without a key and the option menu opens by itself (the clock restarts whenever the title is shown again)
+        if (_screen == Screen.Title && !_menuOpen)
+        {
+            _titleIdle += dt;
+            if (_titleIdle >= TitleMenuDelayMs) OpenMenu();
+        }
+        else _titleIdle = 0;
         if (_screen != Screen.Game || _menuOpen) return;
         _gameClock += dt;
         _game.Update(dt, _gameClock);
@@ -184,7 +194,7 @@ public sealed class App
                 EndSplash();
                 break;
             case Screen.Title:
-                if (!_menuOpen) { if (IsSelect(key, action)) OpenMenu(); }
+                if (!_menuOpen) OpenMenu();             // the original title opens the menu on ANY key
                 else MenuKey(key, action);
                 break;
             case Screen.Game:
@@ -281,10 +291,12 @@ public sealed class App
     private List<(string Label, Action Run)> MenuItems()
     {
         var items = new List<(string, Action)>();
-        if (_gameInProgress) items.Add((_s.Ui(0), () => { _menuOpen = false; _screen = Screen.Game; }));
+        if (_gameInProgress) items.Add((_s.Ui(0), () => { _menuOpen = false; _screen = Screen.Game; EnterGameSound(); }));
         items.Add((_s.Ui(10), StartNewGame));
-        items.Add((_s.Ui(1), () => OpenForm(Screen.Help)));
-        items.Add((_s.Ui(2), () => OpenForm(Screen.HighScores)));
+        var help = (_s.Ui(1), (Action)(() => OpenForm(Screen.Help)));
+        var scores = (_s.Ui(2), (Action)(() => OpenForm(Screen.HighScores)));
+        if (_info.HighScoresFirst) { items.Add(scores); items.Add(help); }
+        else { items.Add(help); items.Add(scores); }
         items.Add((OptionsLabel, () => { OpenForm(Screen.Options); _optSel = 0; }));
         items.Add((_s.Ui(11), () => OpenForm(Screen.About)));
         items.Add((_s.Ui(3), () => WantsExit = true));
@@ -311,9 +323,12 @@ public sealed class App
         else if (IsSelect(key, action)) items[Math.Min(_menuSel, items.Count - 1)].Run();
     }
 
+    private void EnterGameSound() { if (_info.StopTitleSoundOnEnter) _host.StopSound(); }
+
     private void StartNewGame()
     {
         _menuOpen = false;
+        EnterGameSound();
         _screen = Screen.Game;
         _gameInProgress = true;
         _modeSel = 0;
@@ -423,7 +438,7 @@ public sealed class App
                 g.FillRect(0, 0, W, H);
                 g.DrawImage(_titleArt, (W - _titleArt.Width) / 2, (H - _titleArt.Height) / 2, TL);
                 if (_menuOpen) { Dim(g); DrawMenu(g); }
-                else if (_ms / 600 % 2 == 0) DrawShadowed(g, "Press Enter", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
+                else if (_ms / 600 % 2 == 0) DrawShadowed(g, "Press any key", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
                 break;
             case Screen.Game:
                 DrawGame(g);

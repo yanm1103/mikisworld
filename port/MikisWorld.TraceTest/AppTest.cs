@@ -62,6 +62,18 @@ internal static class AppTest
         skip.KeyPressed(53, 8);
         Check(skip.DebugScreen == "Title", "any key skips the splash");
 
+        var stopHost = new CountingHost();
+        var m2s = NewMw2(assets, new MemoryStorage(), stopHost);
+        m2s.Update(20); m2s.KeyPressed(55, 0);
+        int stopsBefore = stopHost.Stops;
+        Select(m2s, "New game");
+        Check(stopHost.Stops > stopsBefore, "game 2 stops the title jingle when the game is entered");
+        var m2 = NewMw2(assets, new MemoryStorage());
+        m2.Update(20);
+        m2.KeyPressed(55, 0);
+        Check(m2.DebugMenuLabels().SequenceEqual(new[] { "New game", "High scores", "Instructions", "Options", "About", "Exit" }),
+              "game 2 menu order follows the original command priorities (High scores before Instructions): " + string.Join("|", m2.DebugMenuLabels()));
+
         Console.WriteLine("MikisWorld 2: every screen draws without errors");
         var tmp = new App(h => new Game2(assets, h, 3), assets, new CountingHost(), new MemoryStorage(), AppInfo.MikisWorld2);
         var bmp = new Bitmap(128, 128);
@@ -138,6 +150,28 @@ internal static class AppTest
         Check(app.DebugMenuOpen, "Fire opens the menu");
         Check(app.DebugMenuLabels().SequenceEqual(new[] { "New game", "Instructions", "High scores", "Options", "About", "Exit" }),
               "menu items match the original commands (no Continue yet): " + string.Join("|", app.DebugMenuLabels()));
+
+        // the original title canvas opens the menu on ANY key, or by itself after 5 s
+        var anyKey = new App(assets, new CountingHost(), new MemoryStorage(), 1234);
+        anyKey.Update(20);
+        anyKey.KeyPressed(55, 0);
+        Check(anyKey.DebugMenuOpen, "any key (here '7') opens the menu");
+        var idle = new App(assets, new CountingHost(), new MemoryStorage(), 1234);
+        for (int i = 0; i < 240; i++) idle.Update(20);
+        Check(!idle.DebugMenuOpen, "the menu does not open before 5 s");
+        for (int i = 0; i < 20; i++) idle.Update(20);
+        Check(idle.DebugMenuOpen, "after 5 s without a key the menu opens by itself");
+        idle.Back();
+        for (int i = 0; i < 200; i++) idle.Update(20);
+        Check(!idle.DebugMenuOpen, "closing the menu restarts the 5 s clock");
+        for (int i = 0; i < 60; i++) idle.Update(20);
+        Check(idle.DebugMenuOpen, "...and it opens again");
+
+        var m1s = new CountingHost();
+        var m1a = new App(assets, m1s, new MemoryStorage(), 1);
+        m1a.Update(20); m1a.KeyPressed(55, 0);
+        Select(m1a, "New game");
+        Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
         Console.WriteLine("forms");
         Select(app, "Instructions");
@@ -312,7 +346,8 @@ internal static class AppTest
     {
         public readonly List<Sfx> Played = new();
         public void Play(Sfx sound) { Played.Add(sound); }
-        public void StopSound() { }
+        public int Stops;
+        public void StopSound() { Stops++; }
         public void Vibrate(int frequency, int milliseconds) { }
     }
 }

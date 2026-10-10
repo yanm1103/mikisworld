@@ -9,8 +9,12 @@ public sealed class HallOfFame
     private readonly string[][] _names;
     private readonly int[][] _scores;
 
-    public HallOfFame(string defaultName, int defaultScore, int tables, int entries, bool descending)
+    /// <summary>Game 1's class tests <c>name.equals(" ")</c> (so an empty name stays empty); game 2's tests <c>equals("")</c> (empty becomes a space).</summary>
+    private readonly bool _emptyBecomesSpace;
+
+    public HallOfFame(string defaultName, int defaultScore, int tables, int entries, bool descending, bool emptyBecomesSpace = false)
     {
+        _emptyBecomesSpace = emptyBecomesSpace;
         Tables = tables; Entries = entries; _descending = descending;
         _names = new string[tables][];
         _scores = new int[tables][];
@@ -35,7 +39,7 @@ public sealed class HallOfFame
     /// <summary>Original k.a(int,String,int): insert below equal scores, dropping the last entry.</summary>
     public void Insert(int table, string name, int score)
     {
-        if (name == null || name == " ") name = " ";
+        if (name == null || name == (_emptyBecomesSpace ? "" : " ")) name = " ";
         int pos = Entries - 1;
         if (_descending) { while (pos >= 0 && score > _scores[table][pos]) --pos; }
         else { while (pos >= 0 && score < _scores[table][pos]) --pos; }

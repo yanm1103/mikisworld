@@ -40,14 +40,14 @@ internal static class Program
     };
 
     // Differential test of the hall-of-fame logic against the original class k (tools/harness/src/HallTest.java).
-    //   MikisWorld.TraceTest hall <seed> <steps> <expected.txt>
+    //   MikisWorld.TraceTest hall <seed> <steps> <expected.txt> [mw2]
     private static int HallTest(string[] a)
     {
         var rnd = new JavaRandom(long.Parse(a[1]));
         int steps = int.Parse(a[2]);
         string[] expected = File.ReadAllLines(a[3]);
         string[] names = { "bob", "AMY", " ", null, "", "zed", "a b", "mike" };
-        var hof = new HallOfFame("aaa", 0, 1, 10, true);
+        var hof = new HallOfFame("aaa", 0, 1, 10, true, a.Length > 4 && a[4] == "mw2");
         for (int i = 0; i < steps; i++)
         {
             string n = names[(rnd.NextInt() & 0x7fffffff) % names.Length];

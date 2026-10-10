@@ -36,6 +36,12 @@ public sealed class AppInfo
 {
     public string About { get; init; }
     public bool HasSplash { get; init; }
+    /// <summary>Order of the option menu: the original commands have a priority, and in game 2 "High scores" (3) comes before "Instructions" (4).</summary>
+    public bool HighScoresFirst { get; init; }
+    /// <summary>Quirk of the original hi-score class: see <see cref="HallOfFame"/>.</summary>
+    public bool EmptyNameBecomesSpace { get; init; }
+    /// <summary>Game 2's title screen stops the title jingle when the game is entered (class <c>a</c>.stop → Sound.stop); game 1 lets it run on.</summary>
+    public bool StopTitleSoundOnEnter { get; init; }
     public static AppInfo MikisWorld1 { get; } = new()
     {
         About = "Miki's World 1: The Lost Tiara v1.1.2\nCopyright 2002 Sumea\nwww.sumea.com\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
@@ -44,6 +50,9 @@ public sealed class AppInfo
     public static AppInfo MikisWorld2 { get; } = new()
     {
         About = "Miki's World 2: The Storm Master v1.2.2\nCopyright 2002 Sumea\nwww.sumea.com\n\nPC port (unofficial) by TwistZero\ngithub.com/yanm1103",
-        HasSplash = false
+        HasSplash = false,
+        HighScoresFirst = true,
+        EmptyNameBecomesSpace = true,
+        StopTitleSoundOnEnter = true
     };
 }

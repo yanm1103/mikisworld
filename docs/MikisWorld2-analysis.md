@@ -5,9 +5,9 @@ J2ME / MIDP 1.0 / CLDC 1.0, Sumea, v1.2.2. Decompilado com CFR 0.152 em `decompi
 documento só descreve **o que muda**.
 
 > Tudo abaixo foi **confirmado rodando o JAR original** no harness (`tools/harness` + `names_mw2.properties`) e comparando com o
-> port (`Game2`): 20 traces de estado e 9 conjuntos de quadros idênticos (veja o [README](../README.md#validação)). Itens marcados
-> **(inferido)** são interpretações de significado (por que um campo existe), sem efeito nos testes.
-> Leitura concluída em `c` (tick, jogador, troca de área, desenho), `d` (cutscenes), `f` (layout), `i` (tiles) e `j` (base).
+> port (`Game2`): 20 traces de estado e 9 conjuntos de quadros idênticos (veja o [README](../README.md#validação)).
+> **Todas as 12 classes foram lidas** (a tabela "Cobertura por classe" abaixo diz como cada uma foi verificada); não sobra nenhum item
+> apenas "inferido": o último (a escada de arco-íris) foi conferido contra o código e o texto de ajuda do jogo.
 
 ## Resumo
 
@@ -38,6 +38,39 @@ Os nomes foram reembaralhados pelo ofuscador; o casamento abaixo é por similari
 
 Não há mais shims da Nokia dentro do JAR (`com.nokia.*` fica por conta do aparelho) nem código de rede:
 as strings "Refresh" / "Please wait, receiving scores..." existem em `en`, mas nenhuma classe as usa.
+
+## Cobertura por classe
+
+| Classe (jogo 2) | Papel | Como foi verificada |
+|---|---|---|
+| `c` | jogo (tick, jogador, Mork, arco-íris, desenho, minigame) | lida por inteiro; **20 traces + 9 conjuntos de quadros idênticos** ao original |
+| `d` | cutscenes | lida; quadros das cutscenes idênticos; teste de balões (`cutscene`) |
+| `e` | colisão de tiles | lida; coberta pelos traces (a ordem em relação às plataformas é a invertida, ver abaixo) |
+| `f` | layout / constantes | lida; as constantes impressas pelo original (`#consts`) conferem com o port |
+| `i` | camada de tiles | lida; quadros idênticos, inclusive o cache em anel |
+| `k` | hi-score | diff linha a linha com o jogo 1 + **teste diferencial contra a classe `k` do próprio JAR 2** (5 sementes × 400 passos) — achou uma diferença real, ver "Fluxo e menus" |
+| `b` | som | diff com o jogo 1: mesmos 12 efeitos, só o título toca 3× e é **parado** ao entrar no jogo; decoder validado contra referência independente |
+| `g` | vibração / luz de fundo | idêntica à do jogo 1 (sem equivalente no PC) |
+| `h` | base do jogo (formata o placar, `hideNotify` abre o menu) | lida (é curta); o `cfr_renamed_9(int)` que o MIDlet chama com o recorde é vazio, ou seja, o recorde não aparece em lugar nenhum |
+| `j` | base de tela e menu de comandos | diff normalizado com o jogo 1: o jogo 2 usa `FullCanvas` e **monta o menu à mão** (`List` + `Vector` ordenado pela prioridade dos comandos) em vez dos comandos nativos |
+| `a` | tela-título e menus | lida; ver "Fluxo e menus" |
+| `GameMIDlet` | ciclo de vida e troca título ↔ jogo | lida; as diferenças em relação ao jogo 1 são só de ciclo de vida do aparelho (pausa/retomada), sem equivalente no PC |
+
+A parte de menus/formulários usa a API de interface do MIDP (`List`, `Form`, `TextBox`), que o harness não simula; ali a verificação é por leitura do
+código e por testes do port (`apptest`), não por comparação com o original rodando.
+
+## Fluxo e menus (o que a leitura de `GameMIDlet`, `a`, `j` e `k` mostrou)
+
+Estas diferenças em relação ao que o port fazia foram encontradas na leitura e **corrigidas** (valem para os dois jogos, salvo indicação):
+
+- **Ordem do menu.** Cada comando tem uma prioridade e o menu é ordenado por ela. No jogo 2 *High scores* tem prioridade 3 e *Instructions* 4 (no jogo 1 é o
+  contrário): *Continue game, New game, High scores, Instructions, Sound, Vibration, About, Exit*.
+- **Título.** *Qualquer* tecla abre o menu, e **5 s sem tecla** o abrem sozinho; o relógio recomeça sempre que o título volta a ser exibido (ao fechar o menu).
+- **Nome vazio no hi-score.** A classe `k` do jogo 1 testa `name.equals(" ")`; a do jogo 2 testa `name.equals("")`, então no jogo 2 um nome vazio vira `" "`
+  e no jogo 1 continua vazio. Foi o teste diferencial que achou isso.
+- **Som do título.** O jogo 2 chama `Sound.stop` do título ao entrar no jogo (novo jogo ou *Continue game*); o jogo 1 deixa tocar.
+- Sem mudança: texto do "About", `TextBox` do nome com no máximo 8 caracteres, formato "n. NOME - pontos" da lista de recordes, splash de 4 s
+  (1 s preto, 2 s imagem, 1 s preto) que o port tem mas deixa desligado.
 
 ## Resolução e arte
 
@@ -82,8 +115,9 @@ Diferentes: `title.ott`, `gameend.ott`, `title.png`, `tiles.png`, `player.png`, 
    nada que o use como invencibilidade. Na fase final ele acelera conforme o progresso (`ba`). Os quatro movimentos aparecem
    nos traces e o port os reproduz tick a tick.
 2. **Arco-íris no lugar dos pássaros**: o tile 12 (e o 21, sua placa) é coletado e preenche até 4 posições de animação
-   (`cm`/`ck`); no estágio final os arco-íris coletados viram uma **escada** ("Collect 10 rainbows to build a ladder up",
-   `ba` conta até 10, eventos em `bm[80]`). A lógica está validada; o significado de "escada" é **(inferido)** da string do jogo.
+   (`cm`/`ck`). Os arco-íris coletados no mundo viram **blocos de apoio** no estágio final (um par de tiles `Ledge` por arco-íris coletado); no estágio final cada arco-íris pego ressurge **4 s depois** no mesmo lugar, como plataforma (`ba` conta até 10 e os eventos
+   agendados ficam em `bm[80]`). Isso é o "ladder"/"platforms" do texto do jogo ("Collect 10 rainbows to build a ladder up"; ajuda: "Collect rainbows,
+   and they will form platforms for you in the final battle"). Conferido no código do port e nos traces do estágio final.
 3. **Tiles renumerados**: portão **fechado** = 16–19 (já no mapa, marcado pelo tile 16) e **aberto** = 8–11, o inverso do jogo 1; a chave (7) troca
    um pelo outro em `(bu, bs)`; moeda 6/20 e portais 15/22 iguais. Os tijolos rosa (tile 5) **não são sólidos** (flag 0).
 4. **Física**: movimento do jogador congelado durante cutscene/ending (`cY != 20 && != 12`); gravidade base `2`
