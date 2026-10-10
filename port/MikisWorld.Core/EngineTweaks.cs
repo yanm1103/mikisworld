@@ -14,6 +14,14 @@ public sealed class EngineTweaks
     /// moves stay the same, he just takes proportionally longer: some of his movement ticks are skipped.</summary>
     public int MorkSpeedPercent { get; set; } = 100;
 
+    /// <summary>The screen wipe of a portal / area change uses a snapshot of the whole screen. The original game 2 allocates the snapshot as a
+    /// 12x12 image (a bug): its wipe slides a tiny square, so the screen goes black and comes back at once. With this on, game 2 wipes like game 1.</summary>
+    public bool FullWipeSnapshot { get; set; }
+
+    /// <summary>The "Bonus game opened!" message and the hints ("Press 8 to enter", Mork's warnings) are drawn on the very same spot and
+    /// overlap; with this on they are stacked one above the other.</summary>
+    public bool StackHintBubbles { get; set; }
+
     /// <summary>"Revamped" movement: (1) a held jump key does not make the character jump again and again - it needs a new press;
     /// (2) the direction keys that are actually held keep working after any other key is released (the original zeroes all input
     /// on ANY release), so you can change direction while falling or after landing.</summary>

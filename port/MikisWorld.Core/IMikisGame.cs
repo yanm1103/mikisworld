@@ -22,6 +22,8 @@ public interface IMikisGame
 
     /// <summary>Debug switches (the application shares its own instance); <see cref="DrawHitboxes"/> paints the wireframe on top of the frame, every frame.</summary>
     DebugSettings Debug { get; set; }
+    /// <summary>Key / button names for the hints inside the game ("Press 8 to enter").</summary>
+    Func<GameAction, string> ActionName { get; set; }
     void DrawHitboxes(Canvas g);
 
     /// <summary>Optional departures from the original engine (off by default; the application sets them from the user's options).</summary>

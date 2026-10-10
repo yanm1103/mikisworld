@@ -77,6 +77,7 @@ public sealed class App
         _game = createGame(_host);
         _game.BonusUnlocked = _save.BonusUnlocked;
         _game.Debug = Debug;
+        _game.ActionName = PrimaryName;
         _game.EnableRendering();
         _s = _game.Strings;
         _helpText = GameStrings.LoadHelp(assets);
@@ -392,6 +393,8 @@ public sealed class App
     {
         var t = _game.Tweaks;
         t.SlowJump = true;
+        t.FullWipeSnapshot = true;               // game 2: the original wipes a 12x12 snapshot (a bug): wipe like game 1
+        t.StackHintBubbles = true;               // "Bonus game opened!" no longer sits on top of "Press ... to enter"
         t.SlowWalkAnimation = true;
         t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
@@ -757,6 +760,17 @@ public sealed class App
             lines[i] = keys + m.Groups[2].Value + m.Groups[3].Value;
         }
         return string.Join("\n", lines);
+    }
+
+    /// <summary>The first key / button bound to an action for the device in use (null when none): for the hints inside the game.</summary>
+    private string PrimaryName(GameAction a)
+    {
+        for (int slot = 0; slot < InputBindings.Slots; slot++)
+        {
+            string n = _bind.Get(LastDevice, a, slot);
+            if (n != "") return InputBindings.Short(n);
+        }
+        return null;
     }
 
     private string BoundNames(params GameAction[] actions)

@@ -213,8 +213,9 @@ public sealed partial class Game
             }
         }
         if (_state == State.Cutscene) DrawCutsceneBubbles(g);
-        if (_interact != -1 && _hintTimer > 0) DrawBubble(g, Strings.Text(0));
-        if (_bonusMsgTimer > 0) DrawBubble(g, Strings.Text(12));
+        bool hintShown = _interact != -1 && _hintTimer > 0;
+        if (hintShown) DrawBubble(g, Strings.Text(0));
+        if (_bonusMsgTimer > 0) DrawBubble(g, Strings.Text(12), BubbleLift(g, hintShown ? 1 : 0));
     }
 
     // original d.cfr_renamed_1(Graphics): sky + two parallax cloud bands
@@ -368,14 +369,15 @@ public sealed partial class Game
     }
 
     // original e.a(Graphics, String)
-    private void DrawBubble(Canvas g, string text)
+    private void DrawBubble(Canvas g, string text, int lift = 0)
     {
+        text = KeyHints(text);
         int W = Layout.ScreenW, H = Layout.ScreenH;
         g.SetClip(0, 0, W, H);
         g.SetFont(FontKind.Small);
         int w = g.Metrics.StringWidth(text, FontKind.Small) + 4;
         int h = g.Metrics.Height(FontKind.Small) + 4;
-        int y = H / 2 + 3;
+        int y = H / 2 + 3 - lift;
         g.SetColor(99, 48, 0);
         g.FillRect(W / 2 - w / 2 - 1, y - h + 2 - 1, w + 2, h + 2);
         g.SetColor(255, 255, 255);

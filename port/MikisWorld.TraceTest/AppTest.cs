@@ -125,6 +125,40 @@ internal static class AppTest
         Check(a.DebugDebugRows().Contains("Logs"), "with the frontend's hooks there is a Logs row");
     }
 
+    /// <summary>The hint bubbles name the key / button really bound, and "Bonus game opened!" no longer sits on top of "Press ... to enter".</summary>
+    private static void CheckBubbles(string name, Func<App> make)
+    {
+        var app = make();
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+        for (int i = 0; i < 40; i++) app.Update(20);
+        var g = (GameBase)app.Game;
+        void Set(string n, object v) => g.GetType().GetField(n, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(g, v);
+        // the game clears the "interactable under the player" every tick, so the state is set after the update and before the draw
+        List<TextCommand> Frame(bool bonus = false)
+        {
+            app.Update(20);
+            Set("_interact", 65535); Set("_hintTimer", 1500);
+            if (bonus) Set("_bonusMsgTimer", 1500);
+            var c = new Canvas(new Bitmap(app.ScreenWidth, app.ScreenHeight));
+            app.Draw(c);
+            return c.Texts;
+        }
+        var one = Frame();
+        Check(one.Any(t => t.Text == "Press Down to enter"), $"{name}: the hint names the bound key instead of the phone digit ({string.Join(" | ", one.Select(t => t.Text))})");
+        app.Bindings.Set(BindingDevice.Keyboard, GameAction.Interact, 0, "Z");
+        Check(Frame().Any(t => t.Text == "Press Z to enter"), $"{name}: ...and follows a remapped key");
+        app.Bindings.Reset(BindingDevice.Keyboard);
+        app.LastDevice = BindingDevice.Gamepad;
+        Check(Frame().Any(t => t.Text == "Press X to enter"), $"{name}: ...and the controller's button");
+        app.LastDevice = BindingDevice.Keyboard;
+        var both = Frame(bonus: true);
+        var hint = both.FirstOrDefault(t => t.Text.StartsWith("Press"));
+        var bonus = both.FirstOrDefault(t => t.Text.Contains("Bonus game opened"));
+        Check(hint.Text != null && bonus.Text != null && bonus.Y < hint.Y - 5, $"{name}: the bonus message is stacked above the hint (y {bonus.Y} vs {hint.Y})");
+    }
+
     private static App NewMw2(DirAssets assets, IStorage store, IGameHost host = null)
         => new App(h => new Game2(assets, h, 7), assets, host ?? new CountingHost(), store, AppInfo.MikisWorld2);
 
@@ -175,6 +209,7 @@ internal static class AppTest
         }
 
         CheckHitboxes("game 2", () => NewMw2(assets, new MemoryStorage()));
+        CheckBubbles("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckDebugMenu("game 2", () => { var h = new CountingHost(); return (NewMw2(assets, new MemoryStorage(), h), h); });
         var m2 = NewMw2(assets, new MemoryStorage());
         m2.Update(20);
@@ -283,6 +318,7 @@ internal static class AppTest
         Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
         CheckHitboxes("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
+        CheckBubbles("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckDebugMenu("game 1", () => { var h = new CountingHost(); return (new App(assets, h, new MemoryStorage(), 3), h); });
         Console.WriteLine("mouse");
         {

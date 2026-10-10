@@ -215,17 +215,19 @@ public sealed partial class Game2
             }
         }
         if (_state == State.Cutscene) DrawCutsceneBubbles(g);
+        int shown = 0;                                   // bubbles already drawn on the usual spot (stacked when the tweak is on)
         if (_state != State.Cutscene && _state != State.Ending && _markCooldown < 6000)
         {
-            if (_markCooldown < 3000) DrawBubble(g, Strings.Text(1));
-            else if (_frame / 4 % 3 > 0) DrawBubble(g, Strings.Text(2));
+            if (_markCooldown < 3000) { DrawBubble(g, Strings.Text(1)); shown++; }
+            else if (_frame / 4 % 3 > 0) { DrawBubble(g, Strings.Text(2)); shown++; }
         }
         if (_interact != -1 && _hintTimer > 0)
         {
             if (_hintTimer == 2000) _bubbleLast = null;
-            DrawBubble(g, Strings.Text(0));
+            DrawBubble(g, Strings.Text(0), 99, 48, 0, BubbleLift(g, shown));
+            shown++;
         }
-        if (_bonusMsgTimer > 0) DrawBubble(g, Strings.Text(12));
+        if (_bonusMsgTimer > 0) DrawBubble(g, Strings.Text(12), 99, 48, 0, BubbleLift(g, shown));
     }
 
     private bool _damageFreed;   // set once the ending screen has been drawn (original: bX = aa = null)
@@ -360,7 +362,7 @@ public sealed partial class Game2
     private void DrawBubble(Canvas g, string text) => DrawBubble(g, text, 99, 48, 0);
 
     // original d.a(Graphics, String, r, g, b): bottom-of-screen bubble; text wider than the screen scrolls
-    private void DrawBubble(Canvas g, string text, int r, int gr, int b)
+    private void DrawBubble(Canvas g, string text, int r, int gr, int b, int lift = 0)
     {
         int W = Layout2.ScreenW, H = Layout2.ScreenH;
         if (!ReferenceEquals(_bubbleLast, text))
@@ -370,6 +372,7 @@ public sealed partial class Game2
         }
         ++_bubbleCounter;
         ++_bubbleCounter;
+        text = KeyHints(text);          // after the reference check above: the original string identifies the bubble, the shown text may differ
         g.SetClip(0, 0, W, H + 1);
         g.SetFont(FontKind.Small);
         int cx = W / 2;
@@ -383,6 +386,7 @@ public sealed partial class Game2
         }
         int by = H - 8 * H / 100;
         if (H - by < 2 || 100 * th / H >= 19) by = H - 2;
+        by -= lift;
         g.SetColor(r, gr, b);
         g.FillRect(cx - tw / 2 - 1, by - th + 2, tw, th);
         g.SetColor(254, 254, 254);

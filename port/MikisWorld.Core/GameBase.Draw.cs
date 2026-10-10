@@ -15,8 +15,28 @@ public abstract partial class GameBase
     protected void SnapshotScene()
     {
         if (!_render) return;
+        if (Tweaks.FullWipeSnapshot && (_snapshot.Width != L.ScreenW || _snapshot.Height != L.ScreenH)) _snapshot = new Bitmap(L.ScreenW, L.ScreenH);
         DrawScene(new Canvas(_snapshot));
     }
+
+    /// <summary>Name of the key / button the player uses for an action (null = unknown: the original text stays). Set by the application.</summary>
+    public Func<GameAction, string> ActionName { get; set; }
+
+    private static readonly System.Text.RegularExpressions.Regex PressDigit = new(@"(?<=Press )\d");
+
+    /// <summary>The texts of the game say "Press 8 to enter" / "(Press 5 to skip)" (phone keys); show the key / button really bound.</summary>
+    protected string KeyHints(string text)
+    {
+        if (ActionName == null) return text;
+        return PressDigit.Replace(text, m =>
+        {
+            string name = m.Value == "8" ? ActionName(GameAction.Interact) : m.Value == "5" ? ActionName(GameAction.Confirm) : null;
+            return string.IsNullOrEmpty(name) ? m.Value : name;
+        });
+    }
+
+    /// <summary>How far up a bubble has to move so it does not sit on top of <paramref name="shownBelow"/> other bubbles.</summary>
+    protected int BubbleLift(Canvas g, int shownBelow) => Tweaks.StackHintBubbles ? shownBelow * (g.Metrics.Height(FontKind.Small) + 7) : 0;
 
     // original d.a(Graphics,int,int,Image,int,int,int,boolean): right-aligned number made of sprite digits
     protected void DrawCounter(Canvas g, int x, int y, Bitmap digits, int digitW, int count, int value, bool lastIsIcon)

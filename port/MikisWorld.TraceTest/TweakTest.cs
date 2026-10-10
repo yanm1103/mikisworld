@@ -181,6 +181,66 @@ internal static class TweakTest
                 Check(r.X == x, "ReleaseAll forgets held directions (no walking on)");
             }
         }
+        // ---- the wipe of game 2: the original snapshot is 12x12 (the screen goes black and comes straight back); the tweak makes it a whole screen
+        {
+            int SnapshotWidth(bool full)
+            {
+                var g = new Game2(new DirAssets(dir2), new NullHost(), 1234);
+                g.Tweaks.FullWipeSnapshot = full;
+                g.EnableRendering();
+                g.Start();
+                for (int i = 0; i < 6000 && g.CurrentState != State.Playing; i++) { g.KeyPressed(53, 8); g.KeyReleased(53, 8); g.Update(20, 0); }
+                typeof(GameBase).GetMethod("SnapshotScene", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(g, null);
+                var bmp = (Bitmap)typeof(GameBase).GetField("_snapshot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(g);
+                return bmp.Width;
+            }
+            int w0 = SnapshotWidth(false), w1 = SnapshotWidth(true);
+            Check(w0 == 12 && w1 == 128, $"game 2 wipe snapshot: {w0} px in the original (a bug), {w1} px with the tweak");
+        }
+
+        // ---- ...and what is on screen half way through a portal wipe. The canvas keeps the previous frame, so the original's tiny snapshot
+        //      leaves the old area where it was (it only gets covered by black), while the full snapshot makes the old area slide away like in game 1.
+        {
+            (double slid, double stayed) Wipe(bool full)
+            {
+                var g = new Game2(new DirAssets(dir2), new NullHost(), 1234);
+                g.Tweaks.FullWipeSnapshot = full;
+                g.EnableRendering();
+                g.Start();
+                for (int i = 0; i < 6000 && g.CurrentState != State.Playing; i++) { g.KeyPressed(53, 8); g.KeyReleased(53, 8); g.Update(20, 0); }
+                var f = typeof(GameBase).GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                T Get<T>(string n) => (T)f.First(x => x.Name == n).GetValue(g);
+                var cells = Get<short[]>("_portalCells");
+                int w = Get<TileLayer>("_map").Width, tw = Get<int>("_tileW"), th = Get<int>("_tileH");
+                g.DebugTeleport((cells[0] % w * tw) << 4, ((cells[0] / w + 1) * th) << 4);
+                var bmp = new Bitmap(128, 128);
+                int[] before = null;
+                for (int i = 0; i < 3; i++) { g.Update(20, 0); g.Draw(new Canvas(bmp)); }
+                before = (int[])bmp.Pixels.Clone();
+                g.KeyPressed(56, 6); g.KeyReleased(56, 6);
+                for (int i = 0; i < 200; i++)
+                {
+                    g.Update(20, 0);
+                    if (g.CurrentState == State.Playing) { g.Draw(new Canvas(bmp)); before = (int[])bmp.Pixels.Clone(); continue; }
+                    g.Draw(new Canvas(bmp));
+                    if (g.CurrentState == State.WipeIn && Get<int>("_frame") == 17) break;
+                }
+                int n = 128 * 17 / 35, slide = 0, stay = 0, total = 0;
+                for (int y = 0; y < 128; y++)
+                    for (int x = 0; x < 128 - n; x++)
+                    {
+                        if (before[y * 128 + x] == before[y * 128 + x + n]) continue;       // only places where "slid" and "stayed" can be told apart
+                        total++;
+                        if (bmp.Pixels[y * 128 + x + n] == before[y * 128 + x]) slide++;
+                        if (bmp.Pixels[y * 128 + x + n] == before[y * 128 + x + n]) stay++;
+                    }
+                if (total < 500) throw new InvalidOperationException("the frame before the wipe is too uniform for this test: " + total);
+                return ((double)slide / total, (double)stay / total);
+            }
+            var o = Wipe(false); var t = Wipe(true);
+            Check(t.slid > 0.9 && o.stayed > 0.9 && o.slid < 0.5, $"game 2 mid-wipe: the old area stays put in the original ({o.stayed:P0} unchanged) and slides away with the tweak ({t.slid:P0} shifted, like game 1)");
+        }
+
         // ---- Mork (game 2): same moves, 2/3 of the speed
         {
             double Mork(int percent)

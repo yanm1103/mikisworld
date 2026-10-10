@@ -50,6 +50,8 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 
 - **Movement `new`:** segurar ↑ não faz o Miki pular sem parar (cada pulo precisa de um novo aperto); a direção que você segura continua valendo depois de soltar outra tecla, então dá para mudar de lado caindo, ao pousar e **no meio de um pulo diagonal**. `original` é o jogo como era no celular, que zerava todo o movimento ao soltar qualquer tecla.
 - **Ritmo:** o celular rodava a lógica bem mais devagar que um PC. O pulo dura o dobro do tempo (mesma altura e distância), a animação de andar do Miki é duas vezes mais lenta e, no jogo 2, o **Mork anda a 2/3 da velocidade**.
+- **Dicas na tela:** "Press 8 to enter" e "(Press 5 to skip)" mostram a tecla ou o botão que você configurou (conforme o último dispositivo usado), e a mensagem "Bonus game opened!" não fica mais por cima dessas dicas.
+- **Transição de portal no jogo 2:** o original tem um bug (a imagem usada na transição tem 12×12 px), então a tela só escurecia e voltava de uma vez; agora ela desliza como no jogo 1.
 - **Menus e controles de PC:** gamepad, mouse, teclas remapeáveis, volume, tela cheia e zoom inteiro.
 - **Corrigido:** apertar "entrar no portal" várias vezes durante a transição causava uma transição dupla e podia travar o jogo (um bug do original; no `Movement: original` continua assim, de propósito).
 
@@ -165,6 +167,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
 | Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
 | Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes e liga/desliga dos logs; só durante a execução | 100% · 100% |
+| Dicas e transição | Dicas "Press 8/5" com as teclas configuradas, mensagem do bônus empilhada sobre a dica, transição de portal do jogo 2 com o snapshot inteiro (o original tem 12×12) | 100% · 100% |
 
 ### Como rodar a partir do código
 
@@ -191,7 +194,7 @@ janela de console; num terminal, escreve nele. Sem `--logs` nada é impresso; tr
 **Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância),
 a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o Mork anda a 2/3 da velocidade original (cada movimento dele tem a mesma
 distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
-estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados (`EngineTweaks`).
+estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados (`EngineTweaks`: pulo, animação, Mork, transição de portal do jogo 2, dicas empilhadas).
 
 **Movement `new`, em detalhe.** (1) Segurar ↑ não repete o pulo (um aperto até 100 ms antes de pousar vale); (2) só a tecla solta é liberada (a direção ainda segurada vale), inclusive
 no meio de um pulo diagonal; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino também. O travamento que isso evita é do **original**: o aperto
