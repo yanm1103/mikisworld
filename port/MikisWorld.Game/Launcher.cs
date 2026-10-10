@@ -7,9 +7,9 @@ namespace MikisWorld.Game;
 /// <summary>Start-up screen: pick the game and set the options that are the same for both (movement, video, volume).
 /// Changes are saved straight away through <see cref="DisplaySettings.Changed"/>. The screen has a native size of 320x230 and follows the
 /// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
-internal static class Launcher
+internal static partial class Launcher
 {
-    public const int W0 = 320, H0 = 250;
+    public const int W0 = 320, H0 = 290;
     private const int RowH = 16, RowX = 30, RowW = 260, RowY = 60;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
@@ -25,14 +25,16 @@ internal static class Launcher
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
     /// <param name="script">developer aid: frame -> names (Up Down Left Right Enter Escape One) injected as if typed; <paramref name="shots"/> frame -> screenshot names</param>
-    public static int Run(DisplaySettings s, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
+    public static int Run(DisplaySettings s, InputBindings bind, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
     {
-        int sel = 0, frame = 0;
+        int sel = 0;
+        _frame = 0; _script = script; _shots = shots; _quitAfter = quitAfter;
         double resizedAt = -1;
         Raylib.PollInputEvents();                // the Enter that left the game must not also select a row here
         while (!Raylib.WindowShouldClose())
         {
             var rows = Rows(s);
+            if (_openControls != null) { ControlsScreen(s, bind, _openControls.Value); _openControls = null; rows = Rows(s); }
             sel = Math.Clamp(sel, 0, rows.Count - 1);
             if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1)) return 1;
             if (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2)) return 2;
@@ -40,7 +42,7 @@ internal static class Launcher
 
             var nav = Poll();
             Rumble.Update();
-            if (script != null && script.TryGetValue(frame, out var names))
+            if (script != null && script.TryGetValue(_frame, out var names))
                 foreach (string n in names)
                 {
                     if (n == "One") return 1;
@@ -86,9 +88,8 @@ internal static class Launcher
             Raylib.ClearBackground(Color.Black);
             Draw(s, rows, sel);
             Raylib.EndDrawing();
-            if (shots != null && shots.TryGetValue(frame, out var list)) foreach (string n in list) Raylib.TakeScreenshot($"shot_{n}.png");
-            frame++;
-            if (quitAfter >= 0 && frame > quitAfter) return 0;
+            EndFrame();
+            if (quitAfter >= 0 && _frame > quitAfter) return 0;
         }
         return 0;
     }
@@ -116,6 +117,19 @@ internal static class Launcher
         return _logo;
     }
 
+    // developer aids shared with the controls screen: frame counter, injected names, screenshots
+    private static int _frame, _quitAfter = -1;
+    private static Dictionary<int, List<string>> _script, _shots;
+
+    /// <summary>Takes the screenshots asked for this frame and moves on to the next.</summary>
+    private static void EndFrame()
+    {
+        if (_shots != null && _shots.TryGetValue(_frame, out var list)) foreach (string n in list) Raylib.TakeScreenshot($"shot_{n}.png");
+        _frame++;
+    }
+
+    private static BindingDevice? _openControls;                  // a "Keyboard keys" / "Gamepad" row was activated: open its screen next frame
+
     private static List<Row> Rows(DisplaySettings s)
     {
         var rows = new List<Row>
@@ -129,6 +143,8 @@ internal static class Launcher
                 s.NotifyChanged();
                 if (s.Vibration) Rumble.Pulse(100, 100);          // feedback: a short rumble when it is switched back on (nothing happens without a controller)
             }),
+            new("Keyboard keys", () => "", d => { if (d > 0) _openControls = BindingDevice.Keyboard; }),
+            new("Gamepad", () => "", d => { if (d > 0) _openControls = BindingDevice.Gamepad; }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };

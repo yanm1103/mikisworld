@@ -31,6 +31,44 @@ internal sealed class DevicePoller
         _priming = false;
     }
 
+    private static readonly HashSet<string> _capStick = new();
+
+    /// <summary>Remapping on the start-up screen: forget what is held now (a stick pushed or a button down is not a new press).</summary>
+    public static void PrimePadCapture()
+    {
+        _capStick.Clear();
+        int pad = FirstPad();
+        if (pad < 0) return;
+        foreach (var (name, _) in StickDirections(pad)) _capStick.Add(name);
+    }
+
+    private static int FirstPad()
+    {
+        for (int i = 0; i < 4; i++) if (Raylib.IsGamepadAvailable(i)) return i;
+        return -1;
+    }
+
+    private static IEnumerable<(string Name, float Value)> StickDirections(int pad)
+    {
+        float x = Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftX), y = Raylib.GetGamepadAxisMovement(pad, GamepadAxis.LeftY);
+        if (x < -0.6f) yield return ("SLeft", -x);
+        if (x > 0.6f) yield return ("SRight", x);
+        if (y < -0.6f) yield return ("SUp", -y);
+        if (y > 0.6f) yield return ("SDown", y);
+    }
+
+    /// <summary>The name of the button (or stick direction) newly pressed on the first controller, or null.</summary>
+    public static string PressedPadInput()
+    {
+        int pad = FirstPad();
+        if (pad < 0) return null;
+        foreach (var (name, button) in PadButtons) if (Raylib.IsGamepadButtonPressed(pad, button)) return name;
+        var now = StickDirections(pad).Select(d => d.Name).ToHashSet();
+        _capStick.IntersectWith(now);
+        foreach (string n in now) if (_capStick.Add(n)) return n;
+        return null;
+    }
+
     public static string KeyName(KeyboardKey k) => Keys.First(x => (int)x == (int)k).ToString();
 
     public void Poll(double now)

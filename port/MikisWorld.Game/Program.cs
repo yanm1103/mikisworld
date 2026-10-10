@@ -91,7 +91,7 @@ internal static class Program
             {
                 if (game == 0)
                 {
-                    game = Launcher.Run(run.Settings, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
+                    game = Launcher.Run(run.Settings, run.Bindings, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
                     firstLauncher = false;
                 }
                 if (game == 0) break;

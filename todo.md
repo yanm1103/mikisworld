@@ -17,10 +17,10 @@
 
 ## Funcionalidades
 
-1. Adicionar opção no modo debug pra liberar o modo Bônus, adicionar opção para pular/completar fase atual
-2. No bônus, seria bom ter o mouse funcionando pra clicar na onde eu quiser colocar uma moeda/token.
-3. Eu removi o texto indicando que a configuração é salva automaticamente. Ao fechar as configurações, caso alguma config tenha sido alterada, exibir um diálogo no canto inferior direito escrito "Saved." Na tela de seleção de jogos não precisa pois não faria muito sentido.
-4. Não dá pra rebindar os botões na tela inicial.
+1. ~~Adicionar opção no modo debug pra liberar o modo Bônus, adicionar opção para pular/completar fase atual~~ (feito: *Unlock bonus* e *Skip level* no F3; Skip vai do mundo para a fase final e da fase final para o final do jogo)
+2. ~~No bônus, seria bom ter o mouse funcionando pra clicar na onde eu quiser colocar uma moeda/token.~~ (feito: passar o mouse move o cursor, clique coloca)
+3. ~~Eu removi o texto indicando que a configuração é salva automaticamente. Ao fechar as configurações, caso alguma config tenha sido alterada, exibir um diálogo no canto inferior direito escrito "Saved." Na tela de seleção de jogos não precisa pois não faria muito sentido.~~ (feito)
+4. ~~Não dá pra rebindar os botões na tela inicial.~~ (feito: linhas *Keyboard keys* e *Gamepad* na seleção de jogo)
 
 # Suporte aos mods
 
