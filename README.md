@@ -45,7 +45,6 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 | Filter | só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 | Movement | `new` (padrão) ou `original` — veja abaixo |
 | Vibration | o **controle** vibra quando o Miki é atingido (e um pulso curto ao religar a opção) (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
-| Hitboxes | `F3` também: desenha por cima do jogo os retângulos que a lógica realmente usa (veja abaixo). Não é salvo |
 
 ## O que é diferente do original
 
@@ -54,7 +53,18 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 - **Menus e controles de PC:** gamepad, mouse, teclas remapeáveis, volume, tela cheia e zoom inteiro.
 - **Corrigido:** apertar "entrar no portal" várias vezes durante a transição causava uma transição dupla e podia travar o jogo (um bug do original; no `Movement: original` continua assim, de propósito).
 
-## Wireframe dos hitboxes (`F3`)
+## Menu de debug (`F3`)
+
+`F3` abre (e fecha) um menu de debug, em qualquer tela; com ele aberto o jogo fica pausado. Nada disso é salvo: vale só para aquela execução.
+
+| Opção | O que faz |
+|---|---|
+| Invincible | nenhum dano: os acertos são ignorados (sem perder vida, sem som, sem vibração) |
+| Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida volta na hora, então o jogo nunca acaba |
+| Hitboxes | o wireframe abaixo |
+| Logs | liga/desliga o log do programa e do raylib (o mesmo de `--logs`; abre um console se for preciso) |
+
+### Wireframe dos hitboxes
 
 Útil para artistas e modders: mostra o que a física de fato testa, em qualquer um dos dois jogos.
 
@@ -153,7 +163,8 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
 | Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
-| Wireframe de hitboxes | `F3` / opção *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
+| Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
+| Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes e liga/desliga dos logs; só durante a execução | 100% · 100% |
 
 ### Como rodar a partir do código
 

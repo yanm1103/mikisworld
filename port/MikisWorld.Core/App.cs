@@ -18,7 +18,14 @@ public sealed class App
     private readonly DisplaySettings _set;
     private readonly InputBindings _bind;
     private int _optSel, _optTop;                // selected row of the options and the first row shown (the list scrolls)
-    private int _menuTop;                         // first menu entry shown
+    private int _menuTop;
+    private bool _debugOpen;                      // the F3 debug menu is on top of everything
+    private int _debugSel;
+    /// <summary>Debug switches (F3 menu). Shared with the game.</summary>
+    public DebugSettings Debug { get; } = new();
+    /// <summary>The frontend plugs its log switch here; without it the debug menu has no "Logs" row.</summary>
+    public Func<bool> LogsGet { get; set; }
+    public Action<bool> LogsSet { get; set; }                         // first menu entry shown
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
     private readonly Bitmap _titleArt, _splash;
@@ -69,6 +76,7 @@ public sealed class App
         _host = new SettingsHost(host) { Enabled = _set.Volume > 0, VibrationAllowed = () => _set.Vibration && LastDevice == BindingDevice.Gamepad };
         _game = createGame(_host);
         _game.BonusUnlocked = _save.BonusUnlocked;
+        _game.Debug = Debug;
         _game.EnableRendering();
         _s = _game.Strings;
         _helpText = GameStrings.LoadHelp(assets);
@@ -91,7 +99,7 @@ public sealed class App
     {
         get
         {
-            if (_screen != Screen.Game || _menuOpen) return InputContext.Menu;
+            if (_debugOpen || _screen != Screen.Game || _menuOpen) return InputContext.Menu;
             int st = _game.CurrentState;
             if (st == State.ModeMenu) return InputContext.Menu;
             if (st == State.Cutscene || st == State.Ending || st >= State.BonusPlayerTurn && st <= State.BonusAiMoving) return InputContext.Scene;
@@ -120,7 +128,7 @@ public sealed class App
     public void CancelCapture() => _capturing = false;
 
     /// <summary>The frontend should deliver key repeats (held key) while this is true: the options sliders use them.</summary>
-    public bool AcceptsRepeat => _screen == Screen.Options || _screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad;
+    public bool AcceptsRepeat => _debugOpen || _screen == Screen.Options || _screen == Screen.ControlsKeyboard || _screen == Screen.ControlsPad;
     public int ScreenWidth => _game.ScreenWidth;
     public int ScreenHeight => _game.ScreenHeight;
 
@@ -132,6 +140,7 @@ public sealed class App
     internal bool DebugVibrationAllowed => _host.VibrationAllowed();
     internal int DebugScoreHighlight => _scoreHighlight;
     internal int DebugMenuSelected => _menuSel;
+    internal List<string> DebugDebugRows() => DebugRows().Select(r => r.Label).ToList();
     internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
@@ -150,13 +159,13 @@ public sealed class App
             _host.Play(Sfx.Title);
         }
         // original title canvas: 5 s without a key and the option menu opens by itself (the clock restarts whenever the title is shown again)
-        if (_screen == Screen.Title && !_menuOpen)
+        if (_screen == Screen.Title && !_menuOpen && !_debugOpen)
         {
             _titleIdle += dt;
             if (_titleIdle >= TitleMenuDelayMs) OpenMenu();
         }
         else _titleIdle = 0;
-        if (_screen != Screen.Game || _menuOpen) return;
+        if (_screen != Screen.Game || _menuOpen || _debugOpen) return;
         _gameClock += dt;
         _game.Update(dt, _gameClock);
         if (_game.BonusUnlocked != _save.BonusUnlocked)
@@ -201,6 +210,7 @@ public sealed class App
     /// <summary>Same key/action pair the MIDP canvas delivered (see Game.KeyPressed).</summary>
     public void KeyPressed(int key, int action)
     {
+        if (_debugOpen) { DebugKey(key, action); return; }
         switch (_screen)
         {
             case Screen.Splash:
@@ -238,12 +248,13 @@ public sealed class App
 
     public void KeyReleased(int key, int action)
     {
-        if (_screen == Screen.Game && !_menuOpen && _game.CurrentState != State.ModeMenu) _game.KeyReleased(key, action);
+        if (_screen == Screen.Game && !_menuOpen && !_debugOpen && _game.CurrentState != State.ModeMenu) _game.KeyReleased(key, action);
     }
 
     /// <summary>Esc / the platform's "back" button.</summary>
     public void Back()
     {
+        if (_debugOpen) { _debugOpen = false; return; }
         switch (_screen)
         {
             case Screen.Splash:
@@ -316,6 +327,63 @@ public sealed class App
         return items;
     }
 
+    /// <summary>F3: opens / closes the debug menu (invincibility, infinite lives, hit boxes, logs).</summary>
+    public void ToggleDebugMenu()
+    {
+        _debugOpen = !_debugOpen;
+        _debugSel = 0;
+        if (_debugOpen) { _capturing = false; _game.ReleaseAll(); }
+    }
+
+    public bool DebugPanelOpen => _debugOpen;
+
+    private sealed record DebugRow(string Label, Func<bool> On, Action Toggle);
+
+    private List<DebugRow> DebugRows()
+    {
+        var rows = new List<DebugRow>
+        {
+            new("Invincible", () => Debug.Invincible, () => Debug.Invincible = !Debug.Invincible),
+            new("Infinite lives", () => Debug.InfiniteLives, () => Debug.InfiniteLives = !Debug.InfiniteLives),
+            new("Hitboxes", () => Debug.ShowHitboxes, () => Debug.ShowHitboxes = !Debug.ShowHitboxes),
+        };
+        if (LogsGet != null && LogsSet != null) rows.Add(new("Logs", LogsGet, () => LogsSet(!LogsGet())));
+        return rows;
+    }
+
+    private void DebugKey(int key, int action)
+    {
+        var rows = DebugRows();
+        _debugSel = Math.Clamp(_debugSel, 0, rows.Count - 1);
+        if (IsUp(key, action)) _debugSel = (_debugSel + rows.Count - 1) % rows.Count;
+        else if (IsDown(key, action)) _debugSel = (_debugSel + 1) % rows.Count;
+        else if (IsSelect(key, action) || IsLeft(key, action) || IsRight(key, action)) rows[_debugSel].Toggle();
+    }
+
+    private void DrawDebugMenu(Canvas g)
+    {
+        Dim(g);
+        var rows = DebugRows();
+        _debugSel = Math.Clamp(_debugSel, 0, rows.Count - 1);
+        Hit(0, 0, W, H, (_, _) => _debugOpen = false);              // a click outside closes it
+        int lineH = g.Metrics.Height(FontKind.Bold) + 3;
+        int w = Math.Min(124, W - 4), h = (rows.Count + 1) * lineH + 10;
+        int x = (W - w) / 2, y = (H - h) / 2;
+        Panel(g, x, y, w, h);
+        DrawShadowed(g, "Debug (F3)", x + 8, y + 5, FontKind.Bold, 0xFFFFFF, 0);
+        for (int i = 0; i < rows.Count; i++)
+        {
+            int ty = y + 5 + (i + 1) * lineH;
+            bool sel = i == _debugSel;
+            if (sel) { g.SetClip(0, 0, W, H); g.SetColor(160, 90, 20); g.FillRect(x + 3, ty - 1, w - 5, lineH); }
+            string value = rows[i].On() ? "on" : "off";
+            DrawShadowed(g, rows[i].Label, x + 8, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+            DrawShadowed(g, value, x + w - 8 - g.Metrics.StringWidth(value, FontKind.Bold), ty, FontKind.Bold, rows[i].On() ? 0x80FF80 : (sel ? 0xFFFFFF : 0xFFE0A0), 0);
+            int idx = i;
+            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _debugSel = idx; rows[idx].Toggle(); }, () => _debugSel = idx);
+        }
+    }
+
     private void OpenMenu() { _menuOpen = true; _menuSel = 0; _game.ReleaseAll(); }
 
     /// <summary>The engine departures the user asked for. The slower jump and walking animation are always on here (they only fix the
@@ -325,7 +393,6 @@ public sealed class App
         var t = _game.Tweaks;
         t.SlowJump = true;
         t.SlowWalkAnimation = true;
-        _game.ShowHitboxes = _set.ShowHitboxes;
         t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
     }
@@ -378,7 +445,6 @@ public sealed class App
             _set.NotifyChanged();
             if (_set.Vibration) _host.VibrateFeedback(100, 100);       // feedback: a short rumble when it is switched back on
         }, false));
-        rows.Add(new("Hitboxes", () => _s.Ui(_set.ShowHitboxes ? 12 : 13), _ => { _set.ShowHitboxes = !_set.ShowHitboxes; _set.NotifyChanged(); }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
@@ -481,6 +547,7 @@ public sealed class App
     public void PointerWheel(int dir)
     {
         if (_screen == Screen.Help) _scroll = Math.Max(0, _scroll + dir);
+        else if (_debugOpen) _debugSel = Math.Clamp(_debugSel + dir, 0, DebugRows().Count - 1);
         else if (_screen == Screen.Options) _optSel = Math.Clamp(_optSel + dir, 0, OptionRows().Count - 1);
         else if (_menuOpen) _menuSel = Math.Clamp(_menuSel + dir, 0, MenuItems().Count - 1);
     }
@@ -519,6 +586,7 @@ public sealed class App
             case Screen.ControlsKeyboard: DrawBackdrop(g); DrawControls(g, BindingDevice.Keyboard); break;
             case Screen.ControlsPad: DrawBackdrop(g); DrawControls(g, BindingDevice.Gamepad); break;
         }
+        if (_debugOpen) DrawDebugMenu(g);
     }
 
     // original title class of the second game: black for 1 s, the splash for 2 s, black for 1 s
@@ -540,7 +608,7 @@ public sealed class App
         g.SetClip(0, 0, W, H);
         g.DrawImage(_gameBuf, 0, 0, TL);
         _game.DrawHitboxes(g);                                  // debug wireframe (does nothing unless it is switched on)
-        if (!_menuOpen) g.Texts.AddRange(_gameTexts);          // the game's text ("Hurry up!"...) is drawn on top of the picture: keep it away from the menu
+        if (!_menuOpen && !_debugOpen) g.Texts.AddRange(_gameTexts);          // the game's text ("Hurry up!"...) is drawn on top of the picture: keep it away from the menu
     }
 
     private void DrawBackdrop(Canvas g)

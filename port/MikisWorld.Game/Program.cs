@@ -152,6 +152,9 @@ internal static class Program
                 ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, run.Bindings)
                 : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, run.Bindings);
 
+            app.LogsGet = () => LogConsole.Enabled;
+            app.LogsSet = LogConsole.SetEnabled;
+
             int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
             // a full-screen window keeps the monitor's size; only a normal window is sized to the game
             if (!settings.Fullscreen) Raylib.SetWindowSize(sw0 * run.Scale, sh0 * run.Scale);
@@ -196,7 +199,7 @@ internal static class Program
                     Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
                 }
                 if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
-                if (Raylib.IsKeyPressed(KeyboardKey.F3)) { settings.ShowHitboxes = !settings.ShowHitboxes; settings.NotifyChanged(); }
+                if (Raylib.IsKeyPressed(KeyboardKey.F3)) app.ToggleDebugMenu();
                 bool borderless = SyncFullscreen(settings);
                 ApplyWindowScale(settings, sw0, sh0, borderless, ref resizedAt);
 
@@ -212,7 +215,7 @@ internal static class Program
                         var dev = n.StartsWith("Pad:", StringComparison.OrdinalIgnoreCase) ? BindingDevice.Gamepad : BindingDevice.Keyboard;
                         if (dev == BindingDevice.Gamepad) n = n[4..];
                         else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
-                        else if (n.Equals("F3", StringComparison.OrdinalIgnoreCase)) { settings.ShowHitboxes = !settings.ShowHitboxes; settings.NotifyChanged(); continue; }
+                        else if (n.Equals("F3", StringComparison.OrdinalIgnoreCase)) { app.ToggleDebugMenu(); continue; }
                         else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
                         else continue;
                         if (mode != '-') router.Press(dev, n, now);

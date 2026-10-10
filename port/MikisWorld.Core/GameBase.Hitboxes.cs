@@ -4,7 +4,7 @@ namespace MikisWorld.Core;
 /// each one is reconstructed from the arithmetic of the update step, so what is drawn is what is tested.</summary>
 public abstract partial class GameBase
 {
-    public bool ShowHitboxes { get; set; }
+    public DebugSettings Debug { get; set; } = new();
 
     /// <summary>One entry per tile id: collision flags (0 free, 1 solid, 22 one-way platform...).</summary>
     protected abstract int[] TileFlags { get; }
@@ -45,7 +45,7 @@ public abstract partial class GameBase
 
     public void DrawHitboxes(Canvas g)
     {
-        if (!ShowHitboxes || !_render || _area < 0 || !InPlay) return;
+        if (!Debug.ShowHitboxes || !_render || _area < 0 || !InPlay) return;
         g.SetClip(0, 0, L.ScreenW, L.ScreenH);
         int tx = _px >> 4, ty = _py >> 4;
 

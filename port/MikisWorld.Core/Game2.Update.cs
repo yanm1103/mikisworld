@@ -228,8 +228,10 @@ public sealed partial class Game2
     // Original c.R2(int,int): one hit (projectile or Mork)
     private void Damage()
     {
+        if (Debug.Invincible) return;
         _morkTimer = 4000;
         --_lives;
+        if (Debug.InfiniteLives) ++_lives;                  // debug: the hit happens, the life comes back at once
         _host.Play(Sfx.Damage);
         _host.Vibrate(100, 200);
         _spark = 21;

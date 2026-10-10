@@ -194,17 +194,21 @@ public sealed partial class Game
                 if (ddx < 4 && ddy < 5 && ddy > -2)
                 {
                     _projState[i] = -1;
-                    _lives--;
-                    _host.Play(Sfx.Damage);
-                    _host.Vibrate(100, 200);
-                    _hitFxPos[i * 2] = (short)(tx + _hitFxDx);
-                    _hitFxPos[i * 2 + 1] = (short)(ty + _hitFxDy);
-                    _hitFxStart[i] = _frame;
-                    if (_lives <= 0)
+                    if (!Debug.Invincible)
                     {
-                        _lives = 0;
-                        _gameOverTimer = 0;
-                        _state = State.GameOver;
+                        _lives--;
+                        if (Debug.InfiniteLives) _lives++;              // debug: the hit happens, the life comes back at once
+                        _host.Play(Sfx.Damage);
+                        _host.Vibrate(100, 200);
+                        _hitFxPos[i * 2] = (short)(tx + _hitFxDx);
+                        _hitFxPos[i * 2 + 1] = (short)(ty + _hitFxDy);
+                        _hitFxStart[i] = _frame;
+                        if (_lives <= 0)
+                        {
+                            _lives = 0;
+                            _gameOverTimer = 0;
+                            _state = State.GameOver;
+                        }
                     }
                 }
             }

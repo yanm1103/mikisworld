@@ -50,7 +50,7 @@ internal static class AppTest
         for (int i = 0; i < 60; i++) app.Update(20);
         int Green(bool on)
         {
-            app.Settings.ShowHitboxes = on;
+            app.Debug.ShowHitboxes = on;
             app.Update(20);
             var bmp = new Bitmap(app.ScreenWidth, app.ScreenHeight);
             app.Draw(new Canvas(bmp));
@@ -58,7 +58,71 @@ internal static class AppTest
         }
         int off = Green(false), on = Green(true);
         Check(off == 0 && on > 20, $"{name}: the hit box wireframe appears only when switched on (green pixels {off} -> {on})");
-        app.Settings.ShowHitboxes = false;
+        app.Debug.ShowHitboxes = false;
+    }
+
+    /// <summary>The F3 debug menu: pauses the game, toggles the switches, and the two life switches really change what a hit does.</summary>
+    private static void CheckDebugMenu(string name, Func<(App app, CountingHost host)> make)
+    {
+        // a hit: put a projectile on the player's feet every tick for a while, return (lives lost, damage sounds)
+        (int lost, int sounds) Hits(Action<DebugSettings> set)
+        {
+            var (app, host) = make();
+            Select(app, "New game");
+            for (int i = 0; i < 3; i++) app.Update(20);
+            for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+            for (int i = 0; i < 30; i++) app.Update(20);
+            set(app.Debug);
+            var g = (GameBase)app.Game;
+            int Get(string n) => (int)g.GetType().GetField(n, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(g);
+            T F<T>(string n) => (T)g.GetType().GetField(n, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(g);
+            int before = g.Lives;
+            for (int t = 0; t < 40 && g.CurrentState != State.GameOver; t++)
+            {
+                var pos = F<short[]>("_projPos"); var st = F<sbyte[]>("_projState");
+                int tx = Get("_px") >> 4, ty = Get("_py") >> 4;
+                st[0] = 0; pos[0] = (short)(tx + Get("_playerW") / 2); pos[1] = (short)(ty - 1);
+                app.Update(20);
+            }
+            return (before - g.Lives, host.Played.Count(s => s == Sfx.Damage));
+        }
+        var normal = Hits(_ => { });
+        var invincible = Hits(d => d.Invincible = true);
+        var infinite = Hits(d => d.InfiniteLives = true);
+        Check(normal.lost > 0 && normal.sounds > 0, $"{name}: normally a projectile on the feet hurts (lost {normal.lost})");
+        Check(invincible.lost == 0 && invincible.sounds == 0, $"{name}: invincible: no life lost and no hit effects");
+        Check(infinite.lost == 0 && infinite.sounds > 0, $"{name}: infinite lives: the hit still happens ({infinite.sounds} sounds) but no life is lost");
+
+        // the menu itself
+        var (a, _) = make();
+        a.Update(20);
+        Check(!a.DebugPanelOpen, $"{name}: the debug menu starts closed");
+        a.ToggleDebugMenu();
+        Check(a.DebugPanelOpen && a.Context == App.InputContext.Menu, "F3 opens it and the controls become menu controls");
+        var rows = a.DebugDebugRows();
+        Check(rows.SequenceEqual(new[] { "Invincible", "Infinite lives", "Hitboxes" }), "rows: " + string.Join("|", rows) + " (Logs only when the frontend provides it)");
+        a.KeyPressed(Fire, 8);
+        Check(a.Debug.Invincible, "Enter on the first row switches Invincible on");
+        a.KeyPressed(Down, 6); a.KeyPressed(Down, 6); a.KeyPressed(Fire, 8);
+        Check(a.Debug.ShowHitboxes && !a.Debug.InfiniteLives, "...and the third row switches the hit boxes on");
+        a.Back();
+        Check(!a.DebugPanelOpen, "Esc closes it");
+        // text of the game itself (the intro's speech bubbles) must not show through the menu
+        var (b, _) = make();
+        Select(b, "New game");
+        var bmp = new Bitmap(b.ScreenWidth, b.ScreenHeight);
+        List<string> gameTexts = new();
+        for (int i = 0; i < 1500 && gameTexts.Count == 0; i++)
+        {
+            b.Update(20);
+            var c = new Canvas(bmp); b.Draw(c);
+            gameTexts = c.Texts.Select(t => t.Text).ToList();
+        }
+        b.ToggleDebugMenu();
+        var over = new Canvas(bmp); b.Draw(over);
+        Check(gameTexts.Count > 0 && !over.Texts.Any(t => gameTexts.Contains(t.Text)), $"{name}: the game's own text ({(gameTexts.Count > 0 ? gameTexts[0] : "none found")}) does not show through the debug menu");
+        a.LogsGet = () => true; a.LogsSet = _ => { };
+        Check(a.DebugDebugRows().Contains("Logs"), "with the frontend's hooks there is a Logs row");
     }
 
     private static App NewMw2(DirAssets assets, IStorage store, IGameHost host = null)
@@ -111,6 +175,7 @@ internal static class AppTest
         }
 
         CheckHitboxes("game 2", () => NewMw2(assets, new MemoryStorage()));
+        CheckDebugMenu("game 2", () => { var h = new CountingHost(); return (NewMw2(assets, new MemoryStorage(), h), h); });
         var m2 = NewMw2(assets, new MemoryStorage());
         m2.Update(20);
         Check(m2.Game.Tweaks.MorkSpeedPercent == 67 && m2.Game.Tweaks.SlowJump, "the application turns the engine tweaks on (Mork at 2/3 speed)");
@@ -218,6 +283,7 @@ internal static class AppTest
         Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
         CheckHitboxes("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
+        CheckDebugMenu("game 1", () => { var h = new CountingHost(); return (new App(assets, h, new MemoryStorage(), 3), h); });
         Console.WriteLine("mouse");
         {
             var pm = new App(assets, new CountingHost(), new MemoryStorage(), 1);
@@ -310,7 +376,7 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Hitboxes", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "with integer scale on there is no Filter row: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
         Check(!set.IntegerScale && app.DebugOptionRows().Contains("Filter"), "Integer scale off -> the Filter row appears");
         Tap(app, Down);
@@ -330,7 +396,7 @@ internal static class AppTest
             bind.Changed += () => bchanges++;
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
             Select(app, "Options");
-            for (int i2 = 0; i2 < 6; i2++) Tap(app, Down);
+            for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);
             Tap(app, Fire);
             Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
             Tap(app, Down); Tap(app, Down);

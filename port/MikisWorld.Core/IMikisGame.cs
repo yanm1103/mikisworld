@@ -20,8 +20,8 @@ public interface IMikisGame
     void KeyReleased(int key, int action);
     void ChooseMode(int index);
 
-    /// <summary>Debug wireframe of the hit boxes (drawn by <see cref="DrawHitboxes"/> on top of the frame, every frame).</summary>
-    bool ShowHitboxes { get; set; }
+    /// <summary>Debug switches (the application shares its own instance); <see cref="DrawHitboxes"/> paints the wireframe on top of the frame, every frame.</summary>
+    DebugSettings Debug { get; set; }
     void DrawHitboxes(Canvas g);
 
     /// <summary>Optional departures from the original engine (off by default; the application sets them from the user's options).</summary>
