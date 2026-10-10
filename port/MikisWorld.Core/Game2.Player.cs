@@ -372,6 +372,14 @@ public sealed partial class Game2
                     stepX = stepX * (200 + 200 * _finalRainbows / 10) / 200;
                     pause = 1000 * (100 - 100 * _finalRainbows / 10) / 140;
                 }
+                // slowed Mork: only MorkSpeedPercent % of the movement ticks happen (the step AND the timer of the move are skipped together)
+                bool morkMoves = true;
+                if (Tweaks.MorkSpeedPercent < 100)
+                {
+                    _morkAcc += Math.Max(0, Tweaks.MorkSpeedPercent);
+                    if (_morkAcc >= 100) _morkAcc -= 100; else morkMoves = false;
+                }
+                if (morkMoves)
                 switch (_morkState)
                 {
                     case 1:

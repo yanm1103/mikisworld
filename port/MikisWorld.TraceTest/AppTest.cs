@@ -70,6 +70,7 @@ internal static class AppTest
         Check(stopHost.Stops > stopsBefore, "game 2 stops the title jingle when the game is entered");
         var m2 = NewMw2(assets, new MemoryStorage());
         m2.Update(20);
+        Check(m2.Game.Tweaks.MorkSpeedPercent == 67 && m2.Game.Tweaks.SlowJump, "the application turns the engine tweaks on (Mork at 2/3 speed)");
         m2.KeyPressed(55, 0);
         Check(m2.DebugMenuLabels().SequenceEqual(new[] { "New game", "High scores", "Instructions", "Options", "About", "Exit" }),
               "game 2 menu order follows the original command priorities (High scores before Instructions): " + string.Join("|", m2.DebugMenuLabels()));

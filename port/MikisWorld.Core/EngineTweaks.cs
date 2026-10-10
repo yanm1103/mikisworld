@@ -10,6 +10,10 @@ public sealed class EngineTweaks
     /// <summary>The protagonist's walking animation shows each sprite twice as long.</summary>
     public bool SlowWalkAnimation { get; set; }
 
+    /// <summary>Mork's speed while he is moving, in percent of the original (100 = original). Distances and timings of each of his
+    /// moves stay the same, he just takes proportionally longer: some of his movement ticks are skipped.</summary>
+    public int MorkSpeedPercent { get; set; } = 100;
+
     /// <summary>"Revamped" movement: (1) a held jump key does not make the character jump again and again - it needs a new press;
     /// (2) the direction keys that are actually held keep working after any other key is released (the original zeroes all input
     /// on ANY release), so you can change direction while falling or after landing.</summary>

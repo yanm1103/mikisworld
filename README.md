@@ -65,6 +65,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Correções de bugs reportados | Virar no ar em pulo diagonal (revamped); aperto de portal durante a transição ignorado (causa da transição dupla e do crash de `IndexOutOfRange`); tela cheia da tela inicial vale no jogo; *Exit* volta à seleção de jogo; zoom inteiro na tela inicial; crash log e tela de erro | ~99% · ~99% |
 | Recordes e instruções | Linha nova destacada nos recordes, Instructions e dicas seguem os controles configurados e o último dispositivo (teclado/controle), *Movement*: "new", entrada reiniciada ao sair da tela inicial | ~99% · ~99% |
 | Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
+| Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
 
 ## Como rodar
 
@@ -100,7 +101,7 @@ aperto, e depois da transição o jogo usa o portal da área que acabou de sair,
 causava a transição dupla. No modo *Movement: original* continua assim (de propósito); no *new* foi corrigido.
 
 **Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
-e a animação de andar do protagonista mostra cada sprite pelo dobro do tempo. No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
+a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o **Mork anda a 2/3 da velocidade** original (cada movimento dele tem a mesma distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
 estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
 
 **Instruções e dicas na tela.** A tela *Instructions* troca os botões do celular ("4,6 = ...") pelas teclas ou botões que você configurou, conforme o último

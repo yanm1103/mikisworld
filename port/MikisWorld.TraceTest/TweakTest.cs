@@ -181,6 +181,28 @@ internal static class TweakTest
                 Check(r.X == x, "ReleaseAll forgets held directions (no walking on)");
             }
         }
+        // ---- Mork (game 2): same moves, 2/3 of the speed
+        {
+            double Mork(int percent)
+            {
+                var assets = new DirAssets(dir2);
+                var g = new Game2(assets, new NullHost(), 1234);
+                g.Tweaks.MorkSpeedPercent = percent;
+                g.Start();
+                for (int i = 0; i < 6000 && g.CurrentState != State.Playing; i++) { g.KeyPressed(53, 8); g.KeyReleased(53, 8); g.Update(20, 0); }
+                for (int i = 0; i < 40; i++) g.Update(20, 0);
+                var t = typeof(Game2);
+                void Set(string n, object v) => t.GetField(n, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(g, v);
+                int Get(string n) => (int)t.GetField(n, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(g);
+                Set("_morkX", Get("_px") - (4000 << 4)); Set("_morkY", Get("_py")); Set("_morkState", 2); Set("_morkTimer", 1000000);
+                int x0 = Get("_morkX");
+                for (int i = 0; i < 300; i++) g.Update(20, 0);
+                return Get("_morkX") - x0;
+            }
+            double full = Mork(100), slow = Mork(67);
+            double ratio = slow / full;
+            Check(full > 0 && Math.Abs(ratio - 2.0 / 3) < 0.02, $"Mork moves at 2/3 of the speed (moved {slow:F0} instead of {full:F0}: {ratio:P0})");
+        }
         Console.WriteLine(fails == 0 ? "ALL OK" : $"{fails} FAILED");
         return fails == 0 ? 0 : 1;
     }

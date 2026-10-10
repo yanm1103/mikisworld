@@ -112,7 +112,7 @@ public sealed partial class Game2 : IMikisGame
     private bool _airControl;
     private int _inputX, _inputJump;
     private readonly HeldDirections _held = new();   // revamped movement: directions really held
-    private int _jumpBuffer, _jumpSub, _lastCase, _airDir;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
+    private int _jumpBuffer, _jumpSub, _lastCase, _airDir, _morkAcc;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
     private int _standingOn = -1;
 
     // camera

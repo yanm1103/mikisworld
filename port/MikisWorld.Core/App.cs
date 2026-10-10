@@ -320,6 +320,7 @@ public sealed class App
         var t = _game.Tweaks;
         t.SlowJump = true;
         t.SlowWalkAnimation = true;
+        t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
     }
 
