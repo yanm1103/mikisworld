@@ -11,7 +11,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 
 > Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
 > Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Última atualização: commit "Documentação" (2026-10-09).
+> Última atualização: commit "Mouse nos menus" (2026-10-09). Marco de referência: tag `base-1.0`.
 
 ### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -22,9 +22,9 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 | Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
 | Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
 | Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional com filtro nearest/bilinear, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options*), movimento original/new, tela inicial com opções |
-| Tela-título, menus, hi-scores, opções, salvamento | **90%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; a opção "Vibrator" vibra o **controle** quando o Miki é atingido (no teclado não há o que vibrar) |
+| Tela-título, menus, hi-scores, opções, salvamento | **100%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; a opção "Vibrator" vibra o **controle** quando o Miki é atingido (no teclado não há o que vibrar) |
 | Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
-| **Total estimado** | **~99%** | |
+| **Total estimado** | **100%** | tudo o que o original faz está portado e validado (ver "Limites conhecidos" em *Validação*) |
 
 ### MikisWorld2.jar (Miki's World 2: The Storm Master)
 
@@ -37,10 +37,10 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Decompilação e análise | **100%** | as 12 classes lidas e classificadas (tabela "Cobertura por classe" em [`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md)); `level.bin` validado (`parse_level.py --v2`); hi-score testado contra a classe `k` do próprio JAR 2. Menus/formulários (API de interface do MIDP) são verificados por leitura + `apptest`, não por execução do original |
 | Lógica do jogo (Mork, arco-íris, física alterada) | **100%** | `Game2`: 20/20 traces idênticos ao original (~100 mil ticks), incluindo Mork, Lords, subáreas e estágio final |
 | Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
-| Menus, hi-scores, salvamento | **90%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
+| Menus, hi-scores, salvamento | **100%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
 | Áudio | **100%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3×; **conferido de ouvido** |
 | Janela, escala, entrada | **100%** | mesma janela, opções e controles (remapeáveis) do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
-| **Total estimado** | **~99%** | mesmos pesos do jogo 1 |
+| **Total estimado** | **100%** | mesmos pesos do jogo 1 |
 
 ### Histórico
 
@@ -66,6 +66,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Recordes e instruções | Linha nova destacada nos recordes, Instructions e dicas seguem os controles configurados e o último dispositivo (teclado/controle), *Movement*: "new", entrada reiniciada ao sair da tela inicial | ~99% · ~99% |
 | Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
 | Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
+| Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
 
 ## Como rodar
 
@@ -103,6 +104,10 @@ causava a transição dupla. No modo *Movement: original* continua assim (de pro
 **Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
 a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o **Mork anda a 2/3 da velocidade** original (cada movimento dele tem a mesma distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
 estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
+
+**Mouse.** Os menus (título, menu da partida, *Options*, remapear, lista do modo, tela inicial) são clicáveis: passar o mouse destaca a linha, o clique esquerdo ativa
+(numa barra como *Sound*, a metade esquerda diminui e a direita aumenta), o clique direito volta (como `Esc`), clicar fora do menu o fecha, clicar numa tela de texto
+(instruções, recordes, sobre) volta e a roda do mouse rola as instruções. Na tela-título qualquer clique abre o menu. Na partida o mouse não faz nada.
 
 **Instruções e dicas na tela.** A tela *Instructions* troca os botões do celular ("4,6 = ...") pelas teclas ou botões que você configurou, conforme o último
 dispositivo usado (teclado ou controle). Do mesmo modo, as dicas das telas de controles e do nome mostram "Enter / Bksp" ou "A / X". No controle, `X` limpa a célula

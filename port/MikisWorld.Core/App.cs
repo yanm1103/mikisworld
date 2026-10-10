@@ -25,6 +25,7 @@ public sealed class App
     private readonly string _helpText;
     private readonly Bitmap _gameBuf;                 // last painted game frame (the game only repaints when it changed)
     private List<TextCommand> _gameTexts = new();
+    private readonly List<(int X, int Y, int W, int H, Action<int, int> Click, Action Hover)> _hits = new();   // clickable regions of the last drawn frame, topmost last
 
     private Screen _screen;
     private Screen _formReturn;               // where Back leads from a form
@@ -129,6 +130,8 @@ public sealed class App
     internal string DebugName => _name;
     internal bool DebugVibrationAllowed => _host.VibrationAllowed();
     internal int DebugScoreHighlight => _scoreHighlight;
+    internal int DebugMenuSelected => _menuSel;
+    internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
@@ -436,29 +439,67 @@ public sealed class App
     // ------------------------------------------------------------------ drawing
     private const int TL = Canvas.Left | Canvas.Top;
 
+    private void Hit(int x, int y, int w, int h, Action<int, int> click, Action hover = null) => _hits.Add((x, y, w, h, click, hover));
+
+    /// <summary>The mouse moved over the picture (coordinates of the game screen): highlights what is under it.</summary>
+    public void PointerMoved(int x, int y)
+    {
+        for (int i = _hits.Count - 1; i >= 0; i--)
+        {
+            var h = _hits[i];
+            if (x < h.X || y < h.Y || x >= h.X + h.W || y >= h.Y + h.H) continue;
+            if (h.Hover != null) { h.Hover(); return; }
+        }
+    }
+
+    /// <summary>Left click on the picture: activates the entry under it (menus, options, controls, forms).</summary>
+    public void PointerPressed(int x, int y)
+    {
+        for (int i = _hits.Count - 1; i >= 0; i--)
+        {
+            var h = _hits[i];
+            if (x < h.X || y < h.Y || x >= h.X + h.W || y >= h.Y + h.H) continue;
+            h.Click(x - h.X, y - h.Y);
+            return;
+        }
+        if (_capturing) _capturing = false;
+    }
+
+    /// <summary>Right click: the same as Esc / the platform's back button.</summary>
+    public void PointerBack() { if (_capturing) _capturing = false; else Back(); }
+
+    /// <summary>Mouse wheel (+1 down, -1 up): scrolls the instructions.</summary>
+    public void PointerWheel(int dir) { if (_screen == Screen.Help) _scroll = Math.Max(0, _scroll + dir); }
+
     public void Draw(Canvas g)
     {
+        _hits.Clear();
         switch (_screen)
         {
             case Screen.Splash:
                 DrawSplash(g);
+                Hit(0, 0, W, H, (_, _) => EndSplash());
                 break;
             case Screen.Title:
                 g.SetClip(0, 0, W, H);
                 g.SetColor(0, 0, 0);
                 g.FillRect(0, 0, W, H);
                 g.DrawImage(_titleArt, (W - _titleArt.Width) / 2, (H - _titleArt.Height) / 2, TL);
-                if (_menuOpen) { Dim(g); DrawMenu(g); }
-                else if (_ms / 600 % 2 == 0) DrawShadowed(g, Pad ? "Press any button" : "Press any key", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
+                if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
+                else
+                {
+                    Hit(0, 0, W, H, (_, _) => OpenMenu());                     // any click opens the menu, like any key
+                    if (_ms / 600 % 2 == 0) DrawShadowed(g, Pad ? "Press any button" : "Press any key", W / 2, H - 14, FontKind.Small, 0xFFFFFF, Canvas.HCenter);
+                }
                 break;
             case Screen.Game:
                 DrawGame(g);
-                if (_menuOpen) { Dim(g); DrawMenu(g); }
+                if (_menuOpen) { Dim(g); Hit(0, 0, W, H, (_, _) => Back()); DrawMenu(g); }
                 else if (_game.CurrentState == State.ModeMenu) DrawModeList(g);
                 break;
-            case Screen.Help: DrawBackdrop(g); DrawHelp(g); break;
-            case Screen.About: DrawBackdrop(g); DrawAbout(g); break;
-            case Screen.HighScores: DrawBackdrop(g); DrawScores(g); break;
+            case Screen.Help: DrawBackdrop(g); DrawHelp(g); Hit(0, 0, W, H, (_, _) => Back()); break;
+            case Screen.About: DrawBackdrop(g); DrawAbout(g); Hit(0, 0, W, H, (_, _) => Back()); break;
+            case Screen.HighScores: DrawBackdrop(g); DrawScores(g); Hit(0, 0, W, H, (_, _) => Back()); break;
             case Screen.NameEntry: DrawBackdrop(g); DrawNameEntry(g); break;
             case Screen.Options: DrawBackdrop(g); DrawOptions(g); break;
             case Screen.ControlsKeyboard: DrawBackdrop(g); DrawControls(g, BindingDevice.Keyboard); break;
@@ -484,7 +525,7 @@ public sealed class App
         if (_game.Draw(gc)) _gameTexts = new List<TextCommand>(gc.Texts);
         g.SetClip(0, 0, W, H);
         g.DrawImage(_gameBuf, 0, 0, TL);
-        g.Texts.AddRange(_gameTexts);
+        if (!_menuOpen) g.Texts.AddRange(_gameTexts);          // the game's text ("Hurry up!"...) is drawn on top of the picture: keep it away from the menu
     }
 
     private void DrawBackdrop(Canvas g)
@@ -535,6 +576,8 @@ public sealed class App
                 g.FillRect(x + 3, ty - 1, w - 5, lineH);
             }
             DrawShadowed(g, items[i].Label, x + 10, ty, FontKind.Bold, i == _menuSel ? 0xFFFFFF : 0xFFE0A0, 0);
+            int idx = i;
+            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _menuSel = idx; items[idx].Run(); }, () => _menuSel = idx);
         }
     }
 
@@ -557,6 +600,8 @@ public sealed class App
                 g.FillRect(x + 3, ty - 1, w - 5, lineH);
             }
             DrawShadowed(g, labels[i], x + 14, ty, FontKind.Bold, i == _modeSel ? 0xFFFFFF : 0xFFE0A0, 0);
+            int idx = i;
+            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _modeSel = idx; _game.ChooseMode(idx); }, () => _modeSel = idx);
         }
     }
 
@@ -672,6 +717,15 @@ public sealed class App
                 g.FillRect(x - 3, ty - 1, w + 5, lh);
             }
             DrawShadowed(g, rows[i].Label, x, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+            int idx = i;
+            var row = rows[i];
+            Hit(x - 3, ty - 1, w + 5, lh, (px, _) =>
+            {
+                _optSel = idx;
+                if (row.Slider) row.Adjust(px < (w + 5) / 2 ? -1 : +1);          // left half lowers, right half raises
+                else row.Adjust(1);
+                _optSel = Math.Clamp(_optSel, 0, OptionRows().Count - 1);
+            }, () => _optSel = idx);
             string value = rows[i].Value();
             int vw = g.Metrics.StringWidth(value, FontKind.Bold);
             DrawShadowed(g, value, x + w - vw, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
@@ -706,6 +760,8 @@ public sealed class App
                 bool sel = r == _ctrlRow;
                 if (sel) { g.SetClip(0, 0, W, H); g.SetColor(160, 90, 20); g.FillRect(x - 3, ty - 1, w + 5, lh); }
                 DrawShadowed(g, "Defaults", x, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+                int lastRow = r;
+                Hit(x - 3, ty - 1, w + 5, lh, (_, _) => { _capturing = false; _ctrlRow = lastRow; _bind.Reset(device); }, () => { if (!_capturing) _ctrlRow = lastRow; });
                 continue;
             }
             DrawShadowed(g, InputBindings.Label(acts[r]), x, ty, FontKind.Small, 0xFFE0A0, 0);
@@ -719,6 +775,8 @@ public sealed class App
                     g.SetColor(_capturing ? 200 : 160, _capturing ? 60 : 90, 20);
                     g.FillRect(cx - 2, ty - 1, cellW, lh);
                 }
+                int cr = r, cc = c;
+                Hit(cx - 2, ty - 1, cellW, lh, (_, _) => { _ctrlRow = cr; _ctrlCol = cc; _capturing = true; }, () => { if (!_capturing) { _ctrlRow = cr; _ctrlCol = cc; } });
                 string text = sel && _capturing ? "..." : InputBindings.Short(_bind.Get(device, acts[r], c));
                 DrawShadowed(g, text, cx, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFFFFF, 0);
             }

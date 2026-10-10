@@ -174,6 +174,65 @@ internal static class AppTest
         Select(m1a, "New game");
         Check(m1s.Stops == 0, "game 1 lets the title jingle run on when the game starts");
 
+        Console.WriteLine("mouse");
+        {
+            var pm = new App(assets, new CountingHost(), new MemoryStorage(), 1);
+            var pbmp = new Bitmap(176, 144);
+            void Frame() { pm.Update(20); pm.Draw(new Canvas(pbmp)); }
+            Frame();
+            pm.PointerPressed(5, 5);
+            Check(pm.DebugMenuOpen, "a click on the title opens the menu");
+            Frame();
+            var hits = pm.DebugHits();
+            int opt = pm.DebugMenuLabels().IndexOf("Options");
+            var hb = hits[1 + opt];
+            pm.PointerMoved(hb.X + 5, hb.Y + 2);
+            Check(pm.DebugMenuSelected == opt, "hovering a menu entry highlights it");
+            pm.PointerPressed(hb.X + 5, hb.Y + 2);
+            Check(pm.DebugScreen == "Options", "clicking 'Options' opens it");
+            Frame();
+            hits = pm.DebugHits();
+            pm.PointerPressed(hits[1].X + 3, hits[1].Y + 2);
+            Check(pm.Settings.Fullscreen, "clicking a toggle row switches it");
+            pm.Settings.Fullscreen = false;
+            int v0 = pm.Settings.Volume;
+            pm.PointerPressed(hits[0].X + 2, hits[0].Y + 2);
+            Check(pm.Settings.Volume == v0 - 5, "left half of the Sound row lowers it");
+            pm.PointerPressed(hits[0].X + hits[0].W - 2, hits[0].Y + 2);
+            Check(pm.Settings.Volume == v0, "right half raises it");
+            pm.PointerBack();
+            Check(pm.DebugScreen == "Title" && pm.DebugMenuOpen, "right click goes back (to the menu)");
+            Frame();
+            pm.PointerPressed(1, 1);
+            Check(!pm.DebugMenuOpen, "a click outside the menu closes it");
+            pm.PointerPressed(5, 5);
+            Frame();
+            hits = pm.DebugHits();
+            int hs = pm.DebugMenuLabels().IndexOf("High scores");
+            pm.PointerPressed(hits[1 + hs].X + 3, hits[1 + hs].Y + 2);
+            Check(pm.DebugScreen == "HighScores", "clicking 'High scores' opens the list");
+            Frame();
+            pm.PointerPressed(20, 20);
+            Check(pm.DebugScreen == "Title" && pm.DebugMenuOpen, "a click on a form goes back");
+            // controls screen: a click on a cell starts the capture, another click elsewhere cancels it
+            Frame();
+            hits = pm.DebugHits();
+            int opt2 = pm.DebugMenuLabels().IndexOf("Options");
+            pm.PointerPressed(hits[1 + opt2].X + 3, hits[1 + opt2].Y + 2);
+            Frame();
+            hits = pm.DebugHits();
+            int kb = pm.DebugOptionRows().IndexOf("Keyboard keys");
+            pm.PointerPressed(hits[kb].X + 3, hits[kb].Y + 2);
+            Check(pm.DebugScreen == "ControlsKeyboard", "clicking 'Keyboard keys' opens the remapping screen");
+            Frame();
+            hits = pm.DebugHits();
+            pm.PointerPressed(hits[1].X + 2, hits[1].Y + 2);               // [0],[1] = the two cells of the first row
+            Check(pm.CapturingInput, "clicking a key cell waits for the new key");
+            pm.CaptureInput(BindingDevice.Keyboard, "Z");
+            Check(pm.Bindings.Get(BindingDevice.Keyboard, GameAction.Left, 1) == "Z", "...and binds it");
+            pm.Bindings.Reset(BindingDevice.Keyboard);
+        }
+
         Console.WriteLine("forms");
         Select(app, "Instructions");
         Check(app.DebugScreen == "Help", "Instructions opens the help form");
@@ -368,6 +427,13 @@ internal static class AppTest
         foreach (int k in cheat) { app3.KeyPressed(k, 0); app3.KeyReleased(k, 0); }
         app3.Update(20);
         Check(store2.Data.BonusUnlocked, "typing the code unlocks and saves the bonus game");
+        var bmpT = new Bitmap(176, 144);
+        var c1 = new Canvas(bmpT); app3.Draw(c1);
+        Check(c1.Texts.Any(t => t.Text.Contains("Bonus")), "the game's own text ('Bonus game opened!') is drawn over the picture");
+        app3.Back();
+        var c2 = new Canvas(bmpT); app3.Draw(c2);
+        Check(app3.DebugMenuOpen && !c2.Texts.Any(t => t.Text.Contains("Bonus")), "...but not while the menu is open (it used to show through, like 'Hurry up!' in game 2)");
+        app3.Back();
         var app4 = new App(assets, new CountingHost(), store2, 6);
         Select(app4, "New game");
         app4.Update(20);

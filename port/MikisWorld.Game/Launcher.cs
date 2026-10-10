@@ -10,6 +10,7 @@ namespace MikisWorld.Game;
 internal static class Launcher
 {
     public const int W0 = 320, H0 = 230;
+    private const int RowH = 17, RowX = 30, RowW = 260, RowY = 40;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
 
@@ -17,6 +18,8 @@ internal static class Launcher
 
     private static readonly Color Bg = new(60, 179, 210, 255), Panel = new(99, 48, 0, 255), Hi = new(160, 90, 20, 255);
     private static readonly Color Sub = new(255, 224, 160, 255);
+    private static float _k = 1, _ox, _oy;                    // zoom and offset of the last drawn frame (to map the mouse)
+    private static Vector2 _lastMouse;
     private static bool _stickLeft, _stickRight, _stickUp, _stickDown;
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
@@ -55,6 +58,23 @@ internal static class Launcher
                     break;
                 case Nav.Back: return 0;
             }
+            // mouse: hover highlights a row, a click activates it (left half of a slider lowers it, right half raises it)
+            var mouse = Raylib.GetMousePosition();
+            float lx = (mouse.X - _ox) / _k, ly = (mouse.Y - _oy) / _k;
+            int hover = lx >= RowX - 2 && lx < RowX + RowW + 2 && ly >= RowY && ly < RowY + rows.Count * RowH ? (int)((ly - RowY) / RowH) : -1;
+            if (hover >= 0)
+            {
+                if (mouse != _lastMouse) sel = hover;
+                if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+                {
+                    sel = hover;
+                    var r = rows[hover];
+                    if (r.Game != 0) return r.Game;
+                    if (r.Label == "Quit") return 0;
+                    if (r.Slider) r.Change(lx < RowX + RowW / 2 ? -1 : +1); else r.Change(1);
+                }
+            }
+            _lastMouse = mouse;
             bool borderless = Program.SyncFullscreen(s);
             Program.ApplyWindowScale(s, W0, H0, borderless, ref resizedAt);
 
@@ -93,6 +113,7 @@ internal static class Launcher
         // same rule as the games: a whole-number zoom (black bars) or fill the window keeping the aspect ratio
         float k = s.IntegerScale ? Math.Max(1, Math.Min(w / W0, h / H0)) : Math.Min((float)w / W0, (float)h / H0);
         float ox = MathF.Floor((w - W0 * k) / 2), oy = MathF.Floor((h - H0 * k) / 2);
+        _k = k; _ox = ox; _oy = oy;
         var font = Raylib.GetFontDefault();
         Raylib.SetTextureFilter(font.Texture, s.UsesBilinear ? TextureFilter.Bilinear : TextureFilter.Point);
 
@@ -104,7 +125,7 @@ internal static class Launcher
         Rect(0, 0, W0, H0, Bg);
         Centered("Miki's World", 6, 30, Color.White);
 
-        const int rowH = 17, x0 = 30, boxW = 260, y0 = 40;
+        const int rowH = RowH, x0 = RowX, boxW = RowW, y0 = RowY;
         Rect(x0 - 4, y0 - 4, boxW + 8, rows.Count * rowH + 8, Color.White);
         Rect(x0 - 3, y0 - 3, boxW + 6, rows.Count * rowH + 6, Panel);
         for (int i = 0; i < rows.Count; i++)

@@ -170,6 +170,7 @@ internal static class Program
             double acc = 0;
             int frameNo = 0;
             double resizedAt = -1;
+            var lastMouse = Vector2.Zero;
             var router = new InputRouter(new AppTarget(app));
             var poller = new DevicePoller(router);
             var injectedUp = new List<(BindingDevice, string)>();
@@ -249,6 +250,20 @@ internal static class Program
                 Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0), new Rectangle(ox, oy, dw, dh), Vector2.Zero, 0, Color.White);
                 foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef);
                 Raylib.EndDrawing();
+
+                // mouse: window position -> game screen position (the picture is drawn at ox,oy with a zoom of scalef)
+                var mouse = Raylib.GetMousePosition();
+                int mx = (int)MathF.Floor((mouse.X - ox) / scalef), my = (int)MathF.Floor((mouse.Y - oy) / scalef);
+                bool over = mx >= 0 && my >= 0 && mx < sw0 && my < sh0;
+                if (over)
+                {
+                    if (mouse != lastMouse) app.PointerMoved(mx, my);
+                    if (Raylib.IsMouseButtonPressed(MouseButton.Left)) app.PointerPressed(mx, my);
+                    float wheel = Raylib.GetMouseWheelMove();
+                    if (wheel != 0) app.PointerWheel(wheel < 0 ? 1 : -1);
+                }
+                if (Raylib.IsMouseButtonPressed(MouseButton.Right)) app.PointerBack();
+                lastMouse = mouse;
 
                 if (run.Shoot.TryGetValue(frameNo, out var shots))
                     foreach (string name in shots) Raylib.TakeScreenshot($"shot_{name}.png");
