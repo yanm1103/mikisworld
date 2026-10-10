@@ -64,6 +64,94 @@ internal static class AppTest
         app.Debug.ShowHitboxes = false;
     }
 
+    /// <summary>The extended view: a picture larger than the original screen, black outside the map, the original screen kept inside it,
+    /// menus centred and still clickable, wipes working.</summary>
+    private static void CheckWideView(string name, Func<App> make, int mapPixelW)
+    {
+        var app = make();
+        app.Settings.View = DisplayView.Extended;
+        int vw = mapPixelW + 80, vh = 260;
+        app.SetView(vw, vh);
+        Select(app, "New game");
+        for (int i = 0; i < 3; i++) app.Update(20);
+        for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
+        for (int i = 0; i < 100; i++) app.Update(20);
+        Bitmap Shot() { var b = new Bitmap(vw, vh); app.Draw(new Canvas(b)); return b; }
+        Check(app.ViewWidth == vw && app.ViewHeight == vh, $"{name}: the game draws a {vw}x{vh} picture");
+        var f = Shot();
+        int side = (vw - mapPixelW) / 2;
+        Check(Enumerable.Range(0, vh - 30).All(y => (f.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0 && (f.Pixels[y * vw + vw - side / 2] & 0xFFFFFF) == 0),   // (the HUD sits in the bottom corners)
+              $"{name}: the strips beside the map ({side} px each) are black");
+        Check(Enumerable.Range(side + 2, mapPixelW - 4).Any(x => (f.Pixels[(vh / 2) * vw + x] & 0xFFFFFF) != 0), $"{name}: the map itself is drawn");
+        // the game keeps running with the same logic: still playing, the player on screen
+        Check(app.Game.CurrentState == State.Playing, $"{name}: still in the world");
+
+        // the menu is centred and its entries answer to clicks at the centred position
+        app.Back();
+        app.Update(20); Shot();
+        var origin = app.DebugViewOrigin;
+        Check(origin.X > 0 && origin.Y > 0, $"{name}: the original screen is centred ({origin.X},{origin.Y})");
+        int help = app.DebugMenuLabels().IndexOf("Instructions");
+        var hits = app.DebugHits();
+        app.PointerPressed(origin.X + hits[1 + help].X + 3, origin.Y + hits[1 + help].Y + 2);
+        Check(app.DebugScreen == "Help", $"{name}: clicking a menu entry in the extended view works (screen {app.DebugScreen})");
+        app.Back(); app.Back();
+        Check(app.DebugScreen == "Game" && !app.DebugMenuOpen, $"{name}: back in the game");
+
+        // a wipe (portal / skip) draws the whole picture and ends in the final stage
+        ((GameBase)app.Game).DebugSkipLevel();
+        bool sawWipe = false;
+        for (int i = 0; i < 400 && app.Game.CurrentState != State.FinalStage; i++)
+        {
+            app.Update(20);
+            if (app.Game.CurrentState == State.WipeIn || app.Game.CurrentState == State.WipeOut) sawWipe = true;
+            Shot();
+        }
+        Check(sawWipe && app.Game.CurrentState == State.FinalStage, $"{name}: the wipe runs on the extended picture and reaches the final stage");
+        for (int i = 0; i < 50; i++) app.Update(20);
+        var g2 = Shot();
+        Check(Enumerable.Range(0, vh - 30).All(y => (g2.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0), $"{name}: the final stage is also black beside the map");
+
+        // back to the original view: the picture is the original size again
+        app.Settings.View = DisplayView.Original;
+        app.SetView(app.ScreenWidth, app.ScreenHeight);
+        Check(app.ViewWidth == app.ScreenWidth && app.ViewHeight == app.ScreenHeight, $"{name}: the original view restores the original size");
+        for (int i = 0; i < 20; i++) app.Update(20);
+        var o = new Bitmap(app.ScreenWidth, app.ScreenHeight);
+        app.Draw(new Canvas(o));
+        Check(o.Pixels.Any(p => (p & 0xFFFFFF) != 0), $"{name}: and it draws normally");
+    }
+
+    /// <summary>Random play in several extended view sizes, drawing along the way (portals, areas, lords, game over...): no exception, always a picture.</summary>
+    private static void CheckWideStress(string name, Func<App> make)
+    {
+        var rng = new Random(7);
+        foreach (var (vw, vh) in new[] { (200, 150), (240, 200), (330, 300), (640, 480), (176, 400) })
+        {
+            var app = make();
+            app.Settings.View = DisplayView.Extended;
+            app.Debug.Invincible = false;
+            app.SetView(vw, vh);
+            Select(app, "New game");
+            int[] keys = { 50, 52, 54, 56, 53, 49, 51 };
+            int drawn = 0, blank = 0;
+            for (int t = 0; t < 7000; t++)
+            {
+                if (t % 9 == 0) { int k = keys[rng.Next(keys.Length)]; app.KeyPressed(k, k == 50 ? 1 : k == 52 ? 2 : k == 54 ? 5 : k == 56 ? 6 : k == 53 ? 8 : 0); app.KeyReleased(k, k == 50 ? 1 : k == 52 ? 2 : k == 54 ? 5 : k == 56 ? 6 : k == 53 ? 8 : 0); }
+                if (t % 997 == 996) ((GameBase)app.Game).DebugSkipLevel();
+                app.Update(20);
+                if (t % 6 == 0)
+                {
+                    var b = new Bitmap(app.ViewWidth, app.ViewHeight);
+                    app.Draw(new Canvas(b));
+                    drawn++;
+                    if (app.DebugScreen == "Game" && b.Pixels.All(p => (p & 0xFFFFFF) == 0) && app.Game.CurrentState == State.Playing) blank++;
+                }
+            }
+            Check(drawn > 900 && blank == 0, $"{name}: random play in a {vw}x{vh} view: {drawn} pictures drawn, {blank} blank ones while playing");
+        }
+    }
+
     /// <summary>Inside a level, changing the Filter hides the menu and shows only "&lt; filter &gt;" over the paused game.</summary>
     private static void CheckFilterLive(string name, Func<App> make)
     {
@@ -74,8 +162,8 @@ internal static class AppTest
         for (int i = 0; i < 20; i++) app.Update(20);
         List<string> Texts() { var bmp = new Bitmap(app.ScreenWidth, app.ScreenHeight); var c = new Canvas(bmp); app.Draw(c); return c.Texts.Select(t => t.Text).ToList(); }
         Select(app, "Options");
-        for (int i = 0; i < 3; i++) Tap(app, Down);
-        Check(app.DebugOptionRows()[3] == "Filter", $"{name}: the fourth option is Filter");
+        for (int i = 0; i < 4; i++) Tap(app, Down);
+        Check(app.DebugOptionRows()[4] == "Filter", $"{name}: the fifth option is Filter");
         int frame = app.Game.Frame;
         app.KeyPressed(54, 5); app.KeyReleased(54, 5);
         Check(app.Settings.Filter == DisplayFilter.Bilinear && app.DebugFilterLive, $"{name}: changing the filter in a level goes to the live view");
@@ -276,6 +364,8 @@ internal static class AppTest
 
         CheckHitboxes("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckFilterLive("game 2", () => NewMw2(assets, new MemoryStorage()));
+        CheckWideView("game 2", () => NewMw2(assets, new MemoryStorage()), 16 * 12);
+        CheckWideStress("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckBubbles("game 2", () => NewMw2(assets, new MemoryStorage()));
         CheckDebugMenu("game 2", () => { var h = new CountingHost(); return (NewMw2(assets, new MemoryStorage(), h), h); });
         var m2 = NewMw2(assets, new MemoryStorage());
@@ -387,6 +477,8 @@ internal static class AppTest
 
         CheckHitboxes("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckFilterLive("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
+        CheckWideView("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3), 16 * 14);
+        CheckWideStress("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckBubbles("game 1", () => new App(assets, new CountingHost(), new MemoryStorage(), 3));
         CheckDebugMenu("game 1", () => { var h = new CountingHost(); return (new App(assets, h, new MemoryStorage(), 3), h); });
         Console.WriteLine("mouse");
@@ -483,11 +575,16 @@ internal static class AppTest
         Tap(app, Fire);
         Check(!set.Fullscreen, "...and off again");
         Tap(app, Down);
-        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "Filter", "Ghosting", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "option rows: " + string.Join("|", app.DebugOptionRows()));
+        Check(app.DebugOptionRows().SequenceEqual(new[] { "Sound", "Fullscreen", "Integer scale", "View", "Filter", "Ghosting", "Movement", "Vibrator", "Keyboard keys", "Gamepad" }), "option rows: " + string.Join("|", app.DebugOptionRows()));
         Tap(app, Fire);
         Check(!set.IntegerScale, "Integer scale off");
         Tap(app, Fire);
         Check(set.IntegerScale, "...and on again (the Filter row stays either way)");
+        Tap(app, Down);
+        Tap(app, Fire);
+        Check(set.View == DisplayView.Extended, "View row: Fire switches to the extended view");
+        Tap(app, Fire);
+        Check(set.View == DisplayView.Original, "...and back to the original one");
         Tap(app, Down);
         Right();
         Check(set.Filter == DisplayFilter.Bilinear && !app.DebugFilterLive, "Filter: Right picks the next one (bilinear); outside a level the menu stays");
@@ -518,7 +615,7 @@ internal static class AppTest
             bind.Changed += () => bchanges++;
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up" && bind.Get(BindingDevice.Gamepad, GameAction.Jump, 0) == "A", "defaults: Jump = Up / pad A");
             Select(app, "Options");
-            for (int i2 = 0; i2 < 7; i2++) Tap(app, Down);
+            for (int i2 = 0; i2 < 8; i2++) Tap(app, Down);
             Tap(app, Fire);
             Check(app.DebugScreen == "ControlsKeyboard", "Options > Keyboard keys opens the remapping screen");
             Tap(app, Down); Tap(app, Down);

@@ -152,10 +152,11 @@ internal static class Program
                 ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, run.Bindings)
                 : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, run.Bindings);
 
-            int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
+            int lw0 = app.ScreenWidth, lh0 = app.ScreenHeight;       // the original screen
+            int sw0 = lw0, sh0 = lh0;                                // the picture drawn now (larger in the extended view)
             // a full-screen window keeps the monitor's size; only a normal window is sized to the game
-            if (!settings.Fullscreen) Raylib.SetWindowSize(sw0 * run.Scale, sh0 * run.Scale);
-            Raylib.SetWindowMinSize(sw0, sh0);
+            if (!settings.Fullscreen) Raylib.SetWindowSize(lw0 * run.Scale, lh0 * run.Scale);
+            Raylib.SetWindowMinSize(lw0, lh0);
             Raylib.SetWindowTitle(game == 2 ? "Miki's World 2: The Storm Master" : "Miki's World 1: The Lost Tiara");
 
             var metrics = new RaylibFontMetrics();
@@ -199,7 +200,29 @@ internal static class Program
                 if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
                 if (Raylib.IsKeyPressed(KeyboardKey.F3)) app.ToggleDebugMenu();
                 bool borderless = SyncFullscreen(settings);
-                ApplyWindowScale(settings, sw0, sh0, borderless, ref resizedAt);
+                if (settings.View == DisplayView.Extended) ViewZoomKeys(settings, lh0);
+                else ApplyWindowScale(settings, lw0, lh0, borderless, ref resizedAt);
+
+                // the picture follows the view option and the window: the original size, or as much of the level as fits
+                var (vw, vh) = settings.View == DisplayView.Extended ? ExtendedSize(settings, lw0, lh0) : (lw0, lh0);
+                if (vw != sw0 || vh != sh0)
+                {
+                    sw0 = vw; sh0 = vh;
+                    app.SetView(sw0, sh0);
+                    frame = new Bitmap(sw0, sh0);
+                    rgba = new byte[sw0 * sh0 * 4];
+                    Raylib.UnloadTexture(tex);
+                    unsafe
+                    {
+                        fixed (byte* p = rgba)
+                        {
+                            var image = new Image { Data = p, Width = sw0, Height = sh0, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 };
+                            tex = Raylib.LoadTextureFromImage(image);
+                        }
+                    }
+                    ghost = new Ghosting(rgba.Length);
+                    LogConsole.Log($"view {sw0}x{sh0} (original {lw0}x{lh0})");
+                }
 
                 double now = Raylib.GetTime();
                 foreach (var (dev, n) in injectedUp) router.Release(dev, n);
@@ -327,6 +350,28 @@ internal static class Program
         }
         Raylib.CloseWindow();
         Environment.Exit(1);
+    }
+
+    private const int MaxViewW = 640, MaxViewH = 480;
+
+    /// <summary>Extended view: window pixels per game pixel, from the setting or (automatic) about 1.5 original screen heights per window height.</summary>
+    private static int ViewZoom(DisplaySettings s, int lh) => s.ViewZoom > 0 ? s.ViewZoom : Math.Max(1, Raylib.GetScreenHeight() * 2 / (lh * 3));
+
+    /// <summary>The picture size of the extended view: the window divided by the zoom, never smaller than the original screen.</summary>
+    internal static (int, int) ExtendedSize(DisplaySettings s, int lw, int lh)
+    {
+        int k = ViewZoom(s, lh);
+        return (Math.Clamp(Raylib.GetScreenWidth() / k, lw, MaxViewW), Math.Clamp(Raylib.GetScreenHeight() / k, lh, MaxViewH));
+    }
+
+    /// <summary>+ and - change the zoom of the extended view (the window keeps its size).</summary>
+    private static void ViewZoomKeys(DisplaySettings s, int lh)
+    {
+        int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
+                 : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
+        if (step == 0) return;
+        s.ViewZoom = Math.Clamp(ViewZoom(s, lh) + step, 1, 16);
+        s.NotifyChanged();
     }
 
     /// <summary>Zoom keys and snapping: with integer scaling the window always ends up an exact multiple of the native size.</summary>
@@ -489,7 +534,7 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 internal static class SettingsStore
 {
     private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true,
-                              string Filter = null, bool Ghosting = false);
+                              string Filter = null, bool Ghosting = false, string View = null, int ViewZoom = 0);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
     private static int? _mutedFrom;                // --no-sound: the volume to keep in the file while this run is muted
@@ -509,7 +554,7 @@ internal static class SettingsStore
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
         // files from before the filter list only have the Bilinear switch
         var filter = Enum.TryParse<DisplayFilter>(d.Filter, true, out var f) ? f : d.Bilinear ? DisplayFilter.Bilinear : DisplayFilter.Nearest;
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Filter = filter, Ghosting = d.Ghosting, RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Filter = filter, Ghosting = d.Ghosting, View = Enum.TryParse<DisplayView>(d.View, true, out var v) ? v : DisplayView.Original, ViewZoom = Math.Clamp(d.ViewZoom, 0, 16), RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
     }
 
     public static void Save(DisplaySettings s)
@@ -518,7 +563,7 @@ internal static class SettingsStore
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(_mutedFrom is int kept && s.Volume == 0 ? kept : s.Volume, s.IntegerScale, s.Filter is DisplayFilter.Bilinear, s.RevampedMovement, s.Vibration,
-                s.Filter.ToString(), s.Ghosting), Opt));
+                s.Filter.ToString(), s.Ghosting, s.View.ToString(), s.ViewZoom), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

@@ -3,8 +3,13 @@ namespace MikisWorld.Core;
 /// <summary>What the application shell needs from a game (implemented by <see cref="Game"/> and <see cref="Game2"/>).</summary>
 public interface IMikisGame
 {
+    /// <summary>The original screen (what the menus and the game logic work with).</summary>
     int ScreenWidth { get; }
     int ScreenHeight { get; }
+    /// <summary>The picture actually drawn: the original screen, or larger in the "Extended" view (see <see cref="SetView"/>).</summary>
+    int ViewWidth { get; }
+    int ViewHeight { get; }
+    void SetView(int w, int h);
     GameStrings Strings { get; }
     bool BonusUnlocked { get; set; }
     bool WantsQuit { get; }

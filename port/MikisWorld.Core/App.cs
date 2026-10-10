@@ -36,7 +36,7 @@ public sealed class App
     private readonly Bitmap _titleArt, _splash;
     private readonly GameStrings _s;
     private readonly string _helpText;
-    private readonly Bitmap _gameBuf;                 // last painted game frame (the game only repaints when it changed)
+    private Bitmap _gameBuf;                       // last painted game frame (the game only repaints when it changed)
     private List<TextCommand> _gameTexts = new();
     private readonly List<(int X, int Y, int W, int H, Action<int, int> Click, Action Hover)> _hits = new();   // clickable regions of the last drawn frame, topmost last
 
@@ -152,6 +152,7 @@ public sealed class App
     internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
+    internal (int X, int Y) DebugViewOrigin => (_ox, _oy);
     internal bool DebugFilterLive => _filterLive;
     internal bool DebugSavedNote => _ms < _savedUntil;
     internal string DebugNote => _note;
@@ -447,7 +448,23 @@ public sealed class App
         t.SlowWalkAnimation = true;
         t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
+        t.WideView = _set.View == DisplayView.Extended;
     }
+
+    // ------------------------------------------------------------------ the extended view
+    /// <summary>The picture the frontend draws: the original screen, or larger (the original screen is then kept centred for everything
+    /// that is not the world: menus, cutscenes, minigame).</summary>
+    public int ViewWidth => _game.ViewWidth;
+    public int ViewHeight => _game.ViewHeight;
+
+    public void SetView(int w, int h)
+    {
+        _game.SetView(w, h);
+        if (_gameBuf.Width != _game.ViewWidth || _gameBuf.Height != _game.ViewHeight) _gameBuf = new Bitmap(_game.ViewWidth, _game.ViewHeight);
+    }
+
+    private int _ox, _oy;     // where the original screen starts inside the picture (0 unless the view is extended)
+    private int _tx, _ty;     // translation applied to the canvas while the screens are drawn
 
     private void MenuKey(int key, int action)
     {
@@ -487,6 +504,7 @@ public sealed class App
             new("Fullscreen", () => _s.Ui(_set.Fullscreen ? 12 : 13), _ => { _set.Fullscreen = !_set.Fullscreen; _set.NotifyChanged(); }, false),
             new("Integer scale", () => _s.Ui(_set.IntegerScale ? 12 : 13), _ => { _set.IntegerScale = !_set.IntegerScale; _set.NotifyChanged(); }, false),
         };
+        rows.Add(new("View", () => _set.View == DisplayView.Extended ? "extended" : "original", _ => { _set.View = _set.View == DisplayView.Extended ? DisplayView.Original : DisplayView.Extended; _set.NotifyChanged(); }, false));
         rows.Add(new("Filter", () => DisplaySettings.FilterName(_set.Filter), dir =>
         {
             _set.StepFilter(dir);
@@ -583,6 +601,7 @@ public sealed class App
     /// <summary>The mouse moved over the picture (coordinates of the game screen): highlights what is under it.</summary>
     public void PointerMoved(int x, int y)
     {
+        x -= _ox; y -= _oy;
         for (int i = _hits.Count - 1; i >= 0; i--)
         {
             var h = _hits[i];
@@ -595,6 +614,7 @@ public sealed class App
     /// <summary>Left click on the picture: activates the entry under it (menus, options, controls, forms).</summary>
     public void PointerPressed(int x, int y)
     {
+        x -= _ox; y -= _oy;
         for (int i = _hits.Count - 1; i >= 0; i--)
         {
             var h = _hits[i];
@@ -620,6 +640,26 @@ public sealed class App
     }
 
     public void Draw(Canvas g)
+    {
+        int vw = _game.ViewWidth, vh = _game.ViewHeight;
+        bool wide = vw > W || vh > H;
+        _ox = wide ? (vw - W) / 2 : 0;
+        _oy = wide ? (vh - H) / 2 : 0;
+        if (!wide) { DrawScreens(g); return; }
+        if (_screen != Screen.Game)
+        {
+            g.SetClip(0, 0, vw, vh);
+            g.SetColor(0, 0, 0);
+            g.FillRect(0, 0, vw, vh);
+        }
+        g.Translate(_ox, _oy);                                  // the screens are laid out for the original size: centre them
+        _tx = _ox; _ty = _oy;
+        DrawScreens(g);
+        g.Translate(-_ox, -_oy);
+        _tx = 0; _ty = 0;
+    }
+
+    private void DrawScreens(Canvas g)
     {
         _hits.Clear();
         if (_filterLive && !_debugOpen && _screen == Screen.Options)
@@ -721,9 +761,11 @@ public sealed class App
     {
         var gc = new Canvas(_gameBuf) { Metrics = g.Metrics };
         if (_game.Draw(gc)) _gameTexts = new List<TextCommand>(gc.Texts);
-        g.SetClip(0, 0, W, H);
-        g.DrawImage(_gameBuf, 0, 0, TL);
+        g.SetClip(-_tx, -_ty, _gameBuf.Width, _gameBuf.Height);     // the game's picture covers the whole view, whatever the translation
+        g.DrawImage(_gameBuf, -_tx, -_ty, TL);
+        g.Translate(-_tx, -_ty);
         _game.DrawHitboxes(g);                                  // debug wireframe (does nothing unless it is switched on)
+        g.Translate(_tx, _ty);
         if (!_menuOpen && !_debugOpen) g.Texts.AddRange(_gameTexts);          // the game's text ("Hurry up!"...) is drawn on top of the picture: keep it away from the menu
     }
 
@@ -735,9 +777,10 @@ public sealed class App
 
     private void Dim(Canvas g)
     {
-        g.SetClip(0, 0, W, H);
+        int vw = _game.ViewWidth, vh = _game.ViewHeight;           // the whole picture, not just the original screen's part
+        g.SetClip(-_tx, -_ty, vw, vh);
         g.SetColorArgb(0x99, 0, 0, 0);
-        g.FillRect(0, 0, W, H);
+        g.FillRect(-_tx, -_ty, vw, vh);
     }
 
     private void Panel(Canvas g, int x, int y, int w, int h)

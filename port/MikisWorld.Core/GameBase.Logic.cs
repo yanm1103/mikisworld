@@ -6,7 +6,7 @@ public abstract partial class GameBase
     // Original d.k(): the Lords' lightning bolts fall, then slide sideways along the platforms
     protected void UpdateProjectiles()
     {
-        int limit = _camY + L.ScreenH * 3 / 2;
+        int limit = _camY + L.ScreenH * 3 / 2 + ExtraView;
         int bw = _itemW, bh = _itemH;
         for (int i = 0; i < 3; i++)
         {

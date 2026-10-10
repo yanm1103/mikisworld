@@ -2,6 +2,9 @@ namespace MikisWorld.Core;
 
 /// <summary>How the picture is magnified onto the window. The first two are plain texture filters; the rest are shader effects the
 /// frontend implements (the Core only keeps the choice).</summary>
+/// <summary>How much of the level the picture shows: exactly what the original screen showed, or more (as much as the window and the map allow).</summary>
+public enum DisplayView { Original, Extended }
+
 public enum DisplayFilter { Nearest, Bilinear, Sharp, XBRZ, ScaleFX, LCD, CRT }
 
 /// <summary>User options shared by both games: sound level and how the 176x144 / 128x128 picture is put on the window.
@@ -13,6 +16,13 @@ public sealed class DisplaySettings
 
     /// <summary>true: the picture is magnified by a whole number (crisp pixels, black bars). false: it fills the window keeping its aspect ratio.</summary>
     public bool IntegerScale { get; set; } = true;
+
+    /// <summary>"Extended" draws more of the level around the original screen (the game logic does not change).</summary>
+    public DisplayView View { get; set; } = DisplayView.Original;
+
+    /// <summary>Extended view only: window pixels per game pixel (0 = automatic: the picture is about 1.5 times as tall as the original screen).
+    /// The + and - keys change it.</summary>
+    public int ViewZoom { get; set; }
 
     /// <summary>The magnification filter. It works with whole-number scaling too (the picture is then filtered at that exact size).</summary>
     public DisplayFilter Filter { get; set; } = DisplayFilter.Nearest;

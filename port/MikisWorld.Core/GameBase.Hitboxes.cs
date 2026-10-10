@@ -33,13 +33,13 @@ public abstract partial class GameBase
     protected void Box(Canvas g, int rgb, int x, int y, int w, int h)
     {
         if (w <= 0 || h <= 0) return;
-        Line(g, rgb, x - _camX, y - _camY, w - 1, h - 1);
+        Line(g, rgb, x - _dx, y - _dy, w - 1, h - 1);
     }
 
     protected void Cross(Canvas g, int rgb, int x, int y)
     {
         g.SetColor(rgb >> 16, rgb >> 8, rgb);
-        x -= _camX; y -= _camY;
+        x -= _dx; y -= _dy;
         g.FillRect(x - 2, y, 5, 1);
         g.FillRect(x, y - 2, 1, 5);
     }
@@ -69,14 +69,15 @@ public abstract partial class GameBase
     public void DrawHitboxes(Canvas g)
     {
         if (!Debug.ShowHitboxes || !_render || _area < 0 || !InPlay) return;
-        g.SetClip(0, 0, L.ScreenW, L.ScreenH);
+        PrepareDraw(true);
+        g.SetClip(_wx, _wy, _ww, _wh);                    // nothing is drawn over the black outside the map
         int tx = _px >> 4, ty = _py >> 4;
 
         // solid / one-way tiles in view
         var flags = TileFlags;
         int w = _map.Width, rows = _map.Height;
-        int c0 = Math.Max(0, _camX / _tileW), c1 = Math.Min(w - 1, (_camX + L.ScreenW) / _tileW);
-        int r0 = Math.Max(0, _camY / _tileH), r1 = Math.Min(rows - 1, (_camY + L.ScreenH) / _tileH);
+        int c0 = Math.Max(0, _dx / _tileW), c1 = Math.Min(w - 1, (_dx + _vw) / _tileW);
+        int r0 = Math.Max(0, _dy / _tileH), r1 = Math.Min(rows - 1, (_dy + _vh) / _tileH);
         for (int r = r0; r <= r1; r++)
             for (int c = c0; c <= c1; c++)
             {

@@ -15,7 +15,9 @@ public abstract partial class GameBase
     protected void SnapshotScene()
     {
         if (!_render) return;
-        if (Tweaks.FullWipeSnapshot && (_snapshot.Width != L.ScreenW || _snapshot.Height != L.ScreenH)) _snapshot = new Bitmap(L.ScreenW, L.ScreenH);
+        bool wide = WideView && DrawsWorld;                        // the extended picture is wiped as a whole
+        int w = wide ? ViewWidth : L.ScreenW, h = wide ? ViewHeight : L.ScreenH;
+        if ((wide || Tweaks.FullWipeSnapshot) && (_snapshot.Width != w || _snapshot.Height != h)) _snapshot = new Bitmap(w, h);
         DrawScene(new Canvas(_snapshot));
     }
 
@@ -47,7 +49,7 @@ public abstract partial class GameBase
             int d = value % 10;
             value /= 10;
             if (i == count - 1 && lastIsIcon) d = 10;
-            g.SetClip(0, 0, L.ScreenW, L.ScreenH);
+            g.SetClip(0, 0, _vw, _vh);
             g.ClipRect(x, y, digitW, digits.Height);
             g.DrawImage(digits, x - d * digitW, y, TL);
             x -= digitW;

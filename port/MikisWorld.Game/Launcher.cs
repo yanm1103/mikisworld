@@ -9,7 +9,7 @@ namespace MikisWorld.Game;
 /// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
 internal static partial class Launcher
 {
-    public const int W0 = 320, H0 = 260;
+    public const int W0 = 320, H0 = 270;
     private const int RowH = 16, RowX = 30, RowW = 260, RowY = 60;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
@@ -173,6 +173,7 @@ internal static partial class Launcher
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };
+        rows.Add(new("View", () => s.View == DisplayView.Extended ? "extended" : "original", _ => { s.View = s.View == DisplayView.Extended ? DisplayView.Original : DisplayView.Extended; s.NotifyChanged(); }));
         rows.Add(new("Filter", () => DisplaySettings.FilterName(s.Filter), d => s.StepFilter(d == 0 ? 1 : d), Slider: true));
         rows.Add(new("Ghosting", () => s.Ghosting ? "on" : "off", _ => { s.Ghosting = !s.Ghosting; s.NotifyChanged(); }));
         rows.Add(new("Sound", () => s.Volume + "%", d => { s.Volume = Math.Clamp(s.Volume + d * 5, 0, 100); s.NotifyChanged(); }, Slider: true));

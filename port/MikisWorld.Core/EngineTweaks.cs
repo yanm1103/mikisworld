@@ -22,6 +22,11 @@ public sealed class EngineTweaks
     /// overlap; with this on they are stacked one above the other.</summary>
     public bool StackHintBubbles { get; set; }
 
+    /// <summary>The picture shows more of the level than the original screen (the "Extended" view). Things that only live inside the original screen
+    /// are widened to the whole picture: platforms and animated tiles are processed for it, and the lightning of the last stage starts at,
+    /// and bolts are dropped from, its edges instead of the original screen's.</summary>
+    public bool WideView { get; set; }
+
     /// <summary>"Revamped" movement: (1) a held jump key does not make the character jump again and again - it needs a new press;
     /// (2) the direction keys that are actually held keep working after any other key is released (the original zeroes all input
     /// on ANY release), so you can change direction while falling or after landing.</summary>

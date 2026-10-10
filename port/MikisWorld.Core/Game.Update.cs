@@ -135,9 +135,9 @@ public sealed partial class Game
             return;
         }
 
-        UpdateVisibleWindow(_camY - _tileH, _camY + Layout.ScreenH + _tileH);
+        UpdateVisibleWindow(_camY - _tileH - ExtraView, _camY + Layout.ScreenH + _tileH + ExtraView);
         int[] tiles = _map.Tiles;
-        int bottom = _camY + Layout.ScreenH;
+        int bottom = _camY + Layout.ScreenH + ExtraView;
         for (int i = _animFirst; i < _animTiles.Length && _animTiles[i + 1] * _tileH < bottom; i += 3)
         {
             short x = _animTiles[i], y = _animTiles[i + 1];
