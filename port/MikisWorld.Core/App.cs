@@ -17,7 +17,8 @@ public sealed class App
     private readonly AppInfo _info;
     private readonly DisplaySettings _set;
     private readonly InputBindings _bind;
-    private int _optSel;
+    private int _optSel, _optTop;                // selected row of the options and the first row shown (the list scrolls)
+    private int _menuTop;                         // first menu entry shown
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
     private readonly Bitmap _titleArt, _splash;
@@ -131,6 +132,7 @@ public sealed class App
     internal bool DebugVibrationAllowed => _host.VibrationAllowed();
     internal int DebugScoreHighlight => _scoreHighlight;
     internal int DebugMenuSelected => _menuSel;
+    internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
@@ -369,7 +371,12 @@ public sealed class App
         if (!_set.IntegerScale)
             rows.Add(new("Filter", () => _set.Bilinear ? "bilinear" : "nearest", _ => { _set.Bilinear = !_set.Bilinear; _set.NotifyChanged(); }, false));
         rows.Add(new("Movement", () => _set.RevampedMovement ? "new" : "original", _ => { _set.RevampedMovement = !_set.RevampedMovement; _set.NotifyChanged(); }, false));
-        rows.Add(new(_s.Ui(15).TrimEnd(' ', ':'), () => _s.Ui(_set.Vibration ? 12 : 13), _ => { _set.Vibration = !_set.Vibration; _set.NotifyChanged(); }, false));
+        rows.Add(new(_s.Ui(15).TrimEnd(' ', ':'), () => _s.Ui(_set.Vibration ? 12 : 13), _ =>
+        {
+            _set.Vibration = !_set.Vibration;
+            _set.NotifyChanged();
+            if (_set.Vibration) _host.Vibrate(100, 100);              // feedback: a short rumble when it is switched back on
+        }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
         return rows;
@@ -468,8 +475,13 @@ public sealed class App
     /// <summary>Right click: the same as Esc / the platform's back button.</summary>
     public void PointerBack() { if (_capturing) _capturing = false; else Back(); }
 
-    /// <summary>Mouse wheel (+1 down, -1 up): scrolls the instructions.</summary>
-    public void PointerWheel(int dir) { if (_screen == Screen.Help) _scroll = Math.Max(0, _scroll + dir); }
+    /// <summary>Mouse wheel (+1 down, -1 up): scrolls the instructions and moves through the long lists.</summary>
+    public void PointerWheel(int dir)
+    {
+        if (_screen == Screen.Help) _scroll = Math.Max(0, _scroll + dir);
+        else if (_screen == Screen.Options) _optSel = Math.Clamp(_optSel + dir, 0, OptionRows().Count - 1);
+        else if (_menuOpen) _menuSel = Math.Clamp(_menuSel + dir, 0, MenuItems().Count - 1);
+    }
 
     public void Draw(Canvas g)
     {
@@ -563,12 +575,17 @@ public sealed class App
     {
         var items = MenuItems();
         int lineH = g.Metrics.Height(FontKind.Bold) + 3;
-        int w = Math.Min(124, W - 4), h = items.Count * lineH + 8;
+        int visible = Math.Max(1, Math.Min(items.Count, (H - 4 - 8) / lineH));
+        _menuSel = Math.Clamp(_menuSel, 0, items.Count - 1);
+        _menuTop = Scroll(_menuTop, _menuSel, items.Count, visible);
+        int w = Math.Min(124, W - 4), h = visible * lineH + 8;
         int x = (W - w) / 2, y = (H - h) / 2;
         Panel(g, x, y, w, h);
-        for (int i = 0; i < items.Count; i++)
+        DrawScrollMarks(g, _menuTop > 0, _menuTop + visible < items.Count, x + w - 12, y - 1, y + h - 11);
+        for (int n = 0; n < visible; n++)
         {
-            int ty = y + 4 + i * lineH;
+            int i = _menuTop + n;
+            int ty = y + 4 + n * lineH;
             if (i == _menuSel)
             {
                 g.SetClip(0, 0, W, H);
@@ -620,6 +637,20 @@ public sealed class App
             lines.Add(line);
         }
         return lines;
+    }
+
+    /// <summary>Keeps <paramref name="sel"/> inside the window of <paramref name="visible"/> rows that starts at <paramref name="top"/>.</summary>
+    private static int Scroll(int top, int sel, int count, int visible)
+    {
+        if (sel < top) top = sel;
+        if (sel >= top + visible) top = sel - visible + 1;
+        return Math.Clamp(top, 0, Math.Max(0, count - visible));
+    }
+
+    private void DrawScrollMarks(Canvas g, bool up, bool down, int x, int yTop, int yBottom)
+    {
+        if (up) DrawShadowed(g, "^", x, yTop, FontKind.Small, 0xFFE0A0, 0);
+        if (down) DrawShadowed(g, "v", x, yBottom, FontKind.Small, 0xFFE0A0, 0);
     }
 
     private void DrawTitled(Canvas g, string title, out int bodyX, out int bodyY, out int bodyW, out int bodyH)
@@ -706,9 +737,14 @@ public sealed class App
         DrawTitled(g, OptionsLabel, out int x, out int y, out int w, out int h);
         var rows = OptionRows();
         int lh = g.Metrics.Height(FontKind.Bold) + 1;
-        for (int i = 0; i < rows.Count; i++)
+        int visible = Math.Max(1, (h - 1) / lh);
+        _optSel = Math.Clamp(_optSel, 0, rows.Count - 1);
+        _optTop = Scroll(_optTop, _optSel, rows.Count, visible);
+        DrawScrollMarks(g, _optTop > 0, _optTop + visible < rows.Count, W - 22, 10, H - 6 - g.Metrics.Height(FontKind.Small) - 1);
+        for (int n = 0; n < visible && _optTop + n < rows.Count; n++)
         {
-            int ty = y + 1 + i * lh;
+            int i = _optTop + n;
+            int ty = y + 1 + n * lh;
             bool sel = i == _optSel;
             if (sel)
             {

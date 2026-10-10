@@ -20,6 +20,7 @@ internal static class Launcher
     private static readonly Color Sub = new(255, 224, 160, 255);
     private static float _k = 1, _ox, _oy;                    // zoom and offset of the last drawn frame (to map the mouse)
     private static Vector2 _lastMouse;
+    private static bool _padLast;                              // the last thing touched was a controller: show its buttons in the hints
     private static bool _stickLeft, _stickRight, _stickUp, _stickDown;
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
@@ -38,6 +39,7 @@ internal static class Launcher
             if (Raylib.IsKeyPressed(KeyboardKey.F11)) { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }
 
             var nav = Poll();
+            Rumble.Update();
             if (script != null && script.TryGetValue(frame, out var names))
                 foreach (string n in names)
                 {
@@ -96,7 +98,12 @@ internal static class Launcher
             new("Miki's World 1", () => "The Lost Tiara", _ => { }, Game: 1),
             new("Miki's World 2", () => "The Storm Master", _ => { }, Game: 2),
             new("Movement", () => s.RevampedMovement ? "new" : "original", _ => { s.RevampedMovement = !s.RevampedMovement; s.NotifyChanged(); }),
-            new("Vibration", () => s.Vibration ? "on" : "off", _ => { s.Vibration = !s.Vibration; s.NotifyChanged(); }),
+            new("Vibration", () => s.Vibration ? "on" : "off", _ =>
+            {
+                s.Vibration = !s.Vibration;
+                s.NotifyChanged();
+                if (s.Vibration && _padLast) Rumble.Pulse(100, 100);          // feedback: a short rumble when it is switched back on
+            }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
         };
@@ -140,12 +147,29 @@ internal static class Launcher
             Text(shown, x0 + boxW - 4 - Width(shown, 10), ry + 4, 10, r.Game != 0 ? Sub : Color.White);
         }
         Centered("Settings are shared and saved automatically.", H0 - 36, 10, Color.White);
-        Centered("Arrows: choose / change     Enter: select", H0 - 24, 10, Sub);
-        Centered("1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
+        if (_padLast)
+        {
+            Centered("D-pad: choose / change     A: select", H0 - 24, 10, Sub);
+            Centered("Start: select     B: quit", H0 - 13, 10, Sub);
+        }
+        else
+        {
+            Centered("Arrows: choose / change     Enter: select", H0 - 24, 10, Sub);
+            Centered("1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
+        }
     }
 
     // ---- input: keyboard (with repeat), gamepad buttons and the left stick as one navigation stream
     private static Nav Poll()
+    {
+        var key = KeyNav();
+        if (key != Nav.None) { _padLast = false; return key; }
+        var pad = PadNav();
+        if (pad != Nav.None) _padLast = true;
+        return pad;
+    }
+
+    private static Nav KeyNav()
     {
         bool K(KeyboardKey a) => Raylib.IsKeyPressed(a) || Raylib.IsKeyPressedRepeat(a);
         if (K(KeyboardKey.Up) || K(KeyboardKey.W)) return Nav.Up;
@@ -154,7 +178,11 @@ internal static class Launcher
         if (K(KeyboardKey.Right) || K(KeyboardKey.D)) return Nav.Right;
         if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.KpEnter) || Raylib.IsKeyPressed(KeyboardKey.Space)) return Nav.Select;
         if (Raylib.IsKeyPressed(KeyboardKey.Escape)) return Nav.Back;
+        return Nav.None;
+    }
 
+    private static Nav PadNav()
+    {
         for (int pad = 0; pad < 4; pad++)
         {
             if (!Raylib.IsGamepadAvailable(pad)) continue;

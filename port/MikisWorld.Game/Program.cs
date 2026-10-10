@@ -13,6 +13,7 @@ internal static class Program
     {
         public string Jar1, Jar2, SavePath, ResizeSpec;
         public int Scale, Octave, QuitAfter, CrashAt;
+        public bool NoSound;                                 // --no-sound: this run starts muted (the saved volume is kept)
         public bool Fixed;                                   // --game given: no launcher, closing the game closes the program
         public Dictionary<int, List<string>> Inject, Shoot, LaunchInject, LaunchShoot;
         public int LaunchQuitAfter;
@@ -63,6 +64,8 @@ internal static class Program
         run.Fixed = game != 0;
         LogConsole.Log($"games: {run.Jar1} | {run.Jar2}");
         run.Settings = SettingsStore.Load(ArgStr(args, "--settings", null));
+        run.NoSound = Array.IndexOf(args, "--no-sound") >= 0;
+        if (run.NoSound) SettingsStore.StartMuted(run.Settings);
         run.Settings.Changed += () => SettingsStore.Save(run.Settings);
         run.Bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
         run.Bindings.Changed += () => BindingsStore.Save(run.Bindings);
@@ -487,6 +490,14 @@ internal static class SettingsStore
     private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
+    private static int? _mutedFrom;                // --no-sound: the volume to keep in the file while this run is muted
+
+    /// <summary>The run starts with the sound off without touching the saved volume (until the player changes it).</summary>
+    public static void StartMuted(DisplaySettings s)
+    {
+        _mutedFrom = s.Volume;
+        s.Volume = 0;
+    }
 
     public static DisplaySettings Load(string path)
     {
@@ -502,7 +513,7 @@ internal static class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement, s.Vibration), Opt));
+            File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(_mutedFrom is int kept && s.Volume == 0 ? kept : s.Volume, s.IntegerScale, s.Bilinear, s.RevampedMovement, s.Vibration), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

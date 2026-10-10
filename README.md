@@ -13,7 +13,7 @@ contém apenas código novo e **não distribui os jogos**: o programa lê os rec
 3. Abra o exe. A **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, D-pad + `A` ou clique) e já configura o que vale para os dois:
    *Movement*, *Vibration*, *Fullscreen*, *Integer scale*, *Filter* e *Sound*. Tudo é salvo na hora.
 
-Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` (tamanho inicial da janela) e `--logs` (mostra o log do programa, para relatar problemas).
+Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` (tamanho inicial da janela), `--no-sound` (começa sem som; o volume salvo não é alterado) e `--logs` (mostra o log do programa, para relatar problemas).
 
 ## Controles
 
@@ -44,7 +44,7 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` mudam o zoom). Desligado: a imagem preenche a janela |
 | Filter | só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 | Movement | `new` (padrão) ou `original` — veja abaixo |
-| Vibration | o **controle** vibra quando o Miki é atingido (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
+| Vibration | o **controle** vibra quando o Miki é atingido (e um pulso curto ao religar a opção) (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
 
 ## O que é diferente do original
 
@@ -135,6 +135,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
 | Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
 | Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
+| Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
 
 ### Como rodar a partir do código
 
@@ -146,7 +147,7 @@ Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou
 Com um .NET 8 SDK instalado no sistema, o equivalente é:
 
 ```
-dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [--logs] [caminho/para/o.jar]
+dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [--no-sound] [--logs] [caminho/para/o.jar]
 ```
 
 **Executável.** `tools\publish.bat` gera `dist\MikisWorldCollection.exe`: um arquivo só (~35 MB), autônomo (não precisa instalar o .NET); `dist/` não é versionado.

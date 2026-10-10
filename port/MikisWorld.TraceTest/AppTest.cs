@@ -68,6 +68,27 @@ internal static class AppTest
         int stopsBefore = stopHost.Stops;
         Select(m2s, "New game");
         Check(stopHost.Stops > stopsBefore, "game 2 stops the title jingle when the game is entered");
+        // the 128x128 screen cannot show the whole options list: it scrolls and everything drawn stays inside the screen
+        {
+            var om = NewMw2(assets, new MemoryStorage());
+            var obmp = new Bitmap(128, 128);
+            void OFrame() { om.Update(20); om.Draw(new Canvas(obmp)); }
+            OFrame();
+            om.KeyPressed(55, 0);
+            OFrame();
+            bool inside(List<(int X, int Y, int W, int H)> hs) => hs.All(h => h.Y >= 0 && h.Y + h.H <= 128 && h.X >= 0 && h.X + h.W <= 128);
+            Check(inside(om.DebugHits()), "game 2: the menu fits the screen");
+            Select(om, "Options");
+            OFrame();
+            Check(inside(om.DebugHits()) && om.DebugHits().Count < om.DebugOptionRows().Count, $"game 2: the options list shows {om.DebugHits().Count} of {om.DebugOptionRows().Count} rows and scrolls");
+            for (int i2 = 0; i2 < om.DebugOptionRows().Count - 1; i2++) om.KeyPressed(56, 6);
+            OFrame();
+            var sc = om.DebugOptionsScroll;
+            Check(sc.Sel == om.DebugOptionRows().Count - 1 && sc.Top > 0 && inside(om.DebugHits()), "going down to the last row scrolls it into view");
+            om.PointerWheel(-1); OFrame();
+            Check(om.DebugOptionsScroll.Sel == sc.Sel - 1, "the mouse wheel moves through the options");
+        }
+
         var m2 = NewMw2(assets, new MemoryStorage());
         m2.Update(20);
         Check(m2.Game.Tweaks.MorkSpeedPercent == 67 && m2.Game.Tweaks.SlowJump, "the application turns the engine tweaks on (Mork at 2/3 speed)");
@@ -398,6 +419,19 @@ internal static class AppTest
         sh.Vibrate(100, 200);
         Check(vh.Vibes == 1, "and not when it is not");
         Check(!app2.DebugVibrationAllowed, "keyboard in use: no rumble");
+        {
+            var fh = new CountingHost();
+            var fa = new App(assets, fh, new MemoryStorage(), 1);
+            fa.LastDevice = BindingDevice.Gamepad;
+            fa.Settings.Vibration = false;
+            Select(fa, "Options");
+            int vrow = fa.DebugOptionRows().IndexOf("Vibrator");
+            for (int i2 = 0; i2 < vrow; i2++) fa.KeyPressed(56, 6);
+            fa.KeyPressed(53, 8);                                            // switch it on
+            Check(fa.Settings.Vibration && fh.Vibes == 1, "switching Vibration back on gives a short rumble as feedback");
+            fa.KeyPressed(53, 8);                                            // switch it off
+            Check(!fa.Settings.Vibration && fh.Vibes == 1, "switching it off does not rumble");
+        }
         app2.LastDevice = BindingDevice.Gamepad;
         Check(app2.DebugVibrationAllowed, "controller in use: rumble");
         app2.Settings.Vibration = false;
