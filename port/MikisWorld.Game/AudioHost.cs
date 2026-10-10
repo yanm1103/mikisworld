@@ -11,6 +11,7 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
     private const int SampleRate = 22050;
     private readonly Dictionary<Sfx, RingTone> _tones = new();
     private readonly Dictionary<Sfx, Sound> _sounds = new();
+    private readonly Dictionary<Sfx, (string Ext, byte[] Data)> _custom = new();      // sounds a mod replaced with a .wav / .ogg
     private readonly int _octaveShift;
     private Sound? _current;
     private int _loopsLeft;
@@ -29,8 +30,28 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
         Raylib.InitAudioDevice();
         Ready = Raylib.IsAudioDeviceReady();
         if (!Ready) return;
+        LoadTones(assets);
+        Build();
+    }
+
+    private void LoadTones(IAssets assets)
+    {
+        _tones.Clear();
+        _custom.Clear();
         foreach (Sfx s in Enum.GetValues<Sfx>())
-            _tones[s] = RingTone.Decode(assets.ReadResource(SfxFiles.FileName(s)));
+        {
+            string file = SfxFiles.FileName(s), stem = Path.GetFileNameWithoutExtension(file);
+            string ext = new[] { ".ogg", ".wav" }.FirstOrDefault(e => assets.Exists(stem + e));
+            if (ext != null) _custom[s] = (ext, assets.ReadResource(stem + ext));          // a mod's own recording wins over the ring tone
+            else _tones[s] = RingTone.Decode(assets.ReadResource(file));
+        }
+    }
+
+    /// <summary>The files changed (a mod was edited): read every sound again.</summary>
+    public void Reload(IAssets assets)
+    {
+        if (!Ready) return;
+        LoadTones(assets);
         Build();
     }
 
@@ -41,6 +62,13 @@ internal sealed unsafe class AudioHost : IGameHost, IDisposable
         foreach (var s in _sounds.Values) Raylib.UnloadSound(s);
         _sounds.Clear();
         double amplitude = RingTone.AmplitudeForVolume(_volume);
+        foreach (var (sfx, (ext, data)) in _custom)
+        {
+            var wave = Raylib.LoadWaveFromMemory(ext, data);
+            _sounds[sfx] = Raylib.LoadSoundFromWave(wave);
+            Raylib.UnloadWave(wave);
+            Raylib.SetSoundVolume(_sounds[sfx], _volume / 100f);
+        }
         foreach (var (sfx, tone) in _tones)
         {
             short[] pcm = tone.Render(SampleRate, amplitude, _octaveShift);

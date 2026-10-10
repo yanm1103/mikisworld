@@ -19,6 +19,11 @@ internal static class Program
         public int LaunchQuitAfter;
         public DisplaySettings Settings;
         public InputBindings Bindings;
+        public ModManager Mods;
+        private readonly JarAssets[] _original = new JarAssets[2];
+
+        /// <summary>The game's own files (never the mods'), opened when first needed.</summary>
+        public IAssets Original(int game) => _original[game - 1] ??= new JarAssets(game == 2 ? Jar2 : Jar1);
     }
 
     private static int Main(string[] args)
@@ -69,6 +74,12 @@ internal static class Program
         run.Settings.Changed += () => SettingsStore.Save(run.Settings);
         run.Bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
         run.Bindings.Changed += () => BindingsStore.Save(run.Bindings);
+        var modRoots = ModManager.DefaultRoots(AppContext.BaseDirectory).ToList();
+        string extraMods = ArgStr(args, "--mods-dir", null);
+        if (extraMods != null) modRoots.Insert(0, Path.GetFullPath(extraMods));
+        run.Mods = new ModManager(modRoots, ArgStr(args, "--mods-state", null) ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "mods.json"))
+        { Disabled = Array.IndexOf(args, "--no-mods") >= 0 };
+        LogConsole.Log($"mods: {run.Mods.Mods.Count} found ({run.Mods.Mods.Count(run.Mods.IsEnabled)} on) in {string.Join(" | ", modRoots)}");
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         if (exportDir != null)
@@ -91,7 +102,7 @@ internal static class Program
             {
                 if (game == 0)
                 {
-                    game = Launcher.Run(run.Settings, run.Bindings, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
+                    game = Launcher.Run(run.Settings, run.Bindings, run.Mods, run.Original, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
                     firstLauncher = false;
                 }
                 if (game == 0) break;
@@ -137,7 +148,9 @@ internal static class Program
     {
         var settings = run.Settings;
         LogConsole.Log($"starting game {game}");
-        using var assets = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+        var active = run.Mods.ActiveFor(game);
+        using var assets = new ModAssets(run.Original(game), active, game);               // the mods over the game's own files
+        foreach (var m in active) LogConsole.Log($"mod on for game {game}: {m.Name} ({m.Id})");
         using var audio = new AudioHost(assets, run.Octave, settings.Volume) { TitleLoops = game == 2 ? 3 : 1 };
         Action volumeSync = () => audio.SetVolume(settings.Volume);
         settings.Changed += volumeSync;
@@ -147,7 +160,7 @@ internal static class Program
         try
         {
             long seed = Environment.TickCount64;
-            string saveFile = run.SavePath ?? DefaultSave(game);
+            string saveFile = run.SavePath ?? DefaultSave(game, run.Mods.SaveKey(game));
             app = game == 2
                 ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, run.Bindings)
                 : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, run.Bindings);
@@ -199,6 +212,7 @@ internal static class Program
                 }
                 if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
                 if (Raylib.IsKeyPressed(KeyboardKey.F3)) app.ToggleDebugMenu();
+                if (Raylib.IsKeyPressed(KeyboardKey.F5)) ReloadAssets(app, audio, game);
                 bool borderless = SyncFullscreen(settings);
                 if (settings.View == DisplayView.Extended) ViewZoomKeys(settings, lh0);
                 else ApplyWindowScale(settings, lw0, lh0, borderless, ref resizedAt);
@@ -237,6 +251,7 @@ internal static class Program
                         if (dev == BindingDevice.Gamepad) n = n[4..];
                         else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
                         else if (n.Equals("F3", StringComparison.OrdinalIgnoreCase)) { app.ToggleDebugMenu(); continue; }
+                        else if (n.Equals("F5", StringComparison.OrdinalIgnoreCase)) { ReloadAssets(app, audio, game); continue; }
                         else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
                         else continue;
                         if (mode != '-') router.Press(dev, n, now);
@@ -352,6 +367,22 @@ internal static class Program
         Environment.Exit(1);
     }
 
+    /// <summary>F5: the pictures and sounds are read again from the mod folders, so a file can be edited while the game runs.</summary>
+    private static void ReloadAssets(App app, AudioHost audio, int game)
+    {
+        try
+        {
+            app.ReloadAssets();
+            audio.Reload(app.Assets);
+            LogConsole.Log($"game {game}: assets reloaded");
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or IndexOutOfRangeException or ArgumentException)
+        {
+            LogConsole.Log($"game {game}: reload failed: {e.Message}");
+            app.Notify("Reload failed: " + e.Message);
+        }
+    }
+
     private const int MaxViewW = 640, MaxViewH = 480;
 
     /// <summary>Extended view: window pixels per game pixel, from the setting or (automatic) about 1.5 original screen heights per window height.</summary>
@@ -438,8 +469,10 @@ internal static class Program
         return borderless;
     }
 
-    private static string DefaultSave(int game)
-        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", game == 2 ? "save2.json" : "save.json");
+    /// <summary>The save of a game; with mods that change the game itself it has a code in its name (see <see cref="ModManager.SaveKey"/>).</summary>
+    private static string DefaultSave(int game, string modKey)
+        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld",
+                        (game == 2 ? "save2" : "save") + (modKey.Length > 0 ? "." + modKey : "") + ".json");
 
     /// <summary>An explicit .jar argument whose name matches, else JAR/&lt;name&gt; found by walking up from the executable.</summary>
     private static string FindJar(string[] args, string name)

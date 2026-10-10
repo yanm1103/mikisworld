@@ -110,6 +110,12 @@ Useful for artists and modders: shows what the physics actually tests, in either
 | white | projectiles (the sprite box and the point the damage test uses) |
 | magenta | game 2: Mork's zone |
 
+## Mods
+
+Mods are folders that go over the game's own files: new sprites and tiles, a different title picture, other sounds (the Nokia `.ott` format, or plain `.wav`/`.ogg` recordings), and, for the adventurous, texts, cutscenes and levels. Put them in a `mods` folder next to the executable (or in `%APPDATA%/MikisWorld/mods`), then switch them on in **Options → Mods** on the start screen. While playing, **F5** reads the pictures and sounds again, so you can edit a file and see the result at once. The game warns about things that are likely to break (a picture of the wrong size, a misspelt file name). A mod that only changes pictures and sounds keeps your saved high scores; one that changes the game itself gets its own save.
+
+How to make one, with the sizes and names of every file: [docs/MODDING.md](docs/MODDING.md). Planned next: new levels as extra entries of the menu, and rules (lives, speeds, timers) in readable files.
+
 ## Bonus minigame secret code
 
 Collect all the coins, or type the following code to unlock the bonus game mode!
@@ -143,6 +149,7 @@ If you hit an error, please let us know!
 - `--scale N` (initial window size)
 - `--no-sound` (starts without sound; the saved volume is not changed)
 - `--logs` (shows the program log, for reporting problems)
+- `--mods-dir folder` (one more place to look for mods), `--no-mods` (ignore all mods for this run), `--mods-state file.json` (where the on/off choice and the order are kept)
 
 
 ### Progress
@@ -208,6 +215,7 @@ a new chaser (Mork), rainbows in place of the birds and a different tile layer f
 | Executable and `--logs` | `tools\publish.bat` produces `MikisWorldCollection.exe`, self-contained and single-file; windowed program, log only with `--logs`; README split into a player part and a technical part | 100% · 100% |
 | Shared code in `GameBase` | State, input, movement, minigame, projectiles, camera and level scan of both games move to a base class (~1000 fewer duplicated lines); what really differs in the original stays in each game; traces and frames identical | 100% · 100% |
 | Image filters | `Filter`: nearest, bilinear, sharp, xBRZ, ScaleFX, LCD, CRT (embedded GLSL shaders; they combine with whole-number scaling); `Ghosting`; live switching inside a level; also configurable on the start screen; a shader that fails to compile falls back to `nearest` | 100% · 100% |
+| Mods (phase 1: files) | `mods/<name>/` folders with `mod.json` over the game's resources (`ModAssets`): pictures, sounds (`.ott`, `.wav`, `.ogg`), and any other resource by name, per game (`game1/`, `game2/`); on/off and priority in Options → Mods; F5 reloads pictures and sounds; checks (picture sizes, unknown files, broken sounds/manifest); save file code for mods that change the game itself; tests in `ModTest` | 100% · 100% |
 | Extended view | `View` original/extended: the picture can be larger than the original screen (logic untouched, traces and frames identical; only the drawing reaches further, clipped to the map and the current area, black beyond); HUD anchored to the corners; menus, cutscenes and minigame centred; mouse follows; wipes cover the whole picture; zoom with `+`/`-`; tests: black strips, centred clickable menus, wipe, and random play in five view sizes | 100% · 100% |
 | Batch of tweaks (debug, mouse in the bonus, remapping) | F3 menu with *Unlock bonus* and *Skip level*; "Saved." note when closing the options; mouse in the bonus minigame; remapping keyboard/controller on the start screen too; highlighted *Reset to defaults*; end of a game always shows the high scores; the `Enter` that saves the name no longer closes the list at once; holding confirm for 3 s on the list clears the scores | 100% · 100% |
 | Usability tweaks | Long lists scroll (options and menu on game 2's 128×128 screen, also with the mouse wheel); start screen hints follow the device; 100 ms pulse when *Vibration* is switched back on; `--no-sound` | 100% · 100% |

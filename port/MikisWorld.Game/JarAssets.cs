@@ -23,20 +23,9 @@ internal sealed class JarAssets : IAssets, IDisposable
         return _cache[name] = ms.ToArray();
     }
 
-    public (int Width, int Height) ImageSize(string name)
-    {
-        byte[] b = ReadResource(name);
-        return ((b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19], (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23]);
-    }
-
-    public Bitmap LoadBitmap(string name)
-    {
-        var img = ImageResult.FromMemory(ReadResource(name), ColorComponents.RedGreenBlueAlpha);
-        var px = new int[img.Width * img.Height];
-        for (int i = 0; i < px.Length; i++)
-            px[i] = (img.Data[i * 4 + 3] << 24) | (img.Data[i * 4] << 16) | (img.Data[i * 4 + 1] << 8) | img.Data[i * 4 + 2];
-        return new Bitmap(img.Width, img.Height, px);
-    }
+    public bool Exists(string name) => _zip.GetEntry(name) != null;
+    public (int Width, int Height) ImageSize(string name) => ImageDecode.Size(ReadResource(name));
+    public Bitmap LoadBitmap(string name) => ImageDecode.Load(ReadResource(name));
 
     public void Dispose() => _zip.Dispose();
 }

@@ -42,6 +42,9 @@ step "$EXE" tweaks "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 echo "== portal key spam (double transition / crash)"
 step "$EXE" portalspam "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 
+echo "== mods (overlay, order, save code, checks, reload)"
+step "$EXE" mods "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
+
 echo "== input router (keyboard/gamepad -> keypad events)"
 step "$EXE" router
 

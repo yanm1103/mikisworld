@@ -19,6 +19,8 @@ public interface IMikisGame
     int Frame { get; }
 
     void EnableRendering();
+    /// <summary>Loads the pictures again (a mod changed a file while the game runs). Game state is kept.</summary>
+    void ReloadAssets();
     void Start();
     /// <param name="dt">elapsed ms</param><param name="totalMs">game time since the run started (some events are scheduled on it)</param>
     void Update(int dt, int totalMs);

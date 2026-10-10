@@ -33,9 +33,10 @@ public sealed class App
     private bool _filterLive;                    // the Filter option is being changed inside a level: only the filter note is shown, over the paused game
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
-    private readonly Bitmap _titleArt, _splash;
+    private Bitmap _titleArt, _splash;
     private readonly GameStrings _s;
-    private readonly string _helpText;
+    private string _helpText;
+    private readonly IAssets _assets;
     private Bitmap _gameBuf;                       // last painted game frame (the game only repaints when it changed)
     private List<TextCommand> _gameTexts = new();
     private readonly List<(int X, int Y, int W, int H, Action<int, int> Click, Action Hover)> _hits = new();   // clickable regions of the last drawn frame, topmost last
@@ -72,6 +73,7 @@ public sealed class App
     public App(Func<IGameHost, IMikisGame> createGame, IAssets assets, IGameHost host, IStorage storage, AppInfo info,
                DisplaySettings settings = null, InputBindings bindings = null)
     {
+        _assets = assets;
         _bind = bindings ?? new InputBindings();
         _storage = storage;
         _info = info;
@@ -449,6 +451,19 @@ public sealed class App
         t.MorkSpeedPercent = 67;                 // Mork (game 2) moves at 2/3 of the original speed
         t.RevampedMovement = _set.RevampedMovement;
         t.WideView = _set.View == DisplayView.Extended;
+    }
+
+    public IAssets Assets => _assets;
+    public void Notify(string text) => ShowNote(text);
+
+    /// <summary>A mod file changed (F5): the game's pictures and the title / splash are read again.</summary>
+    public void ReloadAssets()
+    {
+        _game.ReloadAssets();
+        _titleArt = _assets.LoadBitmap("title.png");
+        if (_splash != null) _splash = _assets.LoadBitmap("splash.png");
+        _helpText = GameStrings.LoadHelp(_assets);
+        ShowNote("Assets reloaded");
     }
 
     // ------------------------------------------------------------------ the extended view

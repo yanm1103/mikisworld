@@ -9,7 +9,7 @@ namespace MikisWorld.Game;
 /// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
 internal static partial class Launcher
 {
-    public const int W0 = 320, H0 = 270;
+    public const int W0 = 320, H0 = 290;
     private const int RowH = 16, RowX = 30, RowW = 260, RowY = 60;     // the list of rows, in native units
 
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
@@ -25,8 +25,9 @@ internal static partial class Launcher
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
     /// <param name="script">developer aid: frame -> names (Up Down Left Right Enter Escape One) injected as if typed; <paramref name="shots"/> frame -> screenshot names</param>
-    public static int Run(DisplaySettings s, InputBindings bind, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
+    public static int Run(DisplaySettings s, InputBindings bind, ModManager mods, Func<int, IAssets> original, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
     {
+        _mods = mods; _original = original;
         int sel = 0;
         _frame = 0; _script = script; _shots = shots; _quitAfter = quitAfter;
         double resizedAt = -1;
@@ -35,6 +36,7 @@ internal static partial class Launcher
         {
             var rows = Rows(s);
             if (_openControls != null) { ControlsScreen(s, bind, _openControls.Value); _openControls = null; rows = Rows(s); }
+            if (_openMods) { _openMods = false; ModsScreen(s); rows = Rows(s); }
             sel = Math.Clamp(sel, 0, rows.Count - 1);
             if (!_options && (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1))) return 1;
             if (!_options && (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2))) return 2;
@@ -168,6 +170,7 @@ internal static partial class Launcher
                 s.NotifyChanged();
                 if (s.Vibration) Rumble.Pulse(100, 100);          // feedback: a short rumble when it is switched back on (nothing happens without a controller)
             }),
+            new("Mods", () => _mods.Disabled ? "off (--no-mods)" : _mods.Mods.Count == 0 ? "none found" : $"{_mods.Mods.Count(_mods.IsEnabled)} on", d => { if (d > 0) _openMods = true; }),
             new("Keyboard keys", () => "", d => { if (d > 0) _openControls = BindingDevice.Keyboard; }),
             new("Gamepad", () => "", d => { if (d > 0) _openControls = BindingDevice.Gamepad; }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),

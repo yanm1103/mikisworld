@@ -7,6 +7,16 @@ public abstract partial class GameBase
 {
     private int _viewW, _viewH;
 
+    public abstract void EnableRendering();
+
+    /// <summary>Reads the sprite sheets again, keeping the game as it is.</summary>
+    public void ReloadAssets()
+    {
+        _render = false;
+        EnableRendering();
+        OnViewModeChanged();
+    }
+
     /// <summary>Size of the picture the game draws (never smaller than the original screen).</summary>
     public int ViewWidth => Math.Max(_viewW, L.ScreenW);
     public int ViewHeight => Math.Max(_viewH, L.ScreenH);

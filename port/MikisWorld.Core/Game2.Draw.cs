@@ -10,7 +10,7 @@ public sealed partial class Game2
     private int _bubbleCounter;
 
     /// <summary>Loads the sprite sheets so <see cref="Draw"/> can be used. Logic-only users (tests) can skip this.</summary>
-    public void EnableRendering()
+    public override void EnableRendering()
     {
         if (_render) return;
         var sheet = _assets.LoadBitmap("tiles.png");

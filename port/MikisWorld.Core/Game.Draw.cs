@@ -7,7 +7,7 @@ public sealed partial class Game
     private Bitmap _imgTiles, _imgSky, _imgClouds, _imgSymbols;
 
     /// <summary>Loads the sprite sheets so <see cref="Draw"/> can be used. Logic-only users (tests) can skip this.</summary>
-    public void EnableRendering()
+    public override void EnableRendering()
     {
         if (_render) return;
         _imgTiles = _assets.LoadBitmap("tiles.png");

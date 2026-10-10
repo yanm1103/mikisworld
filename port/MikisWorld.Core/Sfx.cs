@@ -38,4 +38,11 @@ public interface IAssets
     byte[] ReadResource(string name);               // e.g. "level.bin"
     (int Width, int Height) ImageSize(string name); // e.g. "player.png"
     Bitmap LoadBitmap(string name);                 // decoded PNG; only needed when rendering
+
+    /// <summary>Is there a resource with this name? (mods can add files the original does not have, such as replacement sounds)</summary>
+    bool Exists(string name)
+    {
+        try { ReadResource(name); return true; }
+        catch (Exception e) when (e is IOException or KeyNotFoundException or InvalidOperationException) { return false; }
+    }
 }
