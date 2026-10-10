@@ -12,13 +12,16 @@ public abstract partial class GameBase
     /// <summary>The tile collision of game 2 shrinks the box by one pixel per axis.</summary>
     protected virtual int ColliderShrink => 0;
 
+    /// <summary>Tiles the player collects by touching them (coins, key, cages / rainbows): drawn as a box of their own.</summary>
+    protected virtual bool IsItemTile(int tile) => false;
+
     /// <summary>Boxes of things only one game has (Mork).</summary>
     protected virtual void DrawGameSpecificHitboxes(Canvas g) { }
 
     // colours of the wireframe
     protected const int ColSprite = 0x808080, ColCollider = 0x00FF00, ColLanding = 0xFFFF00, ColPlatform = 0x00FFFF,
                         ColSolid = 0xFF4040, ColOneWay = 0xFFA000, ColPickup = 0x8080FF, ColHurt = 0xFF0080, ColProjectile = 0xFFFFFF,
-                        ColMork = 0xFF00FF;
+                        ColMork = 0xFF00FF, ColItem = 0xE0E060;
 
     protected static void Line(Canvas g, int rgb, int x, int y, int w, int h)
     {
@@ -60,6 +63,7 @@ public abstract partial class GameBase
                 int tile = _map.Tiles[r * w + c];
                 int f = tile >= 0 && tile < flags.Length ? flags[tile] : 0;
                 if (f != 0) Box(g, f == 1 ? ColSolid : ColOneWay, c * _tileW, r * _tileH, _tileW, _tileH);
+                else if (IsItemTile(tile)) Box(g, ColItem, c * _tileW, r * _tileH, _tileW, _tileH);
             }
 
         // platforms (the sweep only looks at their top edge)

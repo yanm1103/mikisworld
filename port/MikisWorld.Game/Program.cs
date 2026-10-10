@@ -393,6 +393,10 @@ internal static class Program
         {
             Raylib.ToggleBorderlessWindowed();
             borderless = Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode);
+            // raylib makes the borderless window "always on top", which hides every other window (Alt+Tab included): undo it.
+            // The flag has to be set first, because ClearWindowState only acts on a flag raylib knows about.
+            Raylib.SetWindowState(ConfigFlags.TopmostWindow);
+            Raylib.ClearWindowState(ConfigFlags.TopmostWindow);
         }
         return borderless;
     }

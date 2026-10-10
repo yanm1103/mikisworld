@@ -92,7 +92,8 @@ Aperte `F3` para abrir e fechar o menu de debug.
 | cinza | o quadro do sprite do jogador |
 | vermelho / laranja | tiles sólidos / plataformas de mão única |
 | ciano | borda de cima das plataformas (nuvens) |
-| azul-claro | os tiles que o jogador pega ou entra (moedas, chave, portais) |
+| azul-claro | a região de tiles que o jogador pega ou entra (moedas, chave, portais) |
+| amarelo-claro | cada moeda, chave e gaiola de pássaro (arco-íris no jogo 2) que ainda pode ser pego |
 | rosa | a zona dos pés que um projétil precisa atingir para causar dano |
 | branco | projéteis (a caixa do sprite e o ponto que o teste de dano usa) |
 | magenta | jogo 2: a zona do Mork |

@@ -48,16 +48,19 @@ internal static class AppTest
         for (int i = 0; i < 3; i++) app.Update(20);
         for (int i = 0; i < 600 && app.Game.CurrentState != State.Playing; i++) { app.KeyPressed(53, 8); app.KeyReleased(53, 8); app.Update(20); }
         for (int i = 0; i < 60; i++) app.Update(20);
+        int items = 0;
         int Green(bool on)
         {
             app.Debug.ShowHitboxes = on;
             app.Update(20);
             var bmp = new Bitmap(app.ScreenWidth, app.ScreenHeight);
             app.Draw(new Canvas(bmp));
+            if (on) items = bmp.Pixels.Count(p => (p & 0xFFFFFF) == 0xE0E060);
             return bmp.Pixels.Count(p => (p & 0xFFFFFF) == 0x00FF00);
         }
         int off = Green(false), on = Green(true);
         Check(off == 0 && on > 20, $"{name}: the hit box wireframe appears only when switched on (green pixels {off} -> {on})");
+        Check(items > 0, $"{name}: coins / keys / cages get a box of their own (pale yellow pixels {items})");
         app.Debug.ShowHitboxes = false;
     }
 
@@ -517,7 +520,9 @@ internal static class AppTest
         ((Game)app.Game).DebugSetCoins(0);
         ((Game)app.Game).DebugEndGame();
         for (int i = 0; i < 200 && app.DebugScreen == "Game"; i++) app.Update(20);
-        Check(app.DebugScreen == "Title", "score 0 does not qualify");
+        Check(app.DebugScreen == "HighScores" && app.DebugScoreHighlight == -1, "score 0 does not qualify: the list is shown with nothing highlighted");
+        app.Back();
+        Check(app.DebugScreen == "Title" && !app.DebugMenuOpen, "and Back returns to the title");
 
         Console.WriteLine("persistence round trip");
         var app2 = new App(assets, new CountingHost(), store, 1);

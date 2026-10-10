@@ -61,6 +61,8 @@ internal static class Launcher
                 case Nav.Back: return 0;
             }
             // mouse: hover highlights a row, a click activates it (left half of a slider lowers it, right half raises it)
+            float wheel = Raylib.GetMouseWheelMove();            // the wheel moves the highlighted row, like in the game menus
+            if (wheel != 0) sel = Math.Clamp(sel + (wheel < 0 ? 1 : -1), 0, rows.Count - 1);
             var mouse = Raylib.GetMousePosition();
             float lx = (mouse.X - _ox) / _k, ly = (mouse.Y - _oy) / _k;
             int hover = lx >= RowX - 2 && lx < RowX + RowW + 2 && ly >= RowY && ly < RowY + rows.Count * RowH ? (int)((ly - RowY) / RowH) : -1;

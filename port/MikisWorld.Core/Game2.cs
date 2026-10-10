@@ -68,6 +68,7 @@ public sealed partial class Game2 : GameBase, IMikisGame
 
     protected override void LoadCutscene(string name) => Cutscene.Load(name);
     protected override int[] TileFlags => _tileFlags;
+    protected override bool IsItemTile(int tile) => tile is Tile2.Coin or Tile2.CoinB or Tile2.Key or Tile2.RainbowL or Tile2.RainbowR;
     protected override int ColliderShrink => 1;
     protected override int GateMarkerTile => Tile2.GateTL;
 

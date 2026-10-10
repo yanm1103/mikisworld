@@ -196,8 +196,13 @@ public sealed class App
         }
         else
         {
-            _screen = Screen.Title;
+            // the original goes straight back to the title; showing the table (nothing highlighted) tells the player the score was not enough
+            _scoreHighlight = -1;
+            _formReturn = Screen.Title;
+            _formReopensMenu = false;
+            _scroll = 0;
             _menuOpen = false;
+            _screen = Screen.HighScores;
         }
     }
 
