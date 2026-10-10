@@ -4,313 +4,313 @@
 
 # Miki's World PC Collection (decomp + port)
 
-Port para PC dos dois jogos de celular da Sumea (2002):
+A PC port of the two mobile phone games by Sumea (2002):
 - **Miki's World 1: The Lost Tiara**
 - **Miki's World 2: The Storm Master**
 
-A lógica de cada jogo foi 100% decompilada, traduzida literalmente e validada contra o código do celular.
+The logic of each game was 100% decompiled, translated literally and validated against the phone's code.
 
-Esse repositório inclui tanto o decomp quanto um port de PC não oficial TwistZero (github.com/yanm1103). Os jogos originais são © 2002 Sumea; este repositório contém apenas código novo e **não distribui os jogos**.
+This repository includes both the decomp and an unofficial PC port by TwistZero (github.com/yanm1103). The original games are © 2002 Sumea; this repository contains only new code and **does not distribute the games**.
 
-O port lê os recursos direto dos arquivos `.jar` que você fornece.
+The port reads its resources straight from the `.jar` files you provide.
 
-# Informações do port para PC
+# PC port information
 
 https://github.com/user-attachments/assets/2b874e0d-7876-4869-b7d0-14b03dbf071e
 
 https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
 
-## Como jogar
+## How to play
 
-1. Baixe o `MikisWorldCollection.exe` na aba Releases (recomendado).  
-(ou compile você mesmo, siga as intruções técnicas no final do readme)
-2. Coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta chamada **`JAR`** ao lado do exe. Os **dois** são necessários; se faltar um, o jogo diz qual.
-3. Abra o executável e aproveite.
+1. Download `MikisWorldCollection.exe` from the Releases tab (recommended).  
+(or build it yourself: follow the technical instructions at the end of this readme)
+2. Put `MikisWorld.jar` and `MikisWorld2.jar` in a folder called **`JAR`** next to the exe. **Both** are required; if one is missing, the game tells you which.
+3. Open the executable and enjoy.
 
-## Controles padrão
+## Default controls
 
-| | Teclado | Gamepad |
+| | Keyboard | Gamepad |
 |---|---|---|
-| Andar | setas ← → ou `A` `D` | D-pad ou analógico esquerdo |
-| Pular | ↑ ou `W` | `A` |
-| Pulo diagonal | `Q` / `E` (ou ↑ junto com uma direção) | `A` junto com uma direção |
-| Entrar em portais / interagir | ↓ ou `S` | `X` |
-| Confirmar / pular cutscene | `Enter` ou `Espaço` | `Y` (nos menus e cutscenes, `A` também) |
-| Menu / pausa | `Esc` | `Start` |
+| Walk | arrows ← → or `A` `D` | D-pad or left stick |
+| Jump | ↑ or `W` | `A` |
+| Diagonal jump | `Q` / `E` (or ↑ together with a direction) | `A` together with a direction |
+| Enter portals / interact | ↓ or `S` | `X` |
+| Confirm / skip cutscene | `Enter` or `Space` | `Y` (in menus and cutscenes, `A` too) |
+| Menu / pause | `Esc` | `Start` |
 
-- **Remapear tudo:** menu → *Options* → *Keyboard keys* ou *Gamepad*  
-  Você pode mapear até duas entradas por ação; `Backspace`/`X` limpa; *Reset to defaults* restaura.
-- **Teclado numérico:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar)  
-  Essas teclas **não** são remapeáveis, porque o código secreto é digitado com elas. Note que o celular é invertido, sendo que 1/2/3 são a linha de cima, enquanto no teclado, 7/8/9 é a coluna de cima.
-- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções). No minigame bônus, passar o mouse sobre uma casa move o cursor e o clique coloca a esfera ali.
-- **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
-- **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
-- **Zerar os recordes:** na tela de recordes, segure `Enter` (ou `A`) por 3 segundos. Um toque curto continua só fechando a tela.
+- **Remap everything:** menu → *Options* → *Keyboard keys* or *Gamepad*  
+  You can map up to two inputs per action; `Backspace`/`X` clears; *Reset to defaults* restores.
+- **Numeric keypad:** the digits still work as on the phone (`4`/`6` walk, `2` jump, `1`/`3` diagonal, `8` interact, `5` confirm)  
+  These keys are **not** remappable, because the secret code is typed with them. Note that the phone layout is inverted: 1/2/3 is the top row, while on a keyboard 7/8/9 is the top row.
+- **Mouse:** the menus are clickable (hovering highlights, left click activates, right click goes back, the wheel scrolls the instructions). In the bonus minigame, hovering over a cell moves the cursor and a click places the orb there.
+- **Title screen:** any key (or click) opens the menu, and it opens by itself after 5 s, like in the original.
+- **High-score name with a gamepad:** ↑/↓ change the letter, → adds one, ←/`B` erases and `A`/`Start` saves.
+- **Clear the high scores:** on the high-score screen, hold `Enter` (or `A`) for 3 seconds. A short tap still just closes the screen.
 
-## Opções
+## Options
 
-Menu → *Options* . As configurações alteradas se aplicam para os dois jogos.
+Menu → *Options*. Changed settings apply to both games.
 
-| Opção | O que faz |
+| Option | What it does |
 |---|---|
-| Sound | Volume de 0 a 100 % (←/→, passos de 5); 0 % é mudo |
-| Fullscreen | Tela cheia sem bordas (também pode ser alternado apertando `F11`) |
-| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (os pixels ficam perfeitos) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` alteram o zoom da janela). Desligado: a imagem preenche a janela |
-| Filter | Como a imagem é ampliada (funciona com *Integer scale* ligado ou desligado): `nearest` (pixels duros), `bilinear` (suavizado), `sharp` (bilinear só na borda do pixel: nítido em qualquer zoom), `xBRZ` e `ScaleFX` (suavizam as bordas e diagonais da pixel art sem borrar), `LCD` (grade entre os pixels, como a tela de um celular) e `CRT` (curvatura leve, scanlines, máscara de fósforo e brilho). Dentro de uma fase, trocar o filtro esconde o menu e mostra só `< filtro >` no canto superior direito, com o jogo pausado, para você ver o resultado na hora (←/→ trocam; qualquer outra tecla volta ao menu) |
-| Ghosting | Efeito de rastro das telas LCD de celular: um pixel leva alguns quadros para chegar à cor nova. Combina com qualquer filtro |
-| Movement | `new` (padrão) ou `original` — veja abaixo |
-| Vibration | O controle vibra quando o Miki é atingido (no original, o celular vibraria). Somente Xinput (ou outros via Steam Input/DS4Windows) |
+| Sound | Volume from 0 to 100 % (←/→, steps of 5); 0 % is mute |
+| Fullscreen | Borderless full screen (can also be toggled with `F11`) |
+| Integer scale | on: the picture is magnified by a **whole-number** factor (perfect pixels) and the window snaps to whole multiples when resized (`+`/`-` change the window zoom). Off: the picture fills the window |
+| Filter | How the picture is magnified (works with *Integer scale* on or off): `nearest` (hard pixels), `bilinear` (smoothed), `sharp` (bilinear only at the pixel edge: crisp at any zoom), `xBRZ` and `ScaleFX` (smooth the edges and diagonals of the pixel art without blurring), `LCD` (grid between the pixels, like a phone screen) and `CRT` (slight curvature, scanlines, phosphor mask and glow). Inside a level, changing the filter hides the menu and shows only `< filter >` in the top right corner, with the game paused, so you can see the result right away (←/→ change it; any other key goes back to the menu) |
+| Ghosting | Trail effect of phone LCD screens: a pixel takes a few frames to reach its new colour. Works with any filter |
+| Movement | `new` (default) or `original`: see below |
+| Vibration | The controller rumbles when Miki is hit (on the original, the phone would vibrate). XInput only (or others through Steam Input/DS4Windows) |
 
-## Melhorias sobre o original
+## Improvements over the original
 
-- **Movement `new`:** Foram feitas melhorias na movimentação do personagem para deixar o gameplay mais fluído.  
-Segurar o botão de pulo não faz o Miki pular sem parar (cada pulo precisa de um novo aperto); a direção que você segura continua valendo depois de soltar outra tecla, então dá para mudar de lado caindo, ao pousar e **no meio de um pulo diagonal**
-- **Movement `original`**: é a movimentação como era no jogo original, que zerava todo o movimento ao soltar qualquer tecla. Mantido apenas para masoquistas.
-- **Menus e controles de PC:**
-  - É possível utilizar um gamepad ou teclado
-  - É possível controlar os menus usando o mouse
-  - Todas as teclas são remapeáveis
-  - Foi adicionado um slider de volume invés de um toggle de ligado e desligado
-  - Tela cheia sem bordas, integer scaling.
-  - Menu de debug
-
-
-## Bugs do jogo original corrigidos
--  **Spam ao entrar no portal crashava o jogo:** Apertar pra entrar no portal várias vezes durante a transição causava uma transição dupla e podia crashar o jogo (um bug do jogo original; se setar a configuração **Movement: `original`**, o bug ainda existe de propósito).
-- **Transição de portal no jogo 2:** O jogo original possuia um bug ao entrar em um portal, onde a transição acabava pela metade, então a tela só escurecia e voltava de uma vez; agora ela desliza como no primeiro jogo.
+- **Movement `new`:** The character's movement was improved to make the gameplay smoother.  
+Holding the jump button does not make Miki jump endlessly (each jump needs a new press); the direction you hold stays in effect after you release another key, so you can change sides while falling, when landing and **in the middle of a diagonal jump**
+- **Movement `original`**: the movement as it was in the original game, which cleared all movement when any key was released. Kept only for masochists.
+- **PC menus and controls:**
+  - A gamepad or a keyboard can be used
+  - The menus can be controlled with the mouse
+  - All keys are remappable
+  - A volume slider was added instead of an on/off toggle
+  - Borderless full screen, integer scaling.
+  - Debug menu
 
 
-## Menu de debug (`F3`)
+## Original game bugs fixed
+-  **Spamming the portal button crashed the game:** Pressing the enter-portal button several times during the transition caused a double transition and could crash the game (a bug of the original game; if you set **Movement: `original`**, the bug is still there on purpose).
+- **Portal transition in game 2:** The original game had a bug when entering a portal, where the transition ended halfway, so the screen only darkened and came back at once; now it slides like in the first game.
 
-Aperte `F3` para abrir e fechar o menu de debug.
 
-| Opção | O que faz |
+## Debug menu (`F3`)
+
+Press `F3` to open and close the debug menu.
+
+| Option | What it does |
 |---|---|
-| Invincible | nenhum dano: os acertos são ignorados (sem perder vida, sem som, sem vibração) |
-| Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida é instantaneamente restaurada |
-| Hitboxes | Permite ver o hitbox de todos os sprites nos dois jogos |
-| Unlock bonus | libera (ou trava de novo) o minigame bônus, sem precisar pegar todas as moedas; vale a partir do próximo *New game* |
-| Skip level | do mundo, vai para a fase final (pela transição normal); da fase final, vai para o final do jogo |
+| Invincible | no damage: hits are ignored (no life lost, no sound, no vibration) |
+| Infinite lives | damage still happens (life lost, sound, vibration, spark), but the life is restored instantly |
+| Hitboxes | Lets you see the hitbox of every sprite in both games |
+| Unlock bonus | unlocks (or locks again) the bonus minigame, without having to collect all the coins; takes effect from the next *New game* |
+| Skip level | from the world, goes to the final stage (through the normal transition); from the final stage, goes to the end of the game |
 
-### Wireframe dos hitboxes
+### Hitbox wireframe
 
-Útil para artistas e modders: mostra o que a física de fato testa, em qualquer um dos dois jogos.
+Useful for artists and modders: shows what the physics actually tests, in either game.
 
-| Cor | O que é |
+| Colour | What it is |
 |---|---|
-| verde | caixa de colisão do jogador com os tiles |
-| amarelo | linha de pouso nas plataformas (e, no jogo 2, o ponto central do jogador, que o Mork usa) |
-| cinza | o quadro do sprite do jogador |
-| vermelho / laranja | tiles sólidos / plataformas de mão única |
-| ciano | borda de cima das plataformas (nuvens) |
-| azul-claro | a região de tiles que o jogador pega ou entra (moedas, chave, portais) |
-| amarelo-claro | cada moeda, chave e gaiola de pássaro (arco-íris no jogo 2) que ainda pode ser pego |
-| rosa | a zona dos pés que um projétil precisa atingir para causar dano |
-| branco | projéteis (a caixa do sprite e o ponto que o teste de dano usa) |
-| magenta | jogo 2: a zona do Mork |
+| green | the player's collision box against the tiles |
+| yellow | landing line on the platforms (and, in game 2, the player's centre point, which Mork uses) |
+| grey | the player's sprite frame |
+| red / orange | solid tiles / one-way platforms |
+| cyan | top edge of the platforms (clouds) |
+| light blue | the region of tiles the player picks up or enters (coins, key, portals) |
+| light yellow | each coin, key and bird cage (rainbow in game 2) that can still be picked up |
+| pink | the zone around the feet that a projectile has to reach to cause damage |
+| white | projectiles (the sprite box and the point the damage test uses) |
+| magenta | game 2: Mork's zone |
 
-## Código secreto do minigame bônus
+## Bonus minigame secret code
 
-Colete todas as moedas, ou digite o código a seguir para liberar o modo de jogo bônus!
+Collect all the coins, or type the following code to unlock the bonus game mode!
 
-| Jogo | Código |
+| Game | Code |
 |---|---|
 | Miki's World 1: The Lost Tiara | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
 | Miki's World 2: The Storm Master | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
 
-## Seus arquivos
+## Your files
 
-Tudo fica em `%APPDATA%/MikisWorld/`: `save.json` (jogo 1) e `save2.json` (jogo 2) com o bônus liberado e os recordes, `settings.json` com as opções, `bindings.json` com os controles remapeados.
+Everything lives in `%APPDATA%/MikisWorld/`: `save.json` (game 1) and `save2.json` (game 2) with the unlocked bonus and the high scores, `settings.json` with the options, `bindings.json` with the remapped controls.
 
-## Em caso de crash
+## In case of a crash
 
-A janela fica aberta com o erro.
-- Pressione `Enter` para voltar à tela inicial.
-- Pressione `C` para copiar o texto do erro.
-- Pressione `Esc` para fechar.
+The window stays open with the error.
+- Press `Enter` to go back to the start screen.
+- Press `C` to copy the error text.
+- Press `Esc` to close.
 
-O detalhe também é gravado em `%APPDATA%/MikisWorld/crash.log`.
+The details are also written to `%APPDATA%/MikisWorld/crash.log`.
 
-Em caso de erro, por favor nos informe!
+If you hit an error, please let us know!
 
 ---
 <details>
-<summary><b>Informações técnicas (para desenvolvedores)</b>: progresso, histórico, como compilar, estrutura, validação</summary>
+<summary><b>Technical information (for developers)</b>: progress, history, how to build, structure, validation</summary>
 
-### Parâmetros úteis
-- `--game 1` ou `--game 2` (pula a tela inicial e automaticamente abre um dos dois jogos)
-- `--scale N` (tamanho inicial da janela)
-- `--no-sound` (começa sem som; o volume salvo não é alterado)
-- `--logs` (mostra o log do programa, para relatar problemas)
+### Useful parameters
+- `--game 1` or `--game 2` (skips the start screen and opens one of the two games straight away)
+- `--scale N` (initial window size)
+- `--no-sound` (starts without sound; the saved volume is not changed)
+- `--logs` (shows the program log, for reporting problems)
 
 
-### Progresso
+### Progress
 
-> Esta tabela é atualizada **a cada commit**. Percentuais são estimativas de esforço, não de linhas de código.
-> Pesos: decompilação 10 · lógica 30 · renderização 20 · janela/entrada 10 · menus/saves 15 · áudio 15.
-> Versão atual: **1.1.0** (veja o [CHANGELOG](CHANGELOG.md)). Marco de referência da base: tag `base-1.0`.
+> This table is updated **on every commit**. Percentages are effort estimates, not lines of code.
+> Weights: decompilation 10 · logic 30 · rendering 20 · window/input 10 · menus/saves 15 · audio 15.
+> Current version: **1.1.0** (see the [CHANGELOG](CHANGELOG.md)). Reference milestone of the base: tag `base-1.0`.
 
 #### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
-| Parte | Status | Notas |
+| Part | Status | Notes |
 |---|---|---|
-| Decompilação e análise | **100%** | [`docs/MikisWorld-analysis.md`](docs/MikisWorld-analysis.md) |
-| Lógica do jogo (física, plataformas, itens, Lords, estágio final, cutscenes) | **100%** | 17/17 traces idênticos ao original (86.624 ticks) |
-| Minigame bônus (5×4, reação em cadeia + IA) | **100%** | idêntico ao original, incluindo a IA e o RNG |
-| Renderização (cena, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 quadros pixel-idênticos ao original (texto excluído) |
-| Janela, escala, entrada | **100%** | escala inteira (com *snap*) ou proporcional, filtros de imagem por shader (sharp, xBRZ, ScaleFX, LCD, CRT) e ghosting, tela cheia sem bordas, volume 0–100 %; teclado e **gamepad remapeáveis** (tela *Options* e tela inicial), movimento original/new, tela inicial com opções |
-| Tela-título, menus, hi-scores, opções, salvamento | **100%** | hi-scores idênticos ao original (5 sementes × 400 ops, nas classes `k` dos dois JARs); fluxo coberto por testes automáticos; a opção "Vibrator" vibra o **controle** quando o Miki é atingido (no teclado não há o que vibrar) |
-| Áudio (`.ott`) | **100%** | decoder validado contra referência independente (12/12); **conferido de ouvido** com o ajuste de −1 oitava |
-| **Total estimado** | **100%** | tudo o que o original faz está portado e validado (ver "Limites conhecidos" em *Validação*) |
+| Decompilation and analysis | **100%** | [`docs/MikisWorld-analysis.md`](docs/MikisWorld-analysis.md) |
+| Game logic (physics, platforms, items, Lords, final stage, cutscenes) | **100%** | 17/17 traces identical to the original (86,624 ticks) |
+| Bonus minigame (5×4, chain reaction + AI) | **100%** | identical to the original, including the AI and the RNG |
+| Rendering (scene, parallax, HUD, wipes, cutscenes, minigame) | **100%** | 930 frames pixel-identical to the original (text excluded) |
+| Window, scaling, input | **100%** | whole-number scaling (with *snap*) or proportional, shader image filters (sharp, xBRZ, ScaleFX, LCD, CRT) and ghosting, borderless full screen, volume 0–100 %; **remappable** keyboard and **gamepad** (*Options* screen and start screen), original/new movement, start screen with options |
+| Title screen, menus, hi-scores, options, saving | **100%** | hi-scores identical to the original (5 seeds × 400 ops, on the `k` classes of both JARs); flow covered by automated tests; the "Vibrator" option rumbles the **controller** when Miki is hit (there is nothing to vibrate on a keyboard) |
+| Audio (`.ott`) | **100%** | decoder validated against an independent reference (12/12); **checked by ear** with the −1 octave adjustment |
+| **Estimated total** | **100%** | everything the original does is ported and validated (see "Known limits" in *Validation*) |
 
 #### MikisWorld2.jar (Miki's World 2: The Storm Master)
 
-Mesmo motor do jogo 1 (~85% do bytecode da classe principal é idêntico), com resolução 128×128, tiles de 12 px,
-um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de camada de tiles. Detalhes em
+Same engine as game 1 (~85% of the main class's bytecode is identical), with a 128×128 resolution, 12 px tiles,
+a new chaser (Mork), rainbows in place of the birds and a different tile layer format. Details in
 [`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md).
 
-| Parte | Status | Notas |
+| Part | Status | Notes |
 |---|---|---|
-| Decompilação e análise | **100%** | as 12 classes lidas e classificadas (tabela "Cobertura por classe" em [`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md)); `level.bin` validado (`parse_level.py --v2`); hi-score testado contra a classe `k` do próprio JAR 2. Menus/formulários (API de interface do MIDP) são verificados por leitura + `apptest`, não por execução do original |
-| Lógica do jogo (Mork, arco-íris, física alterada) | **100%** | `Game2`: 20/20 traces idênticos ao original (~100 mil ticks), incluindo Mork, Lords, subáreas e estágio final |
-| Renderização (128×128, tiles individuais, fundo novo) | **100%** | ~600 quadros pixel-idênticos ao original (texto excluído), incluindo o cache em anel dos tiles e o minigame |
-| Menus, hi-scores, salvamento | **100%** | o mesmo `App` serve aos dois jogos (código secreto próprio, save separado); splash de 4 s implementado mas desligado por padrão |
-| Áudio | **100%** | 12/12 sons validados contra a referência; só `title.ott` e `gameend.ott` diferem do jogo 1; o título toca 3×; **conferido de ouvido** |
-| Janela, escala, entrada | **100%** | mesma janela, opções e controles (remapeáveis) do jogo 1; escolha do jogo (`--game 1\|2` ou tela de seleção) |
-| **Total estimado** | **100%** | mesmos pesos do jogo 1 |
+| Decompilation and analysis | **100%** | all 12 classes read and classified ("Cobertura por classe" table, in Portuguese, in [`docs/MikisWorld2-analysis.md`](docs/MikisWorld2-analysis.md)); `level.bin` validated (`parse_level.py --v2`); hi-score tested against JAR 2's own `k` class. Menus/forms (the MIDP UI API) are verified by reading + `apptest`, not by running the original |
+| Game logic (Mork, rainbows, altered physics) | **100%** | `Game2`: 20/20 traces identical to the original (~100 thousand ticks), including Mork, Lords, sub-areas and the final stage |
+| Rendering (128×128, individual tiles, new background) | **100%** | ~600 frames pixel-identical to the original (text excluded), including the tiles' ring cache and the minigame |
+| Menus, hi-scores, saving | **100%** | the same `App` serves both games (own secret code, separate save); 4 s splash implemented but off by default |
+| Audio | **100%** | 12/12 sounds validated against the reference; only `title.ott` and `gameend.ott` differ from game 1; the title plays 3×; **checked by ear** |
+| Window, scaling, input | **100%** | same window, options and (remappable) controls as game 1; game choice (`--game 1\|2` or the selection screen) |
+| **Estimated total** | **100%** | same weights as game 1 |
 
-#### Histórico
+#### History
 
-| Commit | O que mudou | Total MW1 · MW2 |
+| Commit | What changed | Total MW1 · MW2 |
 |---|---|---|
-| inicial | Decompilação, harness do original, núcleo em C# validado por traces | ~45% · — |
-| Renderizador e janela | Renderizador por software validado por quadros; janela Raylib lendo o JAR | ~69% · — |
-| Menus e salvamento | Título, menu, instruções, hi-scores, entrada de nome, lista de modo, save em JSON | ~82% · — |
-| Áudio | Decoder de Nokia Ring Tone + sintetizador + reprodução no Raylib; `play.bat` | ~95% · — |
-| Decomp do jogo 2 | MikisWorld2.jar decompilado, lido e comparado por bytecode; parser de nível v2; harness roda o jar 2 | ~95% · ~9% |
-| Game2 (lógica) | Tradução literal da classe do jogo 2 (Mork, arco-íris, colisão com wrap); 20/20 traces | ~95% · ~39% |
-| Game2 (desenho) | Renderizador 128×128 validado por quadros (inclui quirks: snapshot 12×12 do wipe, cache em anel) | ~95% · ~59% |
-| Dois jogos no mesmo programa | `App` genérico (`IMikisGame`), escolha do jogo, áudio e save por JAR; correção dos scripts de teste | ~95% · ~93% |
-| Correção dos balões | O balão da introdução ficava na cutscene final (flags não eram recriadas a cada `Load`); teste de regressão | ~95% · ~93% |
-| Janela com escala inteira | *Snap* ao múltiplo inteiro ao redimensionar, `F11`, `+`/`-` | ~96% · ~94% |
-| Sons uma oitava abaixo | Padrão −1 oitava (`--octave N`); áudio conferido de ouvido nos dois jogos | ~98% · ~97% |
-| Documentação | README e análises atualizados; splash do jogo 2 opcional; créditos | ~98% · ~97% |
-| Opções de janela e volume | Tela *Options* (volume 0–100 % na amplitude da onda, tela cheia, escala inteira, filtro nearest/bilinear); os dois JARs passam a ser obrigatórios | ~98% · ~97% |
-| Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle; roteador de entrada com testes | ~99% · ~98% |
-| Ajustes de engine e tela inicial | Pulo e animação do protagonista mais lentos, opção *Movement* original/revamped (sem pulo contínuo ao segurar ↑, direção segurada vale ao cair/pousar), tela inicial com jogos + opções compartilhadas; `EngineTweaks` desligado nos testes (traces continuam idênticos) | ~99% · ~98% |
-| Fechando a decomp do jogo 2 | Leitura de `GameMIDlet`, `a`, `j`, `k`, `h`, `b`, `g`; teste diferencial do hi-score contra o `k` do jogo 2 (achou o nome vazio); ordem do menu do jogo 2, título abre com qualquer tecla / após 5 s, som do título parado ao entrar no jogo 2 | ~99% · ~99% |
-| Correções de bugs reportados | Virar no ar em pulo diagonal (revamped); aperto de portal durante a transição ignorado (causa da transição dupla e do crash de `IndexOutOfRange`); tela cheia da tela inicial vale no jogo; *Exit* volta à seleção de jogo; zoom inteiro na tela inicial; crash log e tela de erro | ~99% · ~99% |
-| Recordes e instruções | Linha nova destacada nos recordes, Instructions e dicas seguem os controles configurados e o último dispositivo (teclado/controle), *Movement*: "new", entrada reiniciada ao sair da tela inicial | ~99% · ~99% |
-| Vibração do controle | "Vibrator" do original vira vibração do gamepad (XInput) ao levar dano; opção *Vibration* nas Options e na tela inicial | ~99% · ~99% |
-| Mork mais lento | No jogo 2 o Mork se move a 2/3 da velocidade (`EngineTweaks.MorkSpeedPercent`); desligado nos testes, que seguem idênticos ao original | ~99% · ~99% |
-| Mouse nos menus | Menus clicáveis (hover, clique, clique direito, roda); texto do jogo ("Hurry up!") não aparece mais por cima do menu; progresso em 100% nos dois jogos | 100% · 100% |
-| Executável e `--logs` | `tools\publish.bat` gera `MikisWorldCollection.exe`, autônomo e de arquivo único; programa de janela, log só com `--logs`; README separado em parte para jogadores e parte técnica | 100% · 100% |
-| Código comum em `GameBase` | Estado, entrada, movimento, minigame, projéteis, câmera e varredura de nível dos dois jogos passam para uma classe base (~1000 linhas duplicadas a menos); o que difere de verdade no original continua em cada jogo; traces e quadros idênticos | 100% · 100% |
-| Filtros de imagem | `Filter`: nearest, bilinear, sharp, xBRZ, ScaleFX, LCD, CRT (shaders GLSL embutidos; combinam com a escala inteira); `Ghosting`; troca ao vivo dentro da fase; configurável também na tela inicial; um shader que não compila cai para `nearest` | 100% · 100% |
-| Lote de ajustes (debug, mouse no bônus, remapeamento) | Menu F3 com *Unlock bonus* e *Skip level*; aviso "Saved." ao fechar as opções; mouse no minigame bônus; remapear teclado/controle também na tela inicial; *Reset to defaults* destacado; fim da partida sempre mostra os recordes; o `Enter` que salva o nome não fecha mais a lista na hora; segurar confirmar 3 s na lista zera os recordes | 100% · 100% |
-| Ajustes de uso | Listas longas rolam (opções e menu na tela 128×128 do jogo 2, também com a roda do mouse); dicas da tela inicial seguem o dispositivo; pulso de 100 ms ao religar *Vibration*; `--no-sound` | 100% · 100% |
-| Wireframe de hitboxes | menu de debug (`F3`) → *Hitboxes*: desenha as caixas reconstruídas a partir da aritmética do original (colisão, pouso, tiles, projéteis, Mork); só desenho, não altera a lógica | 100% · 100% |
-| Menu de debug (`F3`) | Invencibilidade, vida infinita (o dano acontece, a vida volta), hitboxes; só durante a execução | 100% · 100% |
-| Dicas e transição | Dicas "Press 8/5" com as teclas configuradas, mensagem do bônus empilhada sobre a dica, transição de portal do jogo 2 com o snapshot inteiro (o original tem 12×12) | 100% · 100% |
+| initial | Decompilation, original harness, C# core validated by traces | ~45% · — |
+| Renderer and window | Software renderer validated by frames; Raylib window reading the JAR | ~69% · — |
+| Menus and saving | Title, menu, instructions, hi-scores, name entry, mode list, JSON save | ~82% · — |
+| Audio | Nokia Ring Tone decoder + synthesizer + playback in Raylib; `play.bat` | ~95% · — |
+| Game 2 decomp | MikisWorld2.jar decompiled, read and compared by bytecode; level parser v2; harness runs jar 2 | ~95% · ~9% |
+| Game2 (logic) | Literal translation of game 2's class (Mork, rainbows, wrapping collision); 20/20 traces | ~95% · ~39% |
+| Game2 (drawing) | 128×128 renderer validated by frames (includes quirks: 12×12 wipe snapshot, ring cache) | ~95% · ~59% |
+| Two games in the same program | Generic `App` (`IMikisGame`), game choice, audio and save per JAR; test script fixes | ~95% · ~93% |
+| Speech bubble fix | The intro's bubble showed up in the final cutscene (flags were not recreated on every `Load`); regression test | ~95% · ~93% |
+| Window with whole-number scaling | *Snap* to whole multiples when resizing, `F11`, `+`/`-` | ~96% · ~94% |
+| Sounds one octave lower | Default −1 octave (`--octave N`); audio checked by ear in both games | ~98% · ~97% |
+| Documentation | README and analyses updated; optional game 2 splash; credits | ~98% · ~97% |
+| Window and volume options | *Options* screen (volume 0–100 % on the wave amplitude, full screen, whole-number scaling, nearest/bilinear filter); both JARs become mandatory | ~98% · ~97% |
+| Gamepad and remapping | Remappable keyboard and controller (2 inputs per action, `bindings.json`), left stick, name entry with the controller; input router with tests | ~99% · ~98% |
+| Engine tweaks and start screen | Slower jump and walking animation for the protagonist, *Movement* original/revamped option (no continuous jump when holding ↑, held direction counts when falling/landing), start screen with games + shared options; `EngineTweaks` off in the tests (traces stay identical) | ~99% · ~98% |
+| Closing game 2's decomp | Reading of `GameMIDlet`, `a`, `j`, `k`, `h`, `b`, `g`; differential hi-score test against game 2's `k` (found the empty name); game 2 menu order, title opens with any key / after 5 s, title sound stopped when entering game 2 | ~99% · ~99% |
+| Reported bug fixes | Turning in the air on a diagonal jump (revamped); portal press during the transition ignored (cause of the double transition and the `IndexOutOfRange` crash); start screen's full screen applies in the game; *Exit* goes back to the game selection; whole-number zoom on the start screen; crash log and error screen | ~99% · ~99% |
+| High scores and instructions | New row highlighted in the high scores, Instructions and hints follow the configured controls and the last device (keyboard/controller), *Movement*: "new", input reset when leaving the start screen | ~99% · ~99% |
+| Controller vibration | The original's "Vibrator" becomes gamepad vibration (XInput) on damage; *Vibration* option in the Options and on the start screen | ~99% · ~99% |
+| Slower Mork | In game 2 Mork moves at 2/3 speed (`EngineTweaks.MorkSpeedPercent`); off in the tests, which stay identical to the original | ~99% · ~99% |
+| Mouse in the menus | Clickable menus (hover, click, right click, wheel); the game's text ("Hurry up!") no longer shows over the menu; progress at 100% in both games | 100% · 100% |
+| Executable and `--logs` | `tools\publish.bat` produces `MikisWorldCollection.exe`, self-contained and single-file; windowed program, log only with `--logs`; README split into a player part and a technical part | 100% · 100% |
+| Shared code in `GameBase` | State, input, movement, minigame, projectiles, camera and level scan of both games move to a base class (~1000 fewer duplicated lines); what really differs in the original stays in each game; traces and frames identical | 100% · 100% |
+| Image filters | `Filter`: nearest, bilinear, sharp, xBRZ, ScaleFX, LCD, CRT (embedded GLSL shaders; they combine with whole-number scaling); `Ghosting`; live switching inside a level; also configurable on the start screen; a shader that fails to compile falls back to `nearest` | 100% · 100% |
+| Batch of tweaks (debug, mouse in the bonus, remapping) | F3 menu with *Unlock bonus* and *Skip level*; "Saved." note when closing the options; mouse in the bonus minigame; remapping keyboard/controller on the start screen too; highlighted *Reset to defaults*; end of a game always shows the high scores; the `Enter` that saves the name no longer closes the list at once; holding confirm for 3 s on the list clears the scores | 100% · 100% |
+| Usability tweaks | Long lists scroll (options and menu on game 2's 128×128 screen, also with the mouse wheel); start screen hints follow the device; 100 ms pulse when *Vibration* is switched back on; `--no-sound` | 100% · 100% |
+| Hitbox wireframe | debug menu (`F3`) → *Hitboxes*: draws the boxes reconstructed from the original's arithmetic (collision, landing, tiles, projectiles, Mork); drawing only, does not change the logic | 100% · 100% |
+| Debug menu (`F3`) | Invincibility, infinite lives (damage happens, the life comes back), hitboxes; only while running | 100% · 100% |
+| Hints and transition | "Press 8/5" hints with the configured keys, bonus message stacked above the hint, game 2 portal transition with the full snapshot (the original has 12×12) | 100% · 100% |
 
-### Como rodar a partir do código
+### How to run from the code
 
-Precisa do .NET 8 SDK e dos JARs em `JAR/`.
+Needs the .NET 8 SDK and the JARs in `JAR/`.
 
-**Windows, no repositório:** dê dois cliques em `play.bat` (ou rode `play.bat`/`play.bat --scale 5` num terminal).
-Ele usa o SDK portátil de `tools/dotnet` e recompila sozinho se o código mudou.
+**Windows, in the repository:** double-click `play.bat` (or run `play.bat`/`play.bat --scale 5` in a terminal).
+It uses the portable SDK in `tools/dotnet` and rebuilds by itself if the code changed.
 
-Com um .NET 8 SDK instalado no sistema, o equivalente é:
-
-```
-dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings arq.json] [--bindings arq.json] [--no-sound] [--logs] [caminho/para/o.jar]
-```
-
-**Executável.** `tools\publish.bat` gera `dist\MikisWorldCollection.exe`: um arquivo só (~35 MB), autônomo (não precisa instalar o .NET); `dist/` não é versionado.
-Os JARs não vão junto: coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta `JAR` ao lado do exe. É um programa de janela (não abre console).
-
-**Logs.** Só com `--logs`: o log do raylib e o do programa (JARs usados, caminhos de configuração, início e fim de cada jogo). Aberto pelo Explorer, `--logs` abre uma
-janela de console; num terminal, escreve nele. Sem `--logs` nada é impresso; travamentos vão para a tela de erro e para `crash.log`.
-
-**Som.** Só um som toca por vez, como no aparelho. `--octave N` ajusta a oitava (padrão `-1`; `0` = como decodificado). O volume é o da tela *Options*.
-`--export-sounds pasta` grava um WAV por som; `--sound-test` testa o dispositivo de áudio; `--rumble-test` vibra os controles XInput por meio segundo.
-
-**Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância),
-a animação de andar do protagonista mostra cada sprite pelo dobro do tempo, e no jogo 2 o Mork anda a 2/3 da velocidade original (cada movimento dele tem a mesma
-distância e duração em "passos", só leva proporcionalmente mais tempo). No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
-estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados (`EngineTweaks`: pulo, animação, Mork, transição de portal do jogo 2, dicas empilhadas).
-
-**Movement `new`, em detalhe.** (1) Segurar ↑ não repete o pulo (um aperto até 100 ms antes de pousar vale); (2) só a tecla solta é liberada (a direção ainda segurada vale), inclusive
-no meio de um pulo diagonal; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino também. O travamento que isso evita é do **original**: o aperto
-extra fica guardado e, depois da transição, o jogo usa o portal da área que acabou de sair, que na área principal não tem destino (`IndexOutOfRange`).
-
-**Arquivos de configuração.** `settings.json` (opções, sem a tela cheia), `bindings.json`, `save.json`/`save2.json` e `crash.log` em `%APPDATA%/MikisWorld/`; `--settings`/`--bindings`/`--save` trocam os caminhos.
-
-### Estrutura
+With a .NET 8 SDK installed on the system, the equivalent is:
 
 ```
-docs/                      análise dos dois jogos e dos formatos de arquivo
-port/MikisWorld.Core/      lógica + renderização por software (sem dependência de janela/áudio)
-                             GameBase*.cs (o que os dois jogos têm em comum: estado, entrada, movimento do jogador, minigame bônus, projéteis, câmera…) · Game*.cs (jogo 1) · Game2*.cs (jogo 2) · App.cs (menus) · RingTone.cs (áudio) · Canvas.cs · InputBindings.cs (remapeamento) · EngineTweaks.cs
-port/MikisWorld.Game/      frontend Raylib (janela, texto, áudio); lê os recursos direto dos JARs
-                             InputRouter.cs (teclado/controle → eventos do celular) · DevicePoller.cs (lê o Raylib) · Launcher.cs + LauncherControls.cs (tela inicial e seu remapeamento) · PostProcessor.cs + Shaders/ (filtros) · Ghosting.cs
-port/MikisWorld.TraceTest/ replay de traces/quadros e testes de fluxo, sons, hi-scores, cutscenes, roteador de entrada e ajustes de engine
-tools/harness/             roda os JARs originais sem tela (stubs do MIDP, Graphics real) e grava traces/quadros
-tools/record_*.sh          gravam as referências a partir dos JARs originais (traces, quadros, hi-scores, sons)
-tools/run_*.sh             comparam o C# com as referências;  tools/run_tests.sh  roda tudo
-tools/gen_inputs.py        gera scripts de input determinísticos
-tools/parse_level.py       parser independente do level.bin (--v2 para o jogo 2)
-tools/decode_ott.py        decodificador independente dos sons (referência)
-tools/classmatch.py        casa classes ofuscadas dos dois JARs por bytecode (também fieldmap.py)
+dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave N] [--settings file.json] [--bindings file.json] [--no-sound] [--logs] [path/to/the.jar]
 ```
 
-Não versionados (ver `.gitignore`): `extracted/`, `decompiled/`, `traces/`, `sons/`, `tools/dotnet/`, `tools/cfr.jar`.
-`JAR/` **não** está no `.gitignore`: os JARs são material da Sumea, então decida você se quer versioná-los.
+**Executable.** `tools\publish.bat` produces `dist\MikisWorldCollection.exe`: a single file (~35 MB), self-contained (no need to install .NET); `dist/` is not versioned.
+The JARs are not included: put `MikisWorld.jar` and `MikisWorld2.jar` in a `JAR` folder next to the exe. It is a windowed program (it does not open a console).
 
-### Reproduzindo o ambiente de validação
+**Logs.** Only with `--logs`: raylib's log and the program's own (JARs used, configuration paths, start and end of each game). Opened from Explorer, `--logs` opens a
+console window; in a terminal, it writes to it. Without `--logs` nothing is printed; crashes go to the error screen and to `crash.log`.
 
-1. `jar xf JAR/MikisWorld.jar` em `extracted/MikisWorld/` e `jar xf JAR/MikisWorld2.jar` em `extracted/MikisWorld2/`.
-2. SDK .NET 8 portátil: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
-3. (Opcional) Decompilador: CFR 0.152 → `tools/cfr.jar`, de `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
-4. Referências, a partir dos JARs originais (JDK 11+ e Python):
+**Sound.** Only one sound plays at a time, like on the phone. `--octave N` adjusts the octave (default `-1`; `0` = as decoded). The volume is the one from the *Options* screen.
+`--export-sounds folder` writes one WAV per sound; `--sound-test` tests the audio device; `--rumble-test` rumbles the XInput controllers for half a second.
+
+**Engine tweaks (always on in the program).** The jump lasts twice as long (each step of the arc lasts two ticks: same height and same distance),
+the protagonist's walking animation shows each sprite for twice as long, and in game 2 Mork walks at 2/3 of the original speed (each of his moves has the same
+distance and duration in "steps", it just takes proportionally longer). In game 1 this also undoes an oscillation of the original: when walking on the ground the
+state alternated between "walking" and "falling" every tick and the air sprite flickered. In the validation tests (traces/frames) these tweaks are off (`EngineTweaks`: jump, animation, Mork, game 2 portal transition, stacked hints).
+
+**Movement `new`, in detail.** (1) Holding ↑ does not repeat the jump (a press up to 100 ms before landing counts); (2) only the released key is released (the direction still held counts), including
+in the middle of a diagonal jump; (3) an "enter portal" press during the transition is ignored, and so are portals without a destination. The crash this avoids comes from the **original**: the extra
+press is kept and, after the transition, the game uses the portal of the area it just left, which in the main area has no destination (`IndexOutOfRange`).
+
+**Configuration files.** `settings.json` (options, without full screen), `bindings.json`, `save.json`/`save2.json` and `crash.log` in `%APPDATA%/MikisWorld/`; `--settings`/`--bindings`/`--save` change the paths.
+
+### Structure
+
+```
+docs/                      analysis of the two games and of the file formats
+port/MikisWorld.Core/      logic + software rendering (no window/audio dependency)
+                             GameBase*.cs (what both games have in common: state, input, player movement, bonus minigame, projectiles, camera…) · Game*.cs (game 1) · Game2*.cs (game 2) · App.cs (menus) · RingTone.cs (audio) · Canvas.cs · InputBindings.cs (remapping) · EngineTweaks.cs
+port/MikisWorld.Game/      Raylib frontend (window, text, audio); reads the resources straight from the JARs
+                             InputRouter.cs (keyboard/controller → phone events) · DevicePoller.cs (reads Raylib) · Launcher.cs + LauncherControls.cs (start screen and its remapping) · PostProcessor.cs + Shaders/ (filters) · Ghosting.cs
+port/MikisWorld.TraceTest/ trace/frame replay and tests of the flow, sounds, hi-scores, cutscenes, input router and engine tweaks
+tools/harness/             runs the original JARs headless (MIDP stubs, real Graphics) and records traces/frames
+tools/record_*.sh          record the references from the original JARs (traces, frames, hi-scores, sounds)
+tools/run_*.sh             compare the C# with the references;  tools/run_tests.sh  runs everything
+tools/gen_inputs.py        generates deterministic input scripts
+tools/parse_level.py       independent parser of level.bin (--v2 for game 2)
+tools/decode_ott.py        independent decoder of the sounds (reference)
+tools/classmatch.py        matches obfuscated classes of the two JARs by bytecode (also fieldmap.py)
+```
+
+Not versioned (see `.gitignore`): `extracted/`, `decompiled/`, `traces/`, `sons/`, `tools/dotnet/`, `tools/cfr.jar`.
+`JAR/` is **not** in `.gitignore`: the JARs are Sumea's material, so it is up to you whether to version them.
+
+### Reproducing the validation environment
+
+1. `jar xf JAR/MikisWorld.jar` into `extracted/MikisWorld/` and `jar xf JAR/MikisWorld2.jar` into `extracted/MikisWorld2/`.
+2. Portable .NET 8 SDK: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
+3. (Optional) Decompiler: CFR 0.152 → `tools/cfr.jar`, from `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
+4. References, from the original JARs (JDK 11+ and Python):
    `tools/record_traces.sh`, `tools/record_traces2.sh`, `tools/record_frames.sh`, `tools/record_frames2.sh`,
    `tools/record_hall.sh`, `tools/record_ott.sh`.
-5. `tools/run_tests.sh` roda tudo e deve terminar com `ALL VALIDATIONS PASSED`: 17/17 traces e 10/10 conjuntos de quadros do
-   jogo 1, 20/20 traces e 9/9 conjuntos de quadros do jogo 2, hi-scores, decoder de sons (24/24), balões de cutscene e fluxo do app.
+5. `tools/run_tests.sh` runs everything and must end with `ALL VALIDATIONS PASSED`: 17/17 traces and 10/10 frame sets of
+   game 1, 20/20 traces and 9/9 frame sets of game 2, hi-scores, sound decoder (24/24), cutscene bubbles and app flow.
 
-### Validação
+### Validation
 
-Os originais são executados sem tela (`tools/harness`) com passo fixo de 20 ms, `java.util.Random` com semente fixa e uma
-sequência de teclas + teleportes. O estado completo é gravado a cada tick e o C# precisa reproduzir **exatamente** as mesmas
-linhas. Para o desenho, o harness implementa `Graphics`/`Image` de verdade sobre `BufferedImage` e grava quadros (176×144 e
-128×128); o renderizador C# precisa gerar os mesmos pixels. Cada teste foi conferido com **controles negativos** (trace de
-outra partida, semente errada) para garantir que ele reprova diferenças.
+The originals are run headless (`tools/harness`) with a fixed 20 ms step, a `java.util.Random` with a fixed seed and a
+sequence of keys + teleports. The complete state is recorded on every tick and the C# has to reproduce **exactly** the same
+lines. For drawing, the harness implements a real `Graphics`/`Image` on top of `BufferedImage` and records frames (176×144 and
+128×128); the C# renderer has to produce the same pixels. Each test was checked with **negative controls** (trace of a
+different game, wrong seed) to make sure it fails on differences.
 
-**Bugs do original reproduzidos de propósito** (o C# falha no mesmo tick): cair abaixo do mapa, e usar um portal sem destino
-nas subáreas (`ArrayIndexOutOfBounds`).
-**Bugs do original que o port não reproduz:** no jogo 2, iniciar o minigame antes de carregar o nível principal trava a pintura
-(`NullPointerException` / laço infinito, porque as imagens e o tamanho dos tiles ainda não existem).
+**Original bugs reproduced on purpose** (the C# fails on the same tick): falling below the map, and using a portal without a destination
+in the sub-areas (`ArrayIndexOutOfBounds`).
+**Original bugs the port does not reproduce:** in game 2, starting the minigame before the main level is loaded hangs the painting
+(`NullPointerException` / infinite loop, because the images and the tile size do not exist yet).
 
-Limites conhecidos: os inputs são aleatórios com teleportes (não partidas jogadas) e o texto (fonte do aparelho) fica fora da
-comparação de pixels; partidas longas jogadas à mão podem revelar o que os testes aleatórios não cobrem (foi assim que se achou
-o balão que vazava para a cutscene final).
+Known limits: the inputs are random with teleports (not played games) and the text (the phone's font) is left out of the
+pixel comparison; long games played by hand may reveal what the random tests do not cover (that is how the bubble that leaked
+into the final cutscene was found).
 
-### Áudio
+### Audio
 
-Os 12 efeitos/músicas de cada jogo são Nokia Ring Tones (`.ott`). O decoder (`RingTone.cs`) foi escrito a partir do layout de
-bits do formato Smart Messaging e validado contra um decoder independente em Python (`tools/decode_ott.py`). A síntese é uma
-onda quadrada simples, como o buzzer do celular, e só um som toca por vez.
+The 12 effects/music tracks of each game are Nokia Ring Tones (`.ott`). The decoder (`RingTone.cs`) was written from the bit
+layout of the Smart Messaging format and validated against an independent Python decoder (`tools/decode_ott.py`). The synthesis is a simple
+square wave, like the phone's buzzer, and only one sound plays at a time.
 
-Dois pontos foram **inferidos** (a especificação oficial não estava acessível): um padrão com valor de loop *n* toca *n+1* vezes,
-e a oitava de cada nota. Como quase todos os sons decodificados ficavam entre 0,7 e 2,6 kHz (agudos demais), o padrão do port é
-**uma oitava abaixo** — escolha confirmada de ouvido nos dois jogos. `--octave N` permite ajustar.
+Two points were **inferred** (the official specification was not available): a pattern with loop value *n* plays *n+1* times,
+and the octave of each note. Since almost all the decoded sounds fell between 0.7 and 2.6 kHz (too high), the port's default is
+**one octave lower** — a choice confirmed by ear in both games. `--octave N` lets you adjust it.
 
 </details>
 
-## Licenças de terceiros (shaders)
+## Third-party licenses (shaders)
 
-Os shaders em `port/MikisWorld.Game/Shaders/` vêm do repositório [libretro/glsl-shaders](https://github.com/libretro/glsl-shaders), com os cabeçalhos de licença mantidos nos arquivos:
+The shaders in `port/MikisWorld.Game/Shaders/` come from the [libretro/glsl-shaders](https://github.com/libretro/glsl-shaders) repository, with the license headers kept in the files:
 
-- **ScaleFX** (`scalefx-pass0..4.glsl`), de Sp00kyFox: licença MIT.
-- **xBRZ freescale** (`xbrz-freescale.glsl`), de Hyllian (MIT), mas com trechos derivados do xBRZ de Zenju, que é **GPLv3**. Se o projeto for distribuído em binário, essa parte traz as obrigações da GPLv3.
-- `sharp.glsl`, `lcd.glsl`, `crt.glsl` e `vertex.glsl` foram escritos para este projeto (o `sharp` segue a ideia pública do "sharp-bilinear" do libretro). O CRT é uma versão simples, não o CRT-Royale.
+- **ScaleFX** (`scalefx-pass0..4.glsl`), by Sp00kyFox: MIT license.
+- **xBRZ freescale** (`xbrz-freescale.glsl`), by Hyllian (MIT), but with parts derived from Zenju's xBRZ, which is **GPLv3**. If the project is distributed as a binary, that part carries the GPLv3 obligations.
+- `sharp.glsl`, `lcd.glsl`, `crt.glsl` and `vertex.glsl` were written for this project (`sharp` follows the public "sharp-bilinear" idea from libretro). The CRT is a simple version, not CRT-Royale.
