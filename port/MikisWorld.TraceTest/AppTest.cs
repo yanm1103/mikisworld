@@ -422,7 +422,7 @@ internal static class AppTest
         {
             var fh = new CountingHost();
             var fa = new App(assets, fh, new MemoryStorage(), 1);
-            fa.LastDevice = BindingDevice.Gamepad;
+            fa.LastDevice = BindingDevice.Keyboard;                              // even with the keyboard in use a connected controller confirms the option
             fa.Settings.Vibration = false;
             Select(fa, "Options");
             int vrow = fa.DebugOptionRows().IndexOf("Vibrator");

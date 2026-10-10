@@ -375,7 +375,7 @@ public sealed class App
         {
             _set.Vibration = !_set.Vibration;
             _set.NotifyChanged();
-            if (_set.Vibration) _host.Vibrate(100, 100);              // feedback: a short rumble when it is switched back on
+            if (_set.Vibration) _host.VibrateFeedback(100, 100);       // feedback: a short rumble when it is switched back on
         }, false));
         rows.Add(new("Keyboard keys", () => ">", _ => OpenControls(Screen.ControlsKeyboard), false));
         rows.Add(new("Gamepad", () => ">", _ => OpenControls(Screen.ControlsPad), false));
@@ -853,4 +853,8 @@ public sealed class SettingsHost : IGameHost
     /// <summary>The original's vibrator switch; here also "only when the player is using a controller".</summary>
     public Func<bool> VibrationAllowed { get; set; } = () => true;
     public void Vibrate(int frequency, int milliseconds) { if (VibrationAllowed()) _inner.Vibrate(frequency, milliseconds); }
+
+    /// <summary>A rumble that answers a menu action (switching Vibration on): it does not depend on which device was used last,
+    /// a connected controller simply confirms the option.</summary>
+    public void VibrateFeedback(int frequency, int milliseconds) => _inner.Vibrate(frequency, milliseconds);
 }

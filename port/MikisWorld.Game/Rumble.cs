@@ -51,7 +51,14 @@ internal static class Rumble
     public static void Pulse(int percent, int milliseconds)
     {
         ushort speed = (ushort)(Math.Clamp(percent, 0, 100) * 65535 / 100);
-        All(speed, speed);
+        if (LogConsole.Enabled)
+        {
+            var v = new Vibration { Left = speed, Right = speed };
+            var codes = new List<string>();
+            for (int user = 0; user < 4; user++) codes.Add($"{user}:{Set(user, speed, speed)}");
+            LogConsole.Log($"rumble {percent}% for {milliseconds} ms ({Api}); XInput results (0 = ok, 1167 = no controller): {string.Join(" ", codes)}");
+        }
+        else All(speed, speed);
         _active = true;
         _stopAt = Raylib.GetTime() + milliseconds / 1000.0;
     }

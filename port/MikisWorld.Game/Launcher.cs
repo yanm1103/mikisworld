@@ -102,7 +102,7 @@ internal static class Launcher
             {
                 s.Vibration = !s.Vibration;
                 s.NotifyChanged();
-                if (s.Vibration && _padLast) Rumble.Pulse(100, 100);          // feedback: a short rumble when it is switched back on
+                if (s.Vibration) Rumble.Pulse(100, 100);          // feedback: a short rumble when it is switched back on (nothing happens without a controller)
             }),
             new("Fullscreen", () => s.Fullscreen ? "on" : "off", _ => { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }),
             new("Integer scale", () => s.IntegerScale ? "on" : "off", _ => { s.IntegerScale = !s.IntegerScale; s.NotifyChanged(); }),
