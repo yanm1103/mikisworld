@@ -197,7 +197,7 @@ public sealed partial class Game
 
         if (_state == State.GameOver)
         {
-            int x = Layout.GameOverX + ex / 2, y = Layout.GameOverY + ey / 2;
+            int x = Layout.GameOverX + _hcx, y = Layout.GameOverY + _hcy;
             g.SetClip(x, y, _imgGameOver.Width, _imgGameOver.Height / 2);
             if (_lives != 0) y -= _imgGameOver.Height / 2;
             g.DrawImage(_imgGameOver, x, y, TL);
@@ -206,7 +206,7 @@ public sealed partial class Game
         if (_state != State.Unknown7 && _area >= 0)
         {
             g.SetClip(0, 0, W, H);
-            int x = Layout.LivesX + ex, y = Layout.LivesY + ey;
+            int x = Layout.LivesX + _hr, y = Layout.LivesY + _hb;
             for (int i = 0; i < _lives; i++)
             {
                 g.SetClip(x, y, _tileW, _tileH);
@@ -225,8 +225,8 @@ public sealed partial class Game
                 if (_finalTimer < 60000 || _finalTimer / 500 % 2 == 0)
                 {
                     g.SetClip(0, 0, W, H);
-                    int bx = Layout.CoinHudX;
-                    int by = Layout.CoinHudY - 2 + ey;
+                    int bx = Layout.CoinHudX + _hl;
+                    int by = Layout.CoinHudY - 2 + _hb;
                     g.SetClip(bx, by, _tileW, _tileH);
                     g.DrawImage(_imgTiles, bx - Tile.CagedBird * _tileW % _imgTiles.Width, by - 12 * _tileW / _imgTiles.Width * _tileH, TL);
                     g.SetClip(bx, by - _tileH, _tileW, _tileH);
@@ -238,7 +238,7 @@ public sealed partial class Game
                     int secs = _finalTimer / 1000;
                     if (secs > 60) secs = 60;
                     g.SetClip(0, 0, W, H);
-                    DrawCounter(g, Layout.TimeHudX + ex, Layout.TimeHudY, _imgTime, Layout.TimeDigitW, 2, secs, false);
+                    DrawCounter(g, Layout.TimeHudX + _hr, Layout.TimeHudY + _ht, _imgTime, Layout.TimeDigitW, 2, secs, false);
                 }
             }
             else
@@ -246,7 +246,7 @@ public sealed partial class Game
                 g.SetClip(0, 0, W, H);
                 int left = _totalCoins - _coins;
                 if (left < 0) left = 0;
-                DrawCounter(g, Layout.CoinHudX, Layout.CoinHudY + ey, _imgNumbers, Layout.DigitW, 4, left, true);
+                DrawCounter(g, Layout.CoinHudX + _hl, Layout.CoinHudY + _hb, _imgNumbers, Layout.DigitW, 4, left, true);
             }
         }
         if (_state == State.Cutscene) DrawCutsceneBubbles(g);

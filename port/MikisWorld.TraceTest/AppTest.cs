@@ -80,7 +80,7 @@ internal static class AppTest
         Check(app.ViewWidth == vw && app.ViewHeight == vh, $"{name}: the game draws a {vw}x{vh} picture");
         var f = Shot();
         int side = (vw - mapPixelW) / 2;
-        Check(Enumerable.Range(0, vh - 30).All(y => (f.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0 && (f.Pixels[y * vw + vw - side / 2] & 0xFFFFFF) == 0),   // (the HUD sits in the bottom corners)
+        Check(Enumerable.Range(0, vh).All(y => (f.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0 && (f.Pixels[y * vw + vw - side / 2] & 0xFFFFFF) == 0),   // (the HUD - lives, coins - stays inside the map too)
               $"{name}: the strips beside the map ({side} px each) are black");
         Check(Enumerable.Range(side + 2, mapPixelW - 4).Any(x => (f.Pixels[(vh / 2) * vw + x] & 0xFFFFFF) != 0), $"{name}: the map itself is drawn");
         // the game keeps running with the same logic: still playing, the player on screen
@@ -110,7 +110,7 @@ internal static class AppTest
         Check(sawWipe && app.Game.CurrentState == State.FinalStage, $"{name}: the wipe runs on the extended picture and reaches the final stage");
         for (int i = 0; i < 50; i++) app.Update(20);
         var g2 = Shot();
-        Check(Enumerable.Range(0, vh - 30).All(y => (g2.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0), $"{name}: the final stage is also black beside the map");
+        Check(Enumerable.Range(0, vh).All(y => (g2.Pixels[y * vw + side / 2] & 0xFFFFFF) == 0 && (g2.Pixels[y * vw + vw - side / 2] & 0xFFFFFF) == 0), $"{name}: the final stage is also black beside the map");
 
         // back to the original view: the picture is the original size again
         app.Settings.View = DisplayView.Original;

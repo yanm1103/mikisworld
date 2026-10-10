@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="..\MikisWorld.Game\InputRouter.cs" Link="InputRouter.cs" />
     <Compile Include="..\MikisWorld.Game\Mods.cs" Link="Mods.cs" />
+    <Compile Include="..\MikisWorld.Game\ZoomTransition.cs" Link="ZoomTransition.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MikisWorld.Core\MikisWorld.Core.csproj" />

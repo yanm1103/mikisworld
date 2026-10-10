@@ -52,6 +52,9 @@ public abstract partial class GameBase
     protected int _dx, _dy;           // world position of its top-left corner (the camera when not wide)
     protected int _wx, _wy, _ww, _wh; // the part of the picture that is inside the map / current area
     protected int _sx, _sy;           // where the original screen's top-left sits for things anchored to the screen (the sky)
+    // The HUD keeps to the world, not to the corners of the picture: how far each edge of the original screen's layout moves.
+    protected int _hl, _ht, _hr, _hb; // left / top / right / bottom items
+    protected int _hcx, _hcy;         // things centred on the original screen
 
     /// <summary>Is the state something that draws the world (and so can use the whole wide picture)?</summary>
     protected bool DrawsWorld => _area >= 0 && (_state == State.Playing || _state == State.Lord1 || _state == State.Lord2 || _state == State.FinalStage
@@ -66,6 +69,7 @@ public abstract partial class GameBase
         {
             _vw = lw; _vh = lh; _dx = _camX; _dy = _camY;
             _wx = 0; _wy = 0; _ww = lw; _wh = lh; _sx = 0; _sy = 0;
+            _hl = _ht = _hr = _hb = _hcx = _hcy = 0;
             return;
         }
         _vw = ViewWidth; _vh = ViewHeight;
@@ -77,6 +81,9 @@ public abstract partial class GameBase
         int y0 = Math.Max(0, top - _dy), y1 = Math.Min(_vh, bottom - _dy);
         _wx = x0; _ww = Math.Max(0, x1 - x0);
         _wy = y0; _wh = Math.Max(0, y1 - y0);
+        _hl = _wx; _ht = _wy;
+        _hr = _wx + _ww - lw; _hb = _wy + _wh - lh;
+        _hcx = _wx + _ww / 2 - lw / 2; _hcy = _wy + _wh / 2 - lh / 2;
         _sx = (_vw - lw) / 2; _sy = _vh - lh;              // the sky hangs from the bottom of the picture, where the original screen had its horizon
     }
 

@@ -72,6 +72,7 @@ internal static class Program
         if (a[0] == "tweaks") return TweakTest.Run(a[1], a[2]);
         if (a[0] == "router") return RouterTest.Run();
         if (a[0] == "mods") return ModTest.Run(a[1], a[2]);
+        if (a[0] == "zoom") return ZoomTest.Run();
         if (a[0] == "ott") return OttTest.Run(a[1], a[2], a.Length > 3 ? a[3] : "");
         string dir = a[0], mode = a[1];
         long seed = long.Parse(a[2]);

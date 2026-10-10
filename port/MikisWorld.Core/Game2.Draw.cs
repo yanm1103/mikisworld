@@ -199,7 +199,7 @@ public sealed partial class Game2
         if (_state != State.Unknown7 && _area >= 0)
         {
             g.SetClip(0, 0, W, H);
-            int x = Layout2.LivesX + ex, y = Layout2.LivesY + ey;
+            int x = Layout2.LivesX + _hr, y = Layout2.LivesY + _hb;
             for (int i = 0; i < _lives; i++)
             {
                 g.SetClip(x, y, _tileW, _tileH);
@@ -218,8 +218,8 @@ public sealed partial class Game2
                 if (_finalTimer < 60000 || _finalTimer / 500 % 2 == 0)
                 {
                     g.SetClip(0, 0, W, H);
-                    int bx = Layout2.CoinHudX;
-                    int by = Layout2.CoinHudY - 2 + ey;
+                    int bx = Layout2.CoinHudX + _hl;
+                    int by = Layout2.CoinHudY - 2 + _hb;
                     g.DrawImage(_tileImages[Tile2.RainbowL], bx, by, TL);
                     g.DrawImage(_tileImages[Tile2.RainbowR], bx + _tileW, by, TL);
                     DrawCounter(g, (bx += _tileW) + 3, by += (_tileH - _imgNumbers.Height) / 2, _imgNumbers, Layout2.DigitW, 2, 10 - _finalRainbows, false);
@@ -229,7 +229,7 @@ public sealed partial class Game2
                     int secs = _finalTimer / 1000;
                     if (secs > 60) secs = 60;
                     g.SetClip(0, 0, W, H);
-                    DrawCounter(g, Layout2.TimeHudX + ex, Layout2.TimeHudY, _imgTime, Layout2.TimeDigitW, 2, secs, false);
+                    DrawCounter(g, Layout2.TimeHudX + _hr, Layout2.TimeHudY + _ht, _imgTime, Layout2.TimeDigitW, 2, secs, false);
                 }
             }
             else
@@ -237,7 +237,7 @@ public sealed partial class Game2
                 g.SetClip(0, 0, W, H);
                 int left = _totalCoins - _coins;
                 if (left < 0) left = 0;
-                DrawCounter(g, Layout2.CoinHudX, Layout2.CoinHudY + ey, _imgNumbers, Layout2.DigitW, 4, left, true);
+                DrawCounter(g, Layout2.CoinHudX + _hl, Layout2.CoinHudY + _hb, _imgNumbers, Layout2.DigitW, 4, left, true);
             }
         }
         if (_state == State.Cutscene || _state == State.Ending)

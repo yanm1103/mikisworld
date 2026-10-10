@@ -191,6 +191,9 @@ internal static class Program
 
             double acc = 0;
             int frameNo = 0;
+            var zoom = new ZoomTransition();
+            int kTarget = settings.View == DisplayView.Extended ? ViewZoom(settings, lh0) : 0, kAlloc = kTarget;
+            float shownScale = 1;
             double resizedAt = -1;
             var lastMouse = Vector2.Zero;
             var router = new InputRouter(new AppTarget(app));
@@ -218,7 +221,21 @@ internal static class Program
                 else ApplyWindowScale(settings, lw0, lh0, borderless, ref resizedAt);
 
                 // the picture follows the view option and the window: the original size, or as much of the level as fits
-                var (vw, vh) = settings.View == DisplayView.Extended ? ExtendedSize(settings, lw0, lh0) : (lw0, lh0);
+                // a change of zoom in the extended view glides (150 ms) instead of jumping; the picture is made for the larger of the two zooms meanwhile
+                double nowT = Raylib.GetTime();
+                int kWant = settings.View == DisplayView.Extended ? ViewZoom(settings, lh0) : 0;
+                if (kWant != kTarget)
+                {
+                    if (kWant > 0 && kTarget > 0)
+                    {
+                        var (nw, nh) = SizeFor(kWant, lw0, lh0);
+                        zoom.Start(nowT, shownScale, NaturalScale(settings, Raylib.GetScreenWidth(), Raylib.GetScreenHeight(), nw, nh), kAlloc);
+                    }
+                    kTarget = kWant;
+                }
+                int kPicture = kWant == 0 ? 0 : zoom.PictureZoom(nowT, kWant);
+                var (vw, vh) = kPicture == 0 ? (lw0, lh0) : SizeFor(kPicture, lw0, lh0);
+                kAlloc = kPicture;
                 if (vw != sw0 || vh != sh0)
                 {
                     sw0 = vw; sh0 = vh;
@@ -252,6 +269,8 @@ internal static class Program
                         else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
                         else if (n.Equals("F3", StringComparison.OrdinalIgnoreCase)) { app.ToggleDebugMenu(); continue; }
                         else if (n.Equals("F5", StringComparison.OrdinalIgnoreCase)) { ReloadAssets(app, audio, game); continue; }
+                        else if (n.Equals("ZoomIn", StringComparison.OrdinalIgnoreCase)) { StepViewZoom(settings, lh0, +1); continue; }      // dev aid: the + / - keys
+                        else if (n.Equals("ZoomOut", StringComparison.OrdinalIgnoreCase)) { StepViewZoom(settings, lh0, -1); continue; }
                         else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
                         else continue;
                         if (mode != '-') router.Press(dev, n, now);
@@ -287,7 +306,8 @@ internal static class Program
                 Raylib.BeginDrawing();
                 int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
                 // integer scaling: a whole-number factor (black bars); otherwise fill the window keeping the aspect ratio
-                float scalef = settings.IntegerScale ? Math.Max(1, Math.Min(sw / sw0, sh / sh0)) : Math.Min((float)sw / sw0, (float)sh / sh0);
+                float scalef = zoom.Running(nowT) ? zoom.Scale(nowT) : NaturalScale(settings, sw, sh, sw0, sh0);
+                shownScale = scalef;
                 float dw = sw0 * scalef, dh = sh0 * scalef;
                 float ox = MathF.Floor((sw - dw) / 2), oy = MathF.Floor((sh - dh) / 2);
                 post.Present(tex, settings.Filter, new Rectangle(ox, oy, dw, dh), () => { foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef); });
@@ -389,18 +409,23 @@ internal static class Program
     private static int ViewZoom(DisplaySettings s, int lh) => s.ViewZoom > 0 ? s.ViewZoom : Math.Max(1, Raylib.GetScreenHeight() * 2 / (lh * 3));
 
     /// <summary>The picture size of the extended view: the window divided by the zoom, never smaller than the original screen.</summary>
-    internal static (int, int) ExtendedSize(DisplaySettings s, int lw, int lh)
-    {
-        int k = ViewZoom(s, lh);
-        return (Math.Clamp(Raylib.GetScreenWidth() / k, lw, MaxViewW), Math.Clamp(Raylib.GetScreenHeight() / k, lh, MaxViewH));
-    }
+    internal static (int, int) SizeFor(int k, int lw, int lh)
+        => (Math.Clamp(Raylib.GetScreenWidth() / k, lw, MaxViewW), Math.Clamp(Raylib.GetScreenHeight() / k, lh, MaxViewH));
+
+    /// <summary>The scale a picture of w x h is shown at in a window of sw x sh: a whole number (black bars), or as large as fits.</summary>
+    internal static float NaturalScale(DisplaySettings s, int sw, int sh, int w, int h)
+        => s.IntegerScale ? Math.Max(1, Math.Min(sw / w, sh / h)) : Math.Min((float)sw / w, (float)sh / h);
 
     /// <summary>+ and - change the zoom of the extended view (the window keeps its size).</summary>
     private static void ViewZoomKeys(DisplaySettings s, int lh)
     {
         int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
                  : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
-        if (step == 0) return;
+        if (step != 0) StepViewZoom(s, lh, step);
+    }
+
+    private static void StepViewZoom(DisplaySettings s, int lh, int step)
+    {
         s.ViewZoom = Math.Clamp(ViewZoom(s, lh) + step, 1, 16);
         s.NotifyChanged();
     }
