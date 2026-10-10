@@ -26,6 +26,7 @@ public sealed class App
     /// <summary>The frontend plugs its log switch here; without it the debug menu has no "Logs" row.</summary>
     public Func<bool> LogsGet { get; set; }
     public Action<bool> LogsSet { get; set; }                         // first menu entry shown
+    private int _resetShownUntil;                   // until when the controls screens say "Defaults restored"
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
     private readonly Bitmap _titleArt, _splash;
@@ -145,6 +146,7 @@ public sealed class App
     internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
+    internal bool DebugDefaultsNotice => _ms < _resetShownUntil;
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
 
@@ -466,6 +468,13 @@ public sealed class App
         _capturing = false;
     }
 
+    /// <summary>"Reset to defaults" row of the controls screens; the hint line confirms it for a moment.</summary>
+    private void ResetBindings(BindingDevice device)
+    {
+        _bind.Reset(device);
+        _resetShownUntil = _ms + 1500;
+    }
+
     private void ControlsKey(int key, int action)
     {
         if (_capturing) return;                       // raw inputs go to CaptureInput
@@ -475,7 +484,7 @@ public sealed class App
         else if (IsLeft(key, action) || IsRight(key, action)) _ctrlCol = 1 - _ctrlCol;
         else if (IsSelect(key, action))
         {
-            if (_ctrlRow == InputBindings.Actions.Length) _bind.Reset(CaptureDevice);
+            if (_ctrlRow == InputBindings.Actions.Length) ResetBindings(CaptureDevice);
             else _capturing = true;
         }
     }
@@ -885,9 +894,9 @@ public sealed class App
             {
                 bool sel = r == _ctrlRow;
                 if (sel) { g.SetClip(0, 0, W, H); g.SetColor(160, 90, 20); g.FillRect(x - 3, ty - 1, w + 5, lh); }
-                DrawShadowed(g, "Defaults", x, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFE0A0, 0);
+                DrawShadowed(g, "Reset to defaults", x, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFF9090, 0);
                 int lastRow = r;
-                Hit(x - 3, ty - 1, w + 5, lh, (_, _) => { _capturing = false; _ctrlRow = lastRow; _bind.Reset(device); }, () => { if (!_capturing) _ctrlRow = lastRow; });
+                Hit(x - 3, ty - 1, w + 5, lh, (_, _) => { _capturing = false; _ctrlRow = lastRow; ResetBindings(device); }, () => { if (!_capturing) _ctrlRow = lastRow; });
                 continue;
             }
             DrawShadowed(g, InputBindings.Label(acts[r]), x, ty, FontKind.Small, 0xFFE0A0, 0);
@@ -907,8 +916,12 @@ public sealed class App
                 DrawShadowed(g, text, cx, ty, FontKind.Small, sel ? 0xFFFFFF : 0xFFFFFF, 0);
             }
         }
-        string hint = _capturing ? (device == BindingDevice.Keyboard ? "Press a key (Esc: cancel)" : "Press a button (Start: cancel)")
-                                 : Pad ? "A: change  X: clear" : "Enter: change  Bksp: clear";
+        string hint;
+        if (_ms < _resetShownUntil) hint = "Defaults restored";
+        else if (_capturing) hint = device == BindingDevice.Keyboard ? "Press a key (Esc: cancel)" : "Press a button (Start: cancel)";
+        else hint = Pad ? "A: change  X: clear" : "Enter: change  Bksp: clear";
+        if (g.Metrics.StringWidth(hint, FontKind.Small) > w)           // the 128 px screen of game 2 is narrower than the hint
+            hint = _capturing ? (device == BindingDevice.Keyboard ? "Press a key" : "Press a button") : Pad ? "A: set  X: clear" : "Enter: set  Bksp: clear";
         DrawShadowed(g, hint, x, y + h - g.Metrics.Height(FontKind.Small) + 1, FontKind.Small, 0xFFE060, 0);
     }
 

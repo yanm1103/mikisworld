@@ -11,6 +11,8 @@ internal static class LogConsole
     public static bool Enabled { get; private set; }
 
     [DllImport("kernel32.dll")] private static extern IntPtr GetStdHandle(int which);
+    [DllImport("kernel32.dll")] private static extern uint GetFileType(IntPtr handle);
+    private const uint FileTypeDisk = 1, FileTypePipe = 3;
     [DllImport("kernel32.dll")] private static extern bool SetStdHandle(int which, IntPtr handle);
     [DllImport("kernel32.dll")] private static extern bool AttachConsole(int pid);
     [DllImport("kernel32.dll")] private static extern bool AllocConsole();
@@ -35,7 +37,7 @@ internal static class LogConsole
         if (!OperatingSystem.IsWindows()) return;
         try
         {
-            if (on) EnsureConsole(); else ReleaseConsole();
+            if (on) { EnsureConsole(); Console.WriteLine("[mikis] logs on"); } else ReleaseConsole();
         }
         catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException or IOException) { Enabled = false; }
     }
@@ -43,8 +45,11 @@ internal static class LogConsole
     private static void EnsureConsole()
     {
         if (_consoleReady) return;
-        // output already redirected (a pipe or a file): nothing to do. Otherwise find a console to write to.
-        if (Missing(GetStdHandle(-11)))
+        // Output redirected to a pipe or a file: nothing to do. Anything else (no handle, or a console handle inherited from the
+        // launcher, which a windowed program is not attached to and so cannot write to) needs a real console: the one of the
+        // parent (cmd, dotnet run) or a new window.
+        uint type = Missing(GetStdHandle(-11)) ? 0 : GetFileType(GetStdHandle(-11));
+        if (type != FileTypePipe && type != FileTypeDisk)
         {
             if (!AttachConsole(-1)) AllocConsole();
             const uint GenericWrite = 0x40000000, ShareReadWrite = 3, OpenExisting = 3;

@@ -459,6 +459,9 @@ internal static class AppTest
             for (int i2 = 0; i2 < 5; i2++) Tap(app, Down);             // row 7 = Defaults
             Tap(app, Fire);
             Check(bind.Get(BindingDevice.Keyboard, GameAction.Left, 0) == "Left" && bind.Get(BindingDevice.Keyboard, GameAction.Jump, 0) == "Up", "Defaults restores the keyboard bindings");
+            Check(app.DebugDefaultsNotice, "...and says so for a moment");
+            for (int i2 = 0; i2 < 100; i2++) app.Update(20);
+            Check(!app.DebugDefaultsNotice, "...then the notice goes away");
             app.Back();
             Check(app.DebugScreen == "Options", "Esc returns to the options");
             Tap(app, Down);
