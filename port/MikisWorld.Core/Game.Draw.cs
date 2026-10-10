@@ -4,10 +4,7 @@ namespace MikisWorld.Core;
 /// Draws a 176x144 frame onto a <see cref="Canvas"/>; text is emitted as <see cref="TextCommand"/>s.</summary>
 public sealed partial class Game
 {
-    private bool _render;
-    private Bitmap _imgTiles, _imgSky, _imgClouds, _imgLord, _imgPlayer, _imgItems, _imgNumbers, _imgTime,
-                   _imgDamage, _imgGameOver, _imgEnd, _imgSymbols, _imgGrid, _imgBonus, _imgCursor,
-                   _snapshot, _barLeft, _barRight;
+    private Bitmap _imgTiles, _imgSky, _imgClouds, _imgSymbols;
 
     /// <summary>Loads the sprite sheets so <see cref="Draw"/> can be used. Logic-only users (tests) can skip this.</summary>
     public void EnableRendering()
@@ -48,15 +45,6 @@ public sealed partial class Game
             gr.DrawImage(_imgBonus, -off, y, Canvas.Left | Canvas.Top);
         }
         _render = true;
-    }
-
-    private const int TL = Canvas.Left | Canvas.Top;
-    private const int BL = Canvas.Left | Canvas.Bottom;
-
-    partial void SnapshotScene()
-    {
-        if (!_render) return;
-        DrawScene(new Canvas(_snapshot));
     }
 
     /// <summary>Original d.a(Graphics): the whole frame for the current state.</summary>
@@ -117,7 +105,7 @@ public sealed partial class Game
     }
 
     // ------------------------------------------------------------------ world scene (original d.cfr_renamed_6(Graphics))
-    private void DrawScene(Canvas g)
+    protected override void DrawScene(Canvas g)
     {
         int W = Layout.ScreenW, H = Layout.ScreenH;
         g.SetClip(0, 0, W, H);
@@ -395,23 +383,6 @@ public sealed partial class Game
         g.DrawString(text, W / 2, y, Canvas.Bottom | Canvas.HCenter);
     }
 
-    // original d.a(Graphics,int,int,Image,int,int,int,boolean): right-aligned number made of sprite digits
-    private void DrawCounter(Canvas g, int x, int y, Bitmap digits, int digitW, int count, int value, bool lastIsIcon)
-    {
-        x += (count - 1) * digitW;
-        for (int i = 0; i < count; i++)
-        {
-            int d = value % 10;
-            value /= 10;
-            if (i == count - 1 && lastIsIcon) d = 10;
-            g.SetClip(0, 0, Layout.ScreenW, Layout.ScreenH);
-            g.ClipRect(x, y, digitW, digits.Height);
-            g.DrawImage(digits, x - d * digitW, y, TL);
-            x -= digitW;
-            if (!lastIsIcon && value == 0) break;
-        }
-    }
-
     // original a.a(Graphics, ...): visible part of the tile map at camera (camX, camY)
     private void DrawTileLayer(Canvas g, int x, int y, int viewW, int viewH, int camX, int camY)
     {
@@ -513,19 +484,6 @@ public sealed partial class Game
             g.SetClip(x, y, _imgGameOver.Width, _imgGameOver.Height / 2);
             g.DrawImage(_imgGameOver, x, y, TL);
         }
-    }
-
-    // original d.a(Graphics,int,int,int): orbs of a resting cell (bit 3 selects the CPU colour)
-    private void DrawCellOrbs(Canvas g, int x, int y, int value)
-    {
-        x += 2; y += 2;
-        int w = Layout.OrbW, h = Layout.OrbH;
-        int colour = 0;
-        if ((value & 8) != 0) { colour = w; value &= 7; }
-        if (value > 0) { g.SetClip(x, y, w, h); g.DrawImage(_imgBonus, x - colour, y, TL); }
-        if (value > 1) { g.SetClip(x + w, y, w, h); g.DrawImage(_imgBonus, x + w - colour, y, TL); }
-        if (value > 2) { g.SetClip(x, y + h, w, h); g.DrawImage(_imgBonus, x - colour, y + h, TL); }
-        if (value > 3) { g.SetClip(x + w, y + h, w, h); g.DrawImage(_imgBonus, x + w - colour, y + h, TL); }
     }
 
     // original d.a(Graphics,int,int,int,int,int,int): four orbs flying out of an exploding cell

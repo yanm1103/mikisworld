@@ -5,7 +5,7 @@ public sealed partial class Game
     // Original d.c(): reset run state and load level.bin.
     private bool _levelLoaded;        // debug only: the original sets a0/aw inside c()
 
-    private void LoadLevel()
+    protected override void LoadLevel()
     {
         _levelLoaded = true;
         _gameOverTimer = 0;

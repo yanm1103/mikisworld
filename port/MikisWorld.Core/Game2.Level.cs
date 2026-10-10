@@ -3,7 +3,7 @@ namespace MikisWorld.Core;
 public sealed partial class Game2
 {
     // Original c.e(): reset the run and load level.bin.
-    private void LoadLevel()
+    protected override void LoadLevel()
     {
         _damageFreed = false;
         _gameOverTimer = 0;
@@ -190,49 +190,8 @@ public sealed partial class Game2
         }
     }
 
-    // Original c.R1(int,int)
-    private void UpdateVisibleWindow(int top, int bottom)
-    {
-        if (_animTiles[_animFirst + 1] * _tileH < top)
-        {
-            while (_animFirst < _animTiles.Length - 3)
-            {
-                if (_animTiles[_animFirst + 1] * _tileH < top) { _animFirst += 3; continue; }
-                break;
-            }
-        }
-        else if (_animTiles[_animFirst + 1] * _tileH > top)
-        {
-            while (_animFirst > 0)
-            {
-                if (_animTiles[_animFirst + 1] * _tileH >= top) { _animFirst -= 3; continue; }
-                break;
-            }
-        }
-        if (top > _platforms[_visFirst][1])
-        {
-            for (int i = _visFirst; i < _platforms.Length; i++)
-                if (_platforms[i][1] >= top) { _visFirst = i; break; }
-            int end = -1;
-            for (int i = _visFirst; i < _platforms.Length; i++)
-                if (_platforms[i][1] >= bottom) { end = i; break; }
-            if (end == -1) end = _platforms.Length;
-            _visCount = end - _visFirst;
-        }
-        else if (_visFirst < _platforms.Length)
-        {
-            for (int i = _visFirst; i >= 0; i--)
-                if (_platforms[i][1] < top || i == 0) { _visFirst = i; break; }
-            int end = -1;
-            for (int i = _visFirst; i < _platforms.Length; i++)
-                if (_platforms[i][1] >= bottom) { end = i; break; }
-            if (end == -1) end = _platforms.Length;
-            _visCount = end - _visFirst;
-        }
-    }
-
     /// <summary>Original c.R10(int): -2/-1 cutscenes, 0 main, 1 final stage, 2+ sub-areas (portals).</summary>
-    public void EnterArea(int n)
+    public override void EnterArea(int n)
     {
         bool placeCamera = true;
         if (n < 0)

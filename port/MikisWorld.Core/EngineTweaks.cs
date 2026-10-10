@@ -40,7 +40,7 @@ public sealed class EngineTweaks
 }
 
 /// <summary>Which direction keys are physically held, by key code, so releasing one key only releases that key.</summary>
-internal sealed class HeldDirections
+public sealed class HeldDirections
 {
     private readonly HashSet<int> _left = new(), _right = new();
     private int _last;                                   // -1 / +1: direction of the most recent press

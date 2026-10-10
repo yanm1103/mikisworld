@@ -38,118 +38,22 @@ public static class Tile
 /// Deliberately a literal translation: same integer arithmetic, same evaluation order, same use of the RNG,
 /// so it can be diffed tick-by-tick against traces taken from the original bytecode.
 /// </summary>
-public sealed partial class Game : IMikisGame
+public sealed partial class Game : GameBase, IMikisGame
 {
-    // ---------------------------------------------------------------- environment
-    private readonly IAssets _assets;
-    private readonly IGameHost _host;
-    private JavaRandom _rng;
     public CutscenePlayer Cutscene { get; private set; }
-
-    // ---------------------------------------------------------------- scale / constants
-    private readonly int _tileW = Layout.TileW, _tileH = Layout.TileH;
-    private readonly int _scaleX, _scaleY;          // cl, ck: file coordinates are multiplied by scale/16
-    private readonly int _playerW = Layout.PlayerW;
-    private readonly int _playerH;                  // player.png height
-    private readonly int _hitHalfW;                 // half width of the player's hit box
-    private readonly int _walkSpeed, _airSpeed, _fallSpeed;   // be/cr/bO
-    private readonly int[] _jumpTable = { 67, 64, 58, 48, 36, 23, 7, -7, -23, -36, -48, -58, -64, -67 };
-    private readonly int _itemW, _itemH;            // one frame of items.png
-    private readonly int _lordH;                    // lord.png height
-    private readonly int _hitFxDx, _hitFxDy;
+    public GameStrings Strings { get; }
 
     // collision flags per tile id (see TileCollision): 22 = one-way platform, 1 = solid, 0 = free
     private readonly int[] _tileFlags = { 0, 0, 22, 22, 22, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22 };
 
-    // cheat code: 7 7 7 7 3 3 2 2 2 7 7 7 3 3 8
-    private readonly int[] _cheat = { 55, 55, 55, 55, 51, 51, 50, 50, 50, 55, 55, 55, 51, 51, 56 };
-    private readonly int[] _typed;
-    private int _typedPos;
-
-    // ---------------------------------------------------------------- level data (level.bin)
-    private TileLayer _map = new TileLayer();
-    private readonly TileCollision _collision = new TileCollision();
-    private short _lord1Platform, _lord2Platform;
-    private int _lord1Release, _lord2Release;       // 3 platform indices, 10 bits each
-    private short _lord1X, _lord1Y, _lord2X, _lord2Y, _finalLordX, _finalLordY;
-    private short _startMainX, _startMainY, _startFinalX, _startFinalY;     // fixed point (<<4)
-    private short[] _subAreaX, _subAreaY;                                   // fixed point (<<4)
-    private short _mainBottomRow, _subBottomRow;
-    private short[] _subAreaRows;
-    private short[] _finalBlockCells;               // cells that get ledges in the final stage (one pair per freed bird)
     private short[] _finalBirdCells;                // cages of the final stage
-    private short _totalCoins = 55;
-    private short _gateX, _gateY;
-    private short[][] _platforms;                   // {x, y, widthInTiles, flags}
-    private short[] _platformX;                     // current x (moving platforms)
-    private short[] _portalCells;                   // map indices of portal tiles
-    private short[] _animTiles;                     // x, y, phase triplets of animated tiles (coins/portals)
-    private int _animFirst;
-
-    // ---------------------------------------------------------------- run state
-    private readonly byte[] _save = { 0 };          // [0] = bonus game unlocked
-    public bool BonusUnlocked { get => _save[0] == 1; set => _save[0] = (byte)(value ? 1 : 0); }
-    private int _state;                              // State.*
-    private int _returnState;                        // state to go back to after a wipe
-    private sbyte _area;                             // Area.*
-    private sbyte _nextArea;
-    private int _accum;                              // ms accumulator for the 20 ms logic step
-    private int _frame;                              // frame counter b1
-    private bool _quit;                              // wants to leave to the title screen
-    private bool _running;
-    private int _coins, _lives, _birds, _finalDoor;
-    private int _stage;                              // lord stage cO (0 none, 1 first done, 2 second active, 3 done)
-    private int _stageStart;                         // frame when the lord event started
-    private bool _keyTaken;
-    private int _gameOverTimer;                      // bU
-    private int _finalTimer;                 // cQ (ms), final-stage countdown
-    private int _hintTimer, _bonusMsgTimer;          // bf, bn
-    private int _interact;                      // W: interactable under the player (-1 none, 65535 gate, else portal cell)
-    private bool _interactPressed;                   // s
-    private bool _skipPressed;                       // cS
-    private int _lordAnim;                           // bQ
-
-    // player
-    private int _px, _py;                            // fixed point (<<4): left x, feet y
-    private int _savedPx = -1, _savedPy = -1;
-    private int _motion;                             // n: 0 idle, 1/2 walk L/R, 3/5 jump diag L/R, 4 jump up, 6 falling
-    private int _jumpStep, _sprite;                  // bp, cv
-    private bool _airControl;                        // cn
-    private int _inputX, _inputJump;                 // bS (-2/0/2), bR (-1/0)
-    private readonly HeldDirections _held = new();   // revamped movement: directions really held
-    private int _jumpBuffer, _jumpSub, _lastCase, _airDir;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
-    private int _standingOn = -1;                    // aQ platform index
-
-    // camera
-    private int _camX, _camY, _camMaxX, _camMinY, _camMaxY;
-    private bool _scrollLockX, _scrollLockY;
-    private int _outerX, _outerY, _innerX, _innerY;   // scroll triggers: bV, bN (outer), cd, bY (inner)
-    private readonly int _scrollStepX = 1, _scrollStepY = 2;
-
-    // lord actors
-    private short _lordX, _lordY;                    // ao, an
-    private int _lordFrame;                          // T
-
-    // projectiles (3) and hit effects
-    private short[] _projPos = new short[6];
-    private sbyte[] _projDir = new sbyte[3];
-    private sbyte[] _projState = new sbyte[3];       // -1 none, 0 falling, 1 bouncing sideways
+    private int _birds, _finalDoor;
     private short[] _hitFxPos = new short[6];
     private int[] _hitFxStart = new int[3];
-    private int _nextProj;
+    private int _birdFxX = -1, _birdFxY = -1;       // bird released animation
 
-    // bird released animation
-    private int _birdFxX = -1, _birdFxY = -1;
-
-    // visible platform window
-    private int _visFirst, _visCount;
-
-    public Game(IAssets assets, IGameHost host, long seed)
+    public Game(IAssets assets, IGameHost host, long seed) : base(assets, host, seed, GameLayout.One)
     {
-        _assets = assets;
-        _host = host ?? new NullHost();
-        _rng = new JavaRandom(seed);
-
         var player = assets.ImageSize("player.png");
         var items = assets.ImageSize("items.png");
         var damage = assets.ImageSize("damage.png");
@@ -167,30 +71,21 @@ public sealed partial class Game : IMikisGame
         _airSpeed = 1 * _scaleX * 90 / 100;
         _walkSpeed = 2 * _scaleX * 90 / 100;
         _fallSpeed = 2 * _scaleY;
+        _totalCoins = 55;
+        _collision = new TileCollision();
 
         Strings = GameStrings.Load(assets);
         Cutscene = new CutscenePlayer(assets, _host, _scaleX, _scaleY, Strings.Count - 16);
 
+        // cheat code: 7 7 7 7 3 3 2 2 2 7 7 7 3 3 8
+        _cheat = new[] { 55, 55, 55, 55, 51, 51, 50, 50, 50, 55, 55, 55, 51, 51, 56 };
         _typed = new int[_cheat.Length];
         _typedPos = 0;
     }
 
-    public GameStrings Strings { get; }
-
-    /// <summary>Optional departures from the original engine (all off by default).</summary>
-    public EngineTweaks Tweaks { get; } = new();
-    private const int JumpBufferTicks = 5;
-
-    /// <summary>Forget which keys are held (the frontend stops delivering key events, e.g. while a menu is open).</summary>
-    public void ReleaseAll() { _held.Clear(); _jumpBuffer = 0; }
-
-    // ---- IMikisGame
-    public int ScreenWidth => Layout.ScreenW;
-    public int ScreenHeight => Layout.ScreenH;
+    protected override void LoadCutscene(string name) => Cutscene.Load(name);
     public void Update(int dt, int totalMs) => Update(dt);
     public void ChooseModeIndex(int i) => ChooseMode(i);
-
-    public void Reseed(long seed) { _rng = new JavaRandom(seed); }
 
     // ---------------------------------------------------------------- lifecycle
     /// <summary>Original goto(): start (or restart) the game.</summary>
@@ -205,75 +100,9 @@ public sealed partial class Game : IMikisGame
         }
         else
         {
-            LoadLevel();
-            _skipPressed = false;
-            Cutscene.Load("begin.bin");
-            EnterArea(-1);
+            BeginIntro();
         }
     }
 
-    public bool IsRunning => _running;
-    public bool WantsQuit => _quit;
-
-    // ---------------------------------------------------------------- input
-    /// <summary>Original a(int key, int action). <paramref name="key"/> is a MIDP key code (49='1'…, 53='5'), <paramref name="action"/> a game action (UP=1, LEFT=2, RIGHT=5, DOWN=6, FIRE=8).</summary>
-    public void KeyPressed(int key, int action)
-    {
-        if (_state == State.Cutscene)
-        {
-            if (key == 53 || action == 8) _skipPressed = true;
-            return;
-        }
-        if (_state == State.Ending && (key == 53 || action == 8))
-        {
-            if (_gameOverTimer < 7000) _gameOverTimer = 7000;
-            else { _running = false; _quit = true; }
-            return;
-        }
-        _typed[_typedPos] = key;
-        int p = _typedPos, k = _cheat.Length - 1;
-        while (k >= 0 && _typed[p] == _cheat[k])
-        {
-            p = (p + _typed.Length - 1) % _typed.Length;
-            k--;
-        }
-        _typedPos++;
-        _typedPos %= _typed.Length;
-        if (k == -1)
-        {
-            _save[0] = 1;
-            _bonusMsgTimer = 2000;
-        }
-        if (_state >= State.ModeMenu && _state <= State.BonusAiMoving) BonusKey(key, action);
-
-        _held.Press(key, action);
-        if (key == 51 || key == 49 || key == 50 || action == 1) _jumpBuffer = JumpBufferTicks;
-        if (key == 51) { _inputJump = -1; _inputX = 2; }
-        else if (key == 54 || action == 5) _inputX = 2;
-        else if (key == 49) { _inputJump = -1; _inputX = -2; }
-        else if (key == 52 || action == 2) _inputX = -2;
-        else if (key == 50 || action == 1) _inputJump = -1;
-        else if ((key == 56 || action == 6) && _interact != -1 && !(Tweaks.RevampedMovement && (_state == State.WipeIn || _state == State.WipeOut))) _interactPressed = true;
-    }
-
-    /// <summary>Original cfr_renamed_3(int,int): any key release stops all input.</summary>
-    public void KeyReleased(int key, int action)
-    {
-        _held.Release(key);
-        _inputX = 0;
-        _inputJump = 0;
-    }
-
-    // ---------------------------------------------------------------- read-only state (used by renderer and tests)
-    public int CurrentState => _state;
-    public int CurrentArea => _area;
-    public int Coins => _coins;
-    public int TotalCoins => _totalCoins;
-    public int Lives => _lives;
-    public int Frame => _frame;
-    public bool IsBonusMode => _state >= State.ModeMenu && _state <= State.BonusAiMoving;
-
-    /// <summary>Score value for the hall of fame (original: coins collected).</summary>
-    public int Score => _coins;
     public bool GameWon => _coins == _totalCoins || BonusUnlocked;
 }

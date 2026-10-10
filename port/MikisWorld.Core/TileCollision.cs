@@ -2,7 +2,7 @@ namespace MikisWorld.Core;
 
 /// <summary>Swept tile collision, one axis at a time (original class <c>f</c>).
 /// All coordinates are fixed point with <see cref="Shift"/> fractional bits except tile sizes.</summary>
-public sealed class TileCollision
+public sealed class TileCollision : ITileCollision
 {
     private int[] _map; private int _mapW, _mapH, _tileW, _tileH; private int[] _flags;
     public int Shift { get; private set; }

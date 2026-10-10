@@ -5,38 +5,39 @@ namespace MikisWorld.Core;
 /// A cell explodes when its count equals its neighbour count (corner 2, edge 3, inside 4), pushing one orb
 /// into each neighbour (taking ownership); whoever loses all orbs loses.
 /// </summary>
-public sealed partial class Game2
+public abstract partial class GameBase
 {
     public const int BoardW = 5, BoardH = 4;
 
-    private bool _bonusInitialised;                 // Board is null in the original until the minigame starts
+    protected bool _bonusInitialised;                 // Board is null in the original until the minigame starts
     public byte[] Board = new byte[20];             // cB
-    private byte[] _simBoard = new byte[20];        // bC (AI scratch board; contents persist between turns, as in the original)
-    private byte[] _queue = new byte[40];           // R: circular queue of cells to test for explosion
-    private int _queueHead, _queueTail;             // ad, u
+    protected byte[] _simBoard = new byte[20];        // bC (AI scratch board; contents persist between turns, as in the original)
+    protected byte[] _queue = new byte[40];           // R: circular queue of cells to test for explosion
+    protected int _queueHead, _queueTail;             // ad, u
     public int Turn;                                // t: 0 player, 1 CPU
     public int CursorX, CursorY;                    // cJ, cH
     public bool CursorValid = true;                 // cq
-    private int _pickX = -1, _pickY = -1;           // aU, aT: cell chosen by the player this tick
+    protected int _pickX = -1, _pickY = -1;           // aU, aT: cell chosen by the player this tick
     public int AnimProgress;                        // aV: 0..10 explosion animation
-    private int _animStart;                         // p
+    protected int _animStart;                         // p
     public int ExplodingCell;                       // bw
     public int PlayerOrbs, CpuOrbs;                 // O, N
     public int Winner;                              // aC: 0 none, 1 player, 2 CPU
-    private int _cpuX, _cpuY;                       // cf, ce
+    protected int _cpuX, _cpuY;                       // cf, ce
     public int BarLeft, BarLeftTarget, BarRight, BarRightTarget;   // c6, bg, cp, al
-    private int _pendingMode;                       // ci: 1 = main game, 2 = bonus, chosen in the mode menu
-    private int[] _preferred;                       // bB: fallback cells for the AI (corners, then edges)
+    protected int _pendingMode;                       // ci: 1 = main game, 2 = bonus, chosen in the mode menu
+    protected int[] _preferred;                       // bB: fallback cells for the AI (corners, then edges)
+
+    /// <summary>Hook: game 2 recomputes the item size here (original l()).</summary>
+    protected virtual void OnInitBonus() { }
 
     /// <summary>Called by the UI when the player picks an entry of the "Select game" list (0 = main game, 1 = bonus game).</summary>
     public void ChooseMode(int index) { _pendingMode = index == 0 ? 1 : 2; }
 
     // Original d.i(): set up a fresh bonus game
-    private void InitBonus()
+    protected void InitBonus()
     {
-        var items = _assets.ImageSize("items.png");   // original l(): b9 / da are (re)computed here
-        _itemW = items.Width / 5;
-        _itemH = items.Height;
+        OnInitBonus();
         _pendingMode = 0;
         _bonusInitialised = true;
         Turn = 0;
@@ -51,7 +52,7 @@ public sealed partial class Game2
         _simBoard = new byte[20];
         _queue = new byte[40];
         _queueHead = 0; _queueTail = 0;
-        BarLeft = BarLeftTarget = BarRight = BarRightTarget = Layout2.ScreenH / 2;
+        BarLeft = BarLeftTarget = BarRight = BarRightTarget = L.ScreenH / 2;
         Winner = 0;
         _preferred = new int[28];
         _preferred[0] = 0; _preferred[1] = 0;
@@ -78,7 +79,7 @@ public sealed partial class Game2
     }
 
     // Original d.int(int,int): cursor movement / placing an orb
-    private void BonusKey(int key, int action)
+    protected void BonusKey(int key, int action)
     {
         if (_state != State.BonusPlayerTurn) return;
         if (Winner != 0) return;
@@ -94,21 +95,18 @@ public sealed partial class Game2
     }
 
     // Original d.m(): can the player put an orb on the cursor cell?
-    private void UpdateCursorValid()
+    protected void UpdateCursorValid()
     {
         int n = CursorX + CursorY * 5;
         CursorValid = Board[n] == 0 || Turn == 0 && (Board[n] & 8) == 0 || Turn == 1 && (Board[n] & 8) != 0;
     }
 
     // Original d.char(int,int): logic step of states 21-25
-    private void BonusTick(int dtMs)
+    protected void BonusTick(int dtMs)
     {
         if (_pendingMode == 1)
         {
-            LoadLevel();
-            _skipPressed = false;
-            Cutscene.Load("begin.bin");
-            EnterArea(-1);
+            BeginIntro();
             _pendingMode = 0;
         }
         else if (_pendingMode == 2)
@@ -208,7 +206,7 @@ public sealed partial class Game2
     }
 
     // Original d.a(byte[],int,int): the four neighbours of an exploding cell receive an orb
-    private void SpreadFrom(byte[] board, int x, int y)
+    protected void SpreadFrom(byte[] board, int x, int y)
     {
         if (x > 0) AddOrb(board, x - 1, y, Turn);
         if (x < 4) AddOrb(board, x + 1, y, Turn);
@@ -217,7 +215,7 @@ public sealed partial class Game2
     }
 
     // Original d.do(byte[]): pop queued cells until one explodes; returns it (or -1)
-    private int ProcessQueue(byte[] board)
+    protected int ProcessQueue(byte[] board)
     {
         int cell = 0;
         bool exploded = false;
@@ -233,7 +231,7 @@ public sealed partial class Game2
     }
 
     // Original d.h(): bars glide toward their targets (2 px per call, 1 px when close)
-    private void AnimateBars()
+    protected void AnimateBars()
     {
         if (BarLeft < BarLeftTarget)
         {
@@ -258,21 +256,21 @@ public sealed partial class Game2
     }
 
     // Original d.f(): bar targets reflect the orb ratio
-    private void UpdateBars()
+    protected void UpdateBars()
     {
         CountOrbs(Board);
         int total = PlayerOrbs + CpuOrbs;
         if (total != 0)
         {
-            BarLeftTarget = Layout2.ScreenH - Layout2.ScreenH * 70 * PlayerOrbs / total / 100;
-            BarRightTarget = Layout2.ScreenH - Layout2.ScreenH * 70 * CpuOrbs / total / 100;
+            BarLeftTarget = L.ScreenH - L.ScreenH * 70 * PlayerOrbs / total / 100;
+            BarRightTarget = L.ScreenH - L.ScreenH * 70 * CpuOrbs / total / 100;
             if (Winner == 2) BarLeftTarget += 30;
             else if (Winner == 1) BarRightTarget += 30;
         }
     }
 
     // Original d.g()
-    private void EndTurn()
+    protected void EndTurn()
     {
         ++Turn;
         Turn %= 2;
@@ -280,7 +278,7 @@ public sealed partial class Game2
     }
 
     // Original d.if(byte[],int,int,int): explode the cell if it reached critical mass; queue its neighbours
-    private bool TryExplode(byte[] board, int x, int y, int turn)
+    protected bool TryExplode(byte[] board, int x, int y, int turn)
     {
         int critical = 4;
         if (x == 0 || x + 1 == 5) --critical;
@@ -298,7 +296,7 @@ public sealed partial class Game2
         return false;
     }
 
-    private void Enqueue(int cell)
+    protected void Enqueue(int cell)
     {
         _queue[_queueHead] = (byte)cell;
         ++_queueHead;
@@ -306,7 +304,7 @@ public sealed partial class Game2
     }
 
     // Original d.a(byte[],int,int,int): add an orb and set the owner
-    private void AddOrb(byte[] board, int x, int y, int turn)
+    protected void AddOrb(byte[] board, int x, int y, int turn)
     {
         int cell = x + y * 5;
         int critical = 4;
@@ -318,7 +316,7 @@ public sealed partial class Game2
     }
 
     // Original d.a(byte[]): count orbs per owner into PlayerOrbs / CpuOrbs
-    private void CountOrbs(byte[] board)
+    protected void CountOrbs(byte[] board)
     {
         PlayerOrbs = 0;
         CpuOrbs = 0;
@@ -333,7 +331,7 @@ public sealed partial class Game2
 
     // Original d.null(): the CPU simulates every legal move, ranks them by resulting CPU orb count and picks
     // the best one 60% of the time (otherwise one of the top three at random).
-    private void AiThink()
+    protected void AiThink()
     {
         int roll = _rng.NextInt();            // drawn and ignored in the original (keeps the RNG sequence identical)
         _ = roll;

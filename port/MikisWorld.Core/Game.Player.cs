@@ -2,16 +2,6 @@ namespace MikisWorld.Core;
 
 public sealed partial class Game
 {
-    /// <summary>Revamped movement: in the air the held direction steers (also against the takeoff side); with no direction held the jump keeps its momentum.</summary>
-    private int AirDrift(int hx)
-    {
-        if (hx != 0)
-        {
-            _airDir = hx < 0 ? -1 : 1;
-            _sprite = hx < 0 ? 1 : 3;
-        }
-        return _airDir * _walkSpeed;
-    }
 
     // Original d.cfr_renamed_8(int,int): one logic step of the player (input, jump arc, platforms, tiles, items, hits).
     private void UpdatePlayer(int dtMs)

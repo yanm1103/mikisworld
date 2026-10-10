@@ -3,7 +3,7 @@ namespace MikisWorld.Core;
 /// <summary>Tile collision of MikisWorld 2 (original class <c>e</c>). Differs from the first game's <see cref="TileCollision"/>:
 /// the box is 1 px smaller in each axis, positions wrap around the map, scanning rows/columns wraps around the tile array,
 /// and the vertical pass uses the horizontal result (<c>x + OutDx</c>) to choose its columns.</summary>
-public sealed class TileCollision2
+public sealed class TileCollision2 : ITileCollision
 {
     private int[] _map; private int _mapW, _mapH, _tileW, _tileH; private int[] _flags;
     public int Shift { get; private set; }

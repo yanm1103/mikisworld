@@ -4,16 +4,10 @@ namespace MikisWorld.Core;
 /// <see cref="TextCommand"/>s. Frames are validated pixel-for-pixel against the original (text excluded).</summary>
 public sealed partial class Game2
 {
-    private bool _render;
     private Bitmap[] _tileImages;
-    private Bitmap _imgNumbers, _imgTime, _imgDamage, _imgGameOver, _imgLord, _imgPlayer, _imgItems, _imgEnd,
-                   _imgGrid, _imgBonus, _imgCursor, _snapshot, _barLeft, _barRight;
     private TileCache2 _cache;
     private object _bubbleLast;
     private int _bubbleCounter;
-
-    private const int TL = Canvas.Left | Canvas.Top;
-    private const int BL = Canvas.Left | Canvas.Bottom;
 
     /// <summary>Loads the sprite sheets so <see cref="Draw"/> can be used. Logic-only users (tests) can skip this.</summary>
     public void EnableRendering()
@@ -71,12 +65,6 @@ public sealed partial class Game2
         _cache?.OnTileChanged(x, y, tile);
     }
 
-    partial void SnapshotScene()
-    {
-        if (!_render) return;
-        DrawScene(new Canvas(_snapshot));
-    }
-
     /// <summary>Original c.a(Graphics).</summary>
     public bool Draw(Canvas g)
     {
@@ -121,7 +109,7 @@ public sealed partial class Game2
             g.DrawImage(_tileImages[Tile2.Cloud], x, H - 1, BL);
     }
 
-    private void DrawScene(Canvas g)
+    protected override void DrawScene(Canvas g)
     {
         int W = Layout2.ScreenW, H = Layout2.ScreenH;
         g.SetClip(0, 0, W, H);
@@ -402,22 +390,6 @@ public sealed partial class Game2
         g.DrawString(text, cx, by, Canvas.Bottom | Canvas.HCenter);
     }
 
-    private void DrawCounter(Canvas g, int x, int y, Bitmap digits, int digitW, int count, int value, bool lastIsIcon)
-    {
-        x += (count - 1) * digitW;
-        for (int i = 0; i < count; i++)
-        {
-            int d = value % 10;
-            value /= 10;
-            if (i == count - 1 && lastIsIcon) d = 10;
-            g.SetClip(0, 0, Layout2.ScreenW, Layout2.ScreenH);
-            g.ClipRect(x, y, digitW, digits.Height);
-            g.DrawImage(digits, x - d * digitW, y, TL);
-            x -= digitW;
-            if (!lastIsIcon && value == 0) break;
-        }
-    }
-
     // ------------------------------------------------------------------ bonus minigame (original c.R4(Graphics))
     private void DrawBonus(Canvas g)
     {
@@ -485,18 +457,6 @@ public sealed partial class Game2
             g.SetClip(x, y, _imgGameOver.Width, _imgGameOver.Height / 2);
             g.DrawImage(_imgGameOver, x, y, TL);
         }
-    }
-
-    private void DrawCellOrbs(Canvas g, int x, int y, int value)
-    {
-        x += 2; y += 2;
-        int w = Layout2.OrbW, h = Layout2.OrbH;
-        int colour = 0;
-        if ((value & 8) != 0) { colour = w; value &= 7; }
-        if (value > 0) { g.SetClip(x, y, w, h); g.DrawImage(_imgBonus, x - colour, y, TL); }
-        if (value > 1) { g.SetClip(x + w, y, w, h); g.DrawImage(_imgBonus, x + w - colour, y, TL); }
-        if (value > 2) { g.SetClip(x, y + h, w, h); g.DrawImage(_imgBonus, x - colour, y + h, TL); }
-        if (value > 3) { g.SetClip(x + w, y + h, w, h); g.DrawImage(_imgBonus, x + w - colour, y + h, TL); }
     }
 
     private void DrawExplosion(Canvas g, int gx, int gy, int cellX, int cellY, int owner, int progress)

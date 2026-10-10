@@ -2,7 +2,6 @@ namespace MikisWorld.Core;
 
 public sealed partial class Game2
 {
-    partial void SnapshotScene();
 
     // ------------------------------------------------------------------ main logic step (original c.do(int,int))
     /// <summary>Advances the game. <paramref name="dt"/> = elapsed ms; <paramref name="totalMs"/> = accumulated game time
@@ -226,11 +225,6 @@ public sealed partial class Game2
         }
     }
 
-    private void ReleasePlatform(int index)
-    {
-        if (index != 0) _platforms[index][3] = (short)(_platforms[index][3] & 0xFFFE);
-    }
-
     private void UpdateGameOver(int n)
     {
         _frame++;
@@ -258,79 +252,6 @@ public sealed partial class Game2
         }
     }
 
-    private void UpdateCamera(int px, int py, int camX, int camY, int viewW, int viewH)
-    {
-        if (!_scrollLockX) _scrollLockX = px - camX < _outerX || camX + viewW - px < _outerX + _tileW;
-        if (!_scrollLockY) _scrollLockY = py - camY < _outerY || camY + viewH - py < _outerY + _tileH;
-        if (_scrollLockX)
-        {
-            if (px - camX >= _innerX && camX + viewW - px >= _innerX) _scrollLockX = false;
-            else if (px - camX < _innerX / 3) _camX = px - _innerX / 3;
-            else if (camX + viewW - px < _innerX / 3) _camX = px + _innerX / 3 - viewW;
-            else if (px - camX < _innerX) _camX -= _scrollStepX;
-            else if (camX + viewW - px < _innerX) _camX += _scrollStepX;
-        }
-        if (_scrollLockY)
-        {
-            if (py - camY >= _innerY && camY + viewH - py >= _innerY) _scrollLockY = false;
-            else if (py - camY < _innerY / 3) _camY = py - _innerY / 3;
-            else if (camY + viewH - py < _innerY / 3) _camY = py + _innerY / 3 - viewH;
-            else if (py - camY < _innerY) _camY -= _scrollStepY;
-            else if (camY + viewH - py < _innerY) _camY += _scrollStepY;
-        }
-        if (_camX < 0) { _camX = 0; _scrollLockX = false; }
-        else if (_camX > _camMaxX) { _camX = _camMaxX; _scrollLockX = false; }
-        if (_camY < _camMinY) { _camY = _camMinY; _scrollLockY = false; }
-        else if (_camY > _camMaxY) { _camY = _camMaxY; _scrollLockY = false; }
-    }
-
-    private static int SweepOverlap(int a0, int a1, int pos, int delta, int p0, int p1, int edge)
-    {
-        if (a0 >= p0 && a0 <= p1 || a1 >= p0 && a1 <= p1 || a0 <= p0 && a1 >= p1)
-        {
-            int end = pos + delta;
-            int lo = pos;
-            if (end < lo) { int t = lo; lo = end; end = t; }
-            if (edge >= lo && edge <= end)
-            {
-                if (delta > 0) return edge - lo;
-                return edge - end;
-            }
-        }
-        return delta;
-    }
-
-    private void UpdateMovingPlatforms()
-    {
-        for (int i = _visFirst; i < _visFirst + _visCount; i++)
-        {
-            short f = _platforms[i][3];
-            if ((f & 6) == 2 || (f & 6) == 4)
-            {
-                int range = ((f & 0x38) >> 3) * _tileW;
-                int speed = ((f & 0xC0) >> 6) + 1;
-                speed = speed * _scaleX >> 4;
-                int pos;
-                if (range == 0)
-                {
-                    range = _map.Width + _platforms[i][2];
-                    range *= _tileW;
-                    if ((f & 6) == 2) pos = (_frame * speed / 4 + _platforms[i][0] + _platforms[i][2] * _tileW) % range;
-                    else pos = (_platforms[i][0] + range - _frame * speed / 4 % range) % range;
-                    pos -= _platforms[i][2] * _tileW;
-                    _platformX[i] = (short)pos;
-                }
-                else
-                {
-                    pos = _frame * speed / 4 % (range * 2);
-                    if (pos > range) pos = range - (pos - range);
-                    if ((f & 6) == 2) _platformX[i] = (short)(_platforms[i][0] + pos);
-                    else if ((f & 6) == 4) _platformX[i] = (short)(_platforms[i][0] - pos);
-                }
-            }
-        }
-    }
-
     // Original c.i(): the four floating rainbow sprites rise until they leave the screen
     private void UpdateRainbowFx()
     {
@@ -344,85 +265,4 @@ public sealed partial class Game2
         }
     }
 
-    private void UpdateProjectiles()
-    {
-        int limit = _camY + Layout2.ScreenH * 3 / 2;
-        int bw = _itemW, bh = _itemH;
-        for (int i = 0; i < 3; i++)
-        {
-            if (_projState[i] == -1) continue;
-            bool blocked = false;
-            short px = _projPos[i * 2];
-            int right = px + bw;
-            short py = _projPos[i * 2 + 1];
-            if (_projPos[i * 2 + 1] > limit)
-            {
-                _projState[i] = -1;
-                continue;
-            }
-            int fall = 1;
-            for (int p = _visFirst; p < _visFirst + _visCount; p++)
-            {
-                if ((_platforms[p][3] & 1) == 0)
-                {
-                    int p0 = _platformX[p];
-                    int p1 = p0 + _tileW * _platforms[p][2];
-                    short pyTop = _platforms[p][1];
-                    int r = SweepOverlap(px, right, (int)py, 2, p0, p1, (int)pyTop);
-                    if (r < 2) { blocked = true; break; }
-                }
-            }
-            if (_collision.Move(px << 4, py - bh << 4, bw << 4, bh << 4, 0, fall << 4))
-            {
-                blocked = true;
-                fall = _collision.OutDy;
-            }
-            switch (_projState[i])
-            {
-                case 0:
-                    if (!blocked)
-                    {
-                        _projPos[i * 2 + 1] = (short)(_projPos[i * 2 + 1] + fall);
-                        break;
-                    }
-                    _projState[i] = 1;
-                    _projDir[i] = (_rng.NextInt() % 2 == 0) ? (sbyte)1 : (sbyte)-1;
-                    break;
-                case 1:
-                    if (!blocked)
-                    {
-                        _projState[i] = 0;
-                        _projPos[i * 2 + 1] = (short)(_projPos[i * 2 + 1] + fall);
-                        break;
-                    }
-                    int nx = _projPos[i * 2];
-                    nx += _projDir[i];
-                    if (nx <= 0) { nx = 1; _projDir[i] = (sbyte)-_projDir[i]; }
-                    else if (nx + bw >= _map.Width * _tileW) { nx = _map.Width * _tileW - bw - 1; _projDir[i] = (sbyte)-_projDir[i]; }
-                    _projPos[i * 2] = (short)nx;
-                    break;
-            }
-        }
-    }
-
-    private void SpawnProjectile(int x, int y)
-    {
-        if (_projState[_nextProj] == -1)
-        {
-            if (x == -1)
-            {
-                _projPos[_nextProj * 2] = (short)(_rng.NextInt() % (Layout2.ViewTilesW * _tileW - 8));
-                if (_projPos[_nextProj * 2] < 0) _projPos[_nextProj * 2] = (short)-_projPos[_nextProj * 2];
-                _projPos[_nextProj * 2] = (short)(_projPos[_nextProj * 2] + _camX);
-            }
-            else
-            {
-                _projPos[_nextProj * 2] = (short)x;
-            }
-            _projPos[_nextProj * 2 + 1] = (short)y;
-            _projState[_nextProj] = 0;
-            _nextProj++;
-            _nextProj %= 3;
-        }
-    }
 }
