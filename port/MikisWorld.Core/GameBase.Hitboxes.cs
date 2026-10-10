@@ -46,6 +46,26 @@ public abstract partial class GameBase
 
     private bool InPlay => _state == State.Playing || _state == State.Lord1 || _state == State.Lord2 || _state == State.FinalStage;
 
+    /// <summary>Debug "Skip level": the world (and its sub-areas) jumps to the final stage through the normal wipe, the final stage to the ending.</summary>
+    public void DebugSkipLevel()
+    {
+        if (!InPlay) return;
+        if (_area == Area.Final)
+        {
+            _host.Play(Sfx.GameEnd);
+            _skipPressed = false;
+            LoadCutscene("end.bin");
+            EnterArea(-2);
+            return;
+        }
+        SnapshotScene();
+        _frame = 0;
+        _returnState = State.FinalStage;
+        _state = State.WipeIn;
+        _nextArea = 1;
+        _interact = -1;
+    }
+
     public void DrawHitboxes(Canvas g)
     {
         if (!Debug.ShowHitboxes || !_render || _area < 0 || !InPlay) return;

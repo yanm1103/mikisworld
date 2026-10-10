@@ -87,6 +87,8 @@ Aperte `F3` para abrir e fechar o menu de debug.
 | Invincible | nenhum dano: os acertos são ignorados (sem perder vida, sem som, sem vibração) |
 | Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida é instantaneamente restaurada |
 | Hitboxes | Permite ver o hitbox de todos os sprites nos dois jogos |
+| Unlock bonus | libera (ou trava de novo) o minigame bônus, sem precisar pegar todas as moedas; vale a partir do próximo *New game* |
+| Skip level | do mundo, vai para a fase final (pela transição normal); da fase final, vai para o final do jogo |
 
 ### Wireframe dos hitboxes
 

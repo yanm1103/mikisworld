@@ -23,6 +23,8 @@ public sealed class App
     private int _debugSel;
     /// <summary>Debug switches (F3 menu). Shared with the game.</summary>
     public DebugSettings Debug { get; } = new();
+    private bool _settingsDirty;                 // an option or a key binding changed since the options were opened
+    private int _savedUntil;                      // until when the "Saved." note is shown
     private int _resetShownUntil;                   // until when the controls screens say "Defaults restored"
     private int _ctrlRow, _ctrlCol;               // cursor of the controls screens (row 7 = "Defaults")
     private bool _capturing;                      // waiting for the next key / button to bind
@@ -72,6 +74,8 @@ public sealed class App
         _set = settings ?? new DisplaySettings();
         _save = storage.Load() ?? new SaveData();
         _host = new SettingsHost(host) { Enabled = _set.Volume > 0, VibrationAllowed = () => _set.Vibration && LastDevice == BindingDevice.Gamepad };
+        _set.Changed += () => _settingsDirty = true;
+        _bind.Changed += () => _settingsDirty = true;
         _game = createGame(_host);
         _game.BonusUnlocked = _save.BonusUnlocked;
         _game.Debug = Debug;
@@ -143,6 +147,7 @@ public sealed class App
     internal (int Sel, int Top) DebugOptionsScroll => (_optSel, _optTop);
     internal List<(int X, int Y, int W, int H)> DebugHits() => _hits.Select(h => (h.X, h.Y, h.W, h.H)).ToList();
     internal string DebugHelp() => HelpWithBindings();
+    internal bool DebugSavedNote => _ms < _savedUntil;
     internal bool DebugDefaultsNotice => _ms < _resetShownUntil;
     internal (int Row, int Col) DebugControlsCursor => (_ctrlRow, _ctrlCol);
     internal List<string> DebugOptionRows() => OptionRows().Select(r => r.Label).ToList();
@@ -342,7 +347,7 @@ public sealed class App
 
     public bool DebugPanelOpen => _debugOpen;
 
-    private sealed record DebugRow(string Label, Func<bool> On, Action Toggle);
+    private sealed record DebugRow(string Label, Func<bool> On, Action Toggle, bool Command = false);   // a command runs once and closes the panel
 
     private List<DebugRow> DebugRows()
     {
@@ -351,6 +356,13 @@ public sealed class App
             new("Invincible", () => Debug.Invincible, () => Debug.Invincible = !Debug.Invincible),
             new("Infinite lives", () => Debug.InfiniteLives, () => Debug.InfiniteLives = !Debug.InfiniteLives),
             new("Hitboxes", () => Debug.ShowHitboxes, () => Debug.ShowHitboxes = !Debug.ShowHitboxes),
+            new("Unlock bonus", () => _game.BonusUnlocked, () =>
+            {
+                _game.BonusUnlocked = !_game.BonusUnlocked;               // takes effect at the next "New game"
+                _save.BonusUnlocked = _game.BonusUnlocked;
+                _storage.Save(_save);
+            }),
+            new("Skip level", () => false, () => { if (_screen == Screen.Game) _game.DebugSkipLevel(); }, Command: true),
         };
         return rows;
     }
@@ -361,7 +373,13 @@ public sealed class App
         _debugSel = Math.Clamp(_debugSel, 0, rows.Count - 1);
         if (IsUp(key, action)) _debugSel = (_debugSel + rows.Count - 1) % rows.Count;
         else if (IsDown(key, action)) _debugSel = (_debugSel + 1) % rows.Count;
-        else if (IsSelect(key, action) || IsLeft(key, action) || IsRight(key, action)) rows[_debugSel].Toggle();
+        else if (IsSelect(key, action) || IsLeft(key, action) || IsRight(key, action)) RunDebugRow(rows[_debugSel]);
+    }
+
+    private void RunDebugRow(DebugRow row)
+    {
+        row.Toggle();
+        if (row.Command) _debugOpen = false;
     }
 
     private void DrawDebugMenu(Canvas g)
@@ -380,11 +398,11 @@ public sealed class App
             int ty = y + 5 + (i + 1) * lineH;
             bool sel = i == _debugSel;
             if (sel) { g.SetClip(0, 0, W, H); g.SetColor(160, 90, 20); g.FillRect(x + 3, ty - 1, w - 5, lineH); }
-            string value = rows[i].On() ? "on" : "off";
+            string value = rows[i].Command ? ">" : rows[i].On() ? "on" : "off";
             DrawShadowed(g, rows[i].Label, x + 8, ty, FontKind.Bold, sel ? 0xFFFFFF : 0xFFE0A0, 0);
             DrawShadowed(g, value, x + w - 8 - g.Metrics.StringWidth(value, FontKind.Bold), ty, FontKind.Bold, rows[i].On() ? 0x80FF80 : (sel ? 0xFFFFFF : 0xFFE0A0), 0);
             int idx = i;
-            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _debugSel = idx; rows[idx].Toggle(); }, () => _debugSel = idx);
+            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _debugSel = idx; RunDebugRow(rows[idx]); }, () => _debugSel = idx);
         }
     }
 
@@ -509,10 +527,12 @@ public sealed class App
         _screen = f;
         _scroll = 0;
         _menuOpen = false;
+        if (f == Screen.Options) _settingsDirty = false;
     }
 
     private void CloseForm()
     {
+        if (_screen == Screen.Options && _settingsDirty) { _savedUntil = _ms + 1800; _settingsDirty = false; }   // the options are saved as they change: say so
         _screen = _formReturn;
         _menuOpen = _formReopensMenu;
         _menuSel = 0;
@@ -608,6 +628,16 @@ public sealed class App
             case Screen.ControlsPad: DrawBackdrop(g); DrawControls(g, BindingDevice.Gamepad); break;
         }
         if (_debugOpen) DrawDebugMenu(g);
+        if (_ms < _savedUntil) DrawSavedNote(g);
+    }
+
+    private void DrawSavedNote(Canvas g)
+    {
+        const string text = "Saved.";
+        int tw = g.Metrics.StringWidth(text, FontKind.Small), th = g.Metrics.Height(FontKind.Small);
+        int w = tw + 8, h = th + 4;
+        Panel(g, W - w - 3, H - h - 3, w, h);
+        DrawShadowed(g, text, W - w - 3 + 4, H - h - 3 + 2, FontKind.Small, 0xFFFFFF, 0);
     }
 
     // original title class of the second game: black for 1 s, the splash for 2 s, black for 1 s

@@ -103,7 +103,7 @@ internal static class AppTest
         a.ToggleDebugMenu();
         Check(a.DebugPanelOpen && a.Context == App.InputContext.Menu, "F3 opens it and the controls become menu controls");
         var rows = a.DebugDebugRows();
-        Check(rows.SequenceEqual(new[] { "Invincible", "Infinite lives", "Hitboxes" }), "rows: " + string.Join("|", rows));
+        Check(rows.SequenceEqual(new[] { "Invincible", "Infinite lives", "Hitboxes", "Unlock bonus", "Skip level" }), "rows: " + string.Join("|", rows));
         a.KeyPressed(Fire, 8);
         Check(a.Debug.Invincible, "Enter on the first row switches Invincible on");
         a.KeyPressed(Down, 6); a.KeyPressed(Down, 6); a.KeyPressed(Fire, 8);
@@ -124,6 +124,25 @@ internal static class AppTest
         b.ToggleDebugMenu();
         var over = new Canvas(bmp); b.Draw(over);
         Check(gameTexts.Count > 0 && !over.Texts.Any(t => gameTexts.Contains(t.Text)), $"{name}: the game's own text ({(gameTexts.Count > 0 ? gameTexts[0] : "none found")}) does not show through the debug menu");
+
+        // "Unlock bonus" and "Skip level"
+        var (sk, _) = make();
+        Select(sk, "New game");
+        for (int i = 0; i < 3; i++) sk.Update(20);
+        for (int i = 0; i < 600 && sk.Game.CurrentState != State.Playing; i++) { sk.KeyPressed(53, 8); sk.KeyReleased(53, 8); sk.Update(20); }
+        Check(sk.Game.CurrentState == State.Playing && !sk.Game.BonusUnlocked, $"{name}: a fresh game in the world, bonus locked");
+        sk.ToggleDebugMenu();
+        for (int i = 0; i < 3; i++) sk.KeyPressed(Down, 6);
+        sk.KeyPressed(Fire, 8);
+        Check(sk.Game.BonusUnlocked && sk.DebugPanelOpen, "Unlock bonus switches the bonus game on (panel stays open)");
+        sk.KeyPressed(Down, 6); sk.KeyPressed(Fire, 8);
+        Check(!sk.DebugPanelOpen, "Skip level closes the panel");
+        for (int i = 0; i < 400 && sk.Game.CurrentState != State.FinalStage; i++) sk.Update(20);
+        Check(sk.Game.CurrentState == State.FinalStage && sk.Game.CurrentArea == Area.Final, $"{name}: Skip level from the world: the wipe leads to the final stage (state {sk.Game.CurrentState}, area {sk.Game.CurrentArea})");
+        sk.ToggleDebugMenu();
+        for (int i = 0; i < 4; i++) sk.KeyPressed(Down, 6);
+        sk.KeyPressed(Fire, 8);
+        Check(sk.Game.CurrentState == State.Cutscene && sk.Game.CurrentArea == Area.OutroCutscene, $"{name}: Skip level from the final stage: the ending (state {sk.Game.CurrentState}, area {sk.Game.CurrentArea})");
 
         // the main menu is hidden while the debug panel is open
         var menuApp = make().app;
@@ -435,6 +454,12 @@ internal static class AppTest
         Check(set.IntegerScale && !set.UsesBilinear && !app.DebugOptionRows().Contains("Filter"), "Integer scale back on -> bilinear is not used and the row disappears");
         app.Back();
         Check(app.DebugScreen == "Title" && app.DebugMenuOpen, "Back returns to the menu");
+        Check(app.DebugSavedNote, "closing the options after a change says \"Saved.\"");
+        for (int i2 = 0; i2 < 150; i2++) app.Update(20);
+        Check(!app.DebugSavedNote, "...and the note goes away");
+        Select(app, "Options");
+        app.Back();
+        Check(!app.DebugSavedNote, "closing the options without changing anything says nothing");
         app.Back();
 
         Console.WriteLine("controls: remapping keyboard keys and gamepad buttons");

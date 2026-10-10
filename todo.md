@@ -17,7 +17,7 @@
 
 ## Funcionalidades
 
-1. Adicionar opção no modo debug pra liberar o modo Bônus
+1. Adicionar opção no modo debug pra liberar o modo Bônus, adicionar opção para pular/completar fase atual
 2. No bônus, seria bom ter o mouse funcionando pra clicar na onde eu quiser colocar uma moeda/token.
 3. Eu removi o texto indicando que a configuração é salva automaticamente. Ao fechar as configurações, caso alguma config tenha sido alterada, exibir um diálogo no canto inferior direito escrito "Saved." Na tela de seleção de jogos não precisa pois não faria muito sentido.
 4. Não dá pra rebindar os botões na tela inicial.

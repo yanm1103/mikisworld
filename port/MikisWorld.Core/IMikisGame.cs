@@ -10,6 +10,7 @@ public interface IMikisGame
     bool WantsQuit { get; }
     int Score { get; }
     int CurrentState { get; }
+    int CurrentArea { get; }
     int Frame { get; }
 
     void EnableRendering();
@@ -30,6 +31,8 @@ public interface IMikisGame
     EngineTweaks Tweaks { get; }
     /// <summary>The frontend stops delivering key events (e.g. a menu opens): forget which keys are held.</summary>
     void ReleaseAll();
+    /// <summary>Debug: from the world, go to the final stage; from the final stage, go to the ending.</summary>
+    void DebugSkipLevel();
 
     /// <summary>Paints the frame; returns false when the game decided nothing changed since the last paint.</summary>
     bool Draw(Canvas g);
