@@ -1,21 +1,25 @@
-# Miki's World Collection — port para PC
+# Miki's World PC Collection (decomp + port)
 
-Port para PC dos dois jogos de celular da Sumea (2002): **Miki's World 1: The Lost Tiara** e **Miki's World 2: The Storm Master**.
-A lógica de cada jogo é a do original, traduzida literalmente e validada contra o código do celular, com menus, opções, controles de PC e gamepad.
+Port para PC dos dois jogos de celular da Sumea (2002):
+- **Miki's World 1: The Lost Tiara**
+- **Miki's World 2: The Storm Master**
 
-Port não oficial por TwistZero (github.com/yanm1103). Os jogos originais são © 2002 Sumea; este repositório
-contém apenas código novo e **não distribui os jogos**: o programa lê os recursos direto dos arquivos `.jar` que você fornece.
+A lógica de cada jogo foi 100% decompilada, traduzida literalmente e validada contra o código do celular.
+
+Esse repositório inclui tanto o decomp quanto um port de PC não oficial TwistZero (github.com/yanm1103). Os jogos originais são © 2002 Sumea; este repositório contém apenas código novo e **não distribui os jogos**.
+
+O port lê os recursos direto dos arquivos `.jar` que você fornece.
+
+# Informações do port para PC
 
 ## Como jogar
 
-1. Pegue o `MikisWorldCollection.exe` (para gerá-lo, veja "Informações técnicas" no fim desta página).
-2. Coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta chamada **`JAR`** ao lado do exe. Os **dois** são necessários; se faltar um, o programa diz qual.
-3. Abra o exe. A **tela inicial** deixa escolher o jogo (`1`/`2`, setas + `Enter`, D-pad + `A` ou clique) e já configura o que vale para os dois:
-   *Movement*, *Vibration*, *Fullscreen*, *Integer scale*, *Filter* e *Sound*. Tudo é salvo na hora.
+1. Baixe o `MikisWorldCollection.exe` na aba Releases (recomendado).  
+(ou compile você mesmo, siga as intruções técnicas no final do readme)
+2. Coloque `MikisWorld.jar` e `MikisWorld2.jar` numa pasta chamada **`JAR`** ao lado do exe. Os **dois** são necessários; se faltar um, o jogo diz qual.
+3. Abra o executável e aproveite.
 
-Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` (tamanho inicial da janela), `--no-sound` (começa sem som; o volume salvo não é alterado) e `--logs` (mostra o log do programa, para relatar problemas).
-
-## Controles
+## Controles padrão
 
 | | Teclado | Gamepad |
 |---|---|---|
@@ -26,44 +30,55 @@ Parâmetros úteis: `--game 1` ou `--game 2` (pula a tela inicial), `--scale N` 
 | Confirmar / pular cutscene | `Enter` ou `Espaço` | `Y` (nos menus e cutscenes, `A` também) |
 | Menu / pausa | `Esc` | `Start` |
 
-- **Remapear tudo:** menu → *Options* → *Keyboard keys* ou *Gamepad* (duas entradas por ação; `Backspace`/`X` limpa; *Defaults* restaura).
-- **Teclado numérico do celular:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar) e **não** são remapeáveis, porque o código secreto é digitado com eles.
+- **Remapear tudo:** menu → *Options* → *Keyboard keys* ou *Gamepad*  
+  Você pode mapear até duas entradas por ação; `Backspace`/`X` limpa; *Defaults* restaura.
+- **Teclado numérico:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar)  
+  Essas teclas **não** são remapeáveis, porque o código secreto é digitado com elas. Note que o celular é invertido, sendo que 1/2/3 são a linha de cima, enquanto no teclado, 7/8/9 é a coluna de cima.
 - **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções).
 - **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
 - **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
-- **Instruções na tela** mostram as teclas ou botões que você configurou (conforme o último dispositivo usado).
 
 ## Opções
 
-Menu → *Options* (também na tela inicial). Valem para os dois jogos.
+Menu → *Options* . As configurações alteradas se aplicam para os dois jogos.
 
 | Opção | O que faz |
 |---|---|
-| Sound | volume de 0 a 100 % (←/→, passos de 5); 0 % é mudo |
-| Fullscreen | tela cheia sem bordas (também `F11`) |
-| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` mudam o zoom). Desligado: a imagem preenche a janela |
-| Filter | só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
+| Sound | Volume de 0 a 100 % (←/→, passos de 5); 0 % é mudo |
+| Fullscreen | Tela cheia sem bordas (também pode ser alternado apertando `F11`) |
+| Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (os pixels ficam perfeitos) e a janela se ajusta a múltiplos inteiros ao redimensionar (`+`/`-` alteram o zoom da janela). Desligado: a imagem preenche a janela |
+| Filter | Só com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
 | Movement | `new` (padrão) ou `original` — veja abaixo |
-| Vibration | o **controle** vibra quando o Miki é atingido (e um pulso curto ao religar a opção) (a opção "Vibrator" do original). Só no Windows, com controles compatíveis com Xbox (ou outros via Steam Input/DS4Windows); no teclado não faz nada |
+| Vibration | O controle vibra quando o Miki é atingido (no original, o celular vibraria). Somente Xinput (ou outros via Steam Input/DS4Windows) |
 
-## O que é diferente do original
+## Melhorias sobre o original
 
-- **Movement `new`:** segurar ↑ não faz o Miki pular sem parar (cada pulo precisa de um novo aperto); a direção que você segura continua valendo depois de soltar outra tecla, então dá para mudar de lado caindo, ao pousar e **no meio de um pulo diagonal**. `original` é o jogo como era no celular, que zerava todo o movimento ao soltar qualquer tecla.
-- **Ritmo:** o celular rodava a lógica bem mais devagar que um PC. O pulo dura o dobro do tempo (mesma altura e distância), a animação de andar do Miki é duas vezes mais lenta e, no jogo 2, o **Mork anda a 2/3 da velocidade**.
-- **Dicas na tela:** "Press 8 to enter" e "(Press 5 to skip)" mostram a tecla ou o botão que você configurou (conforme o último dispositivo usado), e a mensagem "Bonus game opened!" não fica mais por cima dessas dicas.
-- **Transição de portal no jogo 2:** o original tem um bug (a imagem usada na transição tem 12×12 px), então a tela só escurecia e voltava de uma vez; agora ela desliza como no jogo 1.
-- **Menus e controles de PC:** gamepad, mouse, teclas remapeáveis, volume, tela cheia e zoom inteiro.
-- **Corrigido:** apertar "entrar no portal" várias vezes durante a transição causava uma transição dupla e podia travar o jogo (um bug do original; no `Movement: original` continua assim, de propósito).
+- **Movement `new`:** Foram feitas melhorias na movimentação do personagem para deixar o gameplay mais fluído.  
+Segurar o botão de pulo não faz o Miki pular sem parar (cada pulo precisa de um novo aperto); a direção que você segura continua valendo depois de soltar outra tecla, então dá para mudar de lado caindo, ao pousar e **no meio de um pulo diagonal**
+- **Movement `original`**: é a movimentação como era no jogo original, que zerava todo o movimento ao soltar qualquer tecla. Mantido apenas para masoquistas.
+- **Menus e controles de PC:**
+  - É possível utilizar um gamepad ou teclado
+  - É possível controlar os menus usando o mouse
+  - Todas as teclas são remapeáveis
+  - Foi adicionado um slider de volume invés de um toggle de ligado e desligado
+  - Tela cheia sem bordas, integer scaling.
+  - Menu de debug
+
+
+## Bugs do jogo original corrigidos
+-  **Spam ao entrar no portal crashava o jogo:** Apertar pra entrar no portal várias vezes durante a transição causava uma transição dupla e podia crashar o jogo (um bug do jogo original; se setar a configuração **Movement: `original`**, o bug ainda existe de propósito).
+- **Transição de portal no jogo 2:** O jogo original possuia um bug ao entrar em um portal, onde a transição acabava pela metade, então a tela só escurecia e voltava de uma vez; agora ela desliza como no primeiro jogo.
+
 
 ## Menu de debug (`F3`)
 
-`F3` abre (e fecha) um menu de debug, em qualquer tela; com ele aberto o jogo fica pausado. Nada disso é salvo: vale só para aquela execução.
+Aperte `F3` para abrir e fechar o menu de debug.
 
 | Opção | O que faz |
 |---|---|
 | Invincible | nenhum dano: os acertos são ignorados (sem perder vida, sem som, sem vibração) |
-| Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida volta na hora, então o jogo nunca acaba |
-| Hitboxes | o wireframe abaixo |
+| Infinite lives | o dano continua acontecendo (vida perdida, som, vibração, faísca), mas a vida é instantaneamente restaurada |
+| Hitboxes | Permite ver o hitbox de todos os sprites nos dois jogos |
 | Logs | liga/desliga o log do programa e do raylib (o mesmo de `--logs`; abre um console se for preciso) |
 
 ### Wireframe dos hitboxes
@@ -84,23 +99,38 @@ Menu → *Options* (também na tela inicial). Valem para os dois jogos.
 
 ## Código secreto do minigame bônus
 
-Digite durante a partida (o bônus também é liberado coletando todas as moedas):
+Colete todas as moedas, ou digite o código a seguir para liberar o modo de jogo bônus!
 
 | Jogo | Código |
 |---|---|
-| 1 | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
-| 2 | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
+| Miki's World 1: The Lost Tiara | `7 7 7 7 3 3 2 2 2 7 7 7 3 3 8` |
+| Miki's World 2: The Storm Master | `8 3 3 7 7 7 2 2 2 3 3 7 7 7 7` |
 
 ## Seus arquivos
 
 Tudo fica em `%APPDATA%/MikisWorld/`: `save.json` (jogo 1) e `save2.json` (jogo 2) com o bônus liberado e os recordes, `settings.json` com as opções, `bindings.json` com os controles remapeados.
 
-## Se o jogo travar
+## Em caso de crash
 
-A janela fica aberta com o erro: `Enter` volta à tela inicial, `C` copia o texto e `Esc` fecha. O detalhe também é gravado em `%APPDATA%/MikisWorld/crash.log`. Se for relatar o problema, rode com `--logs`.
+A janela fica aberta com o erro.
+- Pressione `Enter` para voltar à tela inicial.
+- Pressione `C` para copiar o texto do erro.
+- Pressione `Esc` para fechar.
 
+O detalhe também é gravado em `%APPDATA%/MikisWorld/crash.log`.
+
+Em caso de erro, por favor nos informe!
+
+---
 <details>
 <summary><b>Informações técnicas (para desenvolvedores)</b>: progresso, histórico, como compilar, estrutura, validação</summary>
+
+### Parâmetros úteis
+- `--game 1` ou `--game 2` (pula a tela inicial e automaticamente abre um dos dois jogos)
+- `--scale N` (tamanho inicial da janela)
+- `--no-sound` (começa sem som; o volume salvo não é alterado)
+- `--logs` (mostra o log do programa, para relatar problemas)
+
 
 ### Progresso
 

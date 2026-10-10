@@ -176,15 +176,14 @@ internal static class Launcher
             string shown = r.Game != 0 ? v : (r.Slider || i == sel ? $"< {v} >" : v);
             Text(shown, x0 + boxW - 4 - Width(shown, 10), ry + 4, 10, r.Game != 0 ? Sub : Color.White);
         }
-        Centered("Settings are shared and saved automatically.", H0 - 36, 10, Color.White);
         if (_padLast)
         {
-            Centered("D-pad: choose / change     A: select", H0 - 24, 10, Sub);
+            Centered("D-pad: choose                  A: select", H0 - 24, 10, Sub);
             Centered("Start: select     B: quit", H0 - 13, 10, Sub);
         }
         else
         {
-            Centered("Arrows: choose / change     Enter: select", H0 - 24, 10, Sub);
+            Centered("Arrows: choose                  Enter: select", H0 - 24, 10, Sub);
             Centered("1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
         }
     }
