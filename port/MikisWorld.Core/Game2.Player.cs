@@ -2,6 +2,17 @@ namespace MikisWorld.Core;
 
 public sealed partial class Game2
 {
+    /// <summary>Revamped movement: in the air the held direction steers (also against the takeoff side); with no direction held the jump keeps its momentum.</summary>
+    private int AirDrift(int hx)
+    {
+        if (hx != 0)
+        {
+            _airDir = hx < 0 ? -1 : 1;
+            _sprite = hx < 0 ? 1 : 3;
+        }
+        return _airDir * _walkSpeed;
+    }
+
     // Original c.R12(int,int): one logic step of the player, Mork, rainbows and hits.
     private void UpdatePlayer(int dtMs, int totalMs)
     {
@@ -29,7 +40,8 @@ public sealed partial class Game2
             {
                 for (int i = 0; i < _portalCells.Length; i++)
                 {
-                    if (_interact == _portalCells[i])
+                    // the original has no destination for portals past the sub-area table (it crashes); revamped movement just ignores them
+                    if (_interact == _portalCells[i] && (!Tweaks.RevampedMovement || i < _subAreaX.Length && i < _subAreaRows.Length))
                     {
                         SnapshotScene();
                         _frame = 0;
@@ -54,8 +66,8 @@ public sealed partial class Game2
             bool wantJump = Tweaks.RevampedMovement ? _jumpBuffer > 0 : _inputJump < 0;
             if (_motion == 0 || _motion == 1 || _motion == 2)
             {
-                if (wantJump && hx < 0) { _motion = 3; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 1; _airControl = true; }
-                else if (wantJump && hx > 0) { _motion = 5; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 3; _airControl = true; }
+                if (wantJump && hx < 0) { _motion = 3; _airDir = -1; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 1; _airControl = true; }
+                else if (wantJump && hx > 0) { _motion = 5; _airDir = 1; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; _sprite = 3; _airControl = true; }
                 else if (wantJump) { _motion = 4; _jumpStep = 0; _jumpSub = 0; _jumpBuffer = 0; }
                 else if (hx < 0) _motion = 1;
                 else if (hx > 0) _motion = 2;
@@ -82,9 +94,13 @@ public sealed partial class Game2
                     break;
                 case 3:
                     dy = -_jumpTable[_jumpStep];
-                    if (_inputX < 0 && _inputJump == 0) { dx = -_airSpeed; _airControl = false; _sprite = 1; }
-                    else if (_inputX > 0 && _inputJump == 0) { dx = _airSpeed; _airControl = false; _sprite = 3; }
-                    else if (_airControl) dx -= _walkSpeed;
+                    if (Tweaks.RevampedMovement) dx = AirDrift(hx);
+                    else
+                    {
+                        if (_inputX < 0 && _inputJump == 0) { dx = -_airSpeed; _airControl = false; _sprite = 1; }
+                        else if (_inputX > 0 && _inputJump == 0) { dx = _airSpeed; _airControl = false; _sprite = 3; }
+                        else if (_airControl) dx -= _walkSpeed;
+                    }
                     if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
                     _jumpStep++;
                     if (_jumpStep != _jumpTable.Length) break;
@@ -103,9 +119,13 @@ public sealed partial class Game2
                     break;
                 case 5:
                     dy = -_jumpTable[_jumpStep];
-                    if (_airControl) dx += _walkSpeed;
-                    if (_inputX < 0 && _inputJump == 0) { dx = -_walkSpeed; _airControl = false; _sprite = 1; }
-                    else if (_inputX > 0 && _inputJump == 0) { dx = _walkSpeed; _airControl = false; _sprite = 3; }
+                    if (Tweaks.RevampedMovement) dx = AirDrift(hx);
+                    else
+                    {
+                        if (_airControl) dx += _walkSpeed;
+                        if (_inputX < 0 && _inputJump == 0) { dx = -_walkSpeed; _airControl = false; _sprite = 1; }
+                        else if (_inputX > 0 && _inputJump == 0) { dx = _walkSpeed; _airControl = false; _sprite = 3; }
+                    }
                     if (!EngineTweaks.JumpAdvance(Tweaks.SlowJump, ref _jumpSub, ref dx, ref dy)) break;
                     _jumpStep++;
                     if (_jumpStep != _jumpTable.Length) break;

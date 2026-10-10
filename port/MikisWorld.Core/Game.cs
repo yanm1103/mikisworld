@@ -117,7 +117,7 @@ public sealed partial class Game : IMikisGame
     private bool _airControl;                        // cn
     private int _inputX, _inputJump;                 // bS (-2/0/2), bR (-1/0)
     private readonly HeldDirections _held = new();   // revamped movement: directions really held
-    private int _jumpBuffer, _jumpSub, _lastCase;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
+    private int _jumpBuffer, _jumpSub, _lastCase, _airDir;               // revamped movement: ticks a fresh jump press stays valid; slow-jump sub-step
     private int _standingOn = -1;                    // aQ platform index
 
     // camera
@@ -253,7 +253,7 @@ public sealed partial class Game : IMikisGame
         else if (key == 49) { _inputJump = -1; _inputX = -2; }
         else if (key == 52 || action == 2) _inputX = -2;
         else if (key == 50 || action == 1) _inputJump = -1;
-        else if ((key == 56 || action == 6) && _interact != -1) _interactPressed = true;
+        else if ((key == 56 || action == 6) && _interact != -1 && !(Tweaks.RevampedMovement && (_state == State.WipeIn || _state == State.WipeOut))) _interactPressed = true;
     }
 
     /// <summary>Original cfr_renamed_3(int,int): any key release stops all input.</summary>

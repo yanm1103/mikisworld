@@ -62,6 +62,7 @@ um perseguidor novo (Mork), arco-íris no lugar dos pássaros e outro formato de
 | Gamepad e remapeamento | Teclado e controle remapeáveis (2 entradas por ação, `bindings.json`), analógico esquerdo, entrada de nome pelo controle; roteador de entrada com testes | ~99% · ~98% |
 | Ajustes de engine e tela inicial | Pulo e animação do protagonista mais lentos, opção *Movement* original/revamped (sem pulo contínuo ao segurar ↑, direção segurada vale ao cair/pousar), tela inicial com jogos + opções compartilhadas; `EngineTweaks` desligado nos testes (traces continuam idênticos) | ~99% · ~98% |
 | Fechando a decomp do jogo 2 | Leitura de `GameMIDlet`, `a`, `j`, `k`, `h`, `b`, `g`; teste diferencial do hi-score contra o `k` do jogo 2 (achou o nome vazio); ordem do menu do jogo 2, título abre com qualquer tecla / após 5 s, som do título parado ao entrar no jogo 2 | ~99% · ~99% |
+| Correções de bugs reportados | Virar no ar em pulo diagonal (revamped); aperto de portal durante a transição ignorado (causa da transição dupla e do crash de `IndexOutOfRange`); tela cheia da tela inicial vale no jogo; *Exit* volta à seleção de jogo; zoom inteiro na tela inicial; crash log e tela de erro | ~99% · ~99% |
 
 ## Como rodar
 
@@ -90,6 +91,12 @@ Na tela-título qualquer tecla abre o menu, e ele abre sozinho depois de 5 s sem
 `B`/`Start` voltam. Em cutscenes e no minigame, `A` confirma. No campo de nome dos hi-scores: ↑/↓ trocam a letra, → acrescenta
 uma, ←/`B` apaga e `A`/`Start` salva (nome vazio vira `MIKI`).
 
+**Sair e travamentos.** *Exit* no menu de um jogo volta à tela inicial (fechar a janela fecha o programa; com `--game N` o *Exit* também fecha). Se o jogo travar
+por uma exceção, a janela **fica aberta** com o erro (`Enter` volta à tela inicial, `C` copia o texto, `Esc` fecha) e o detalhe vai para
+`%APPDATA%/MikisWorld/crash.log`. Um travamento conhecido é do **original**: apertar "entrar no portal" de novo durante a transição de uma subárea guarda o
+aperto, e depois da transição o jogo usa o portal da área que acabou de sair, que na área principal não tem destino (`IndexOutOfRange`); isso também
+causava a transição dupla. No modo *Movement: original* continua assim (de propósito); no *revamped* foi corrigido.
+
 **Ajustes de engine (sempre ligados no programa).** O pulo dura o dobro do tempo (cada passo do arco dura dois ticks: mesma altura e mesma distância)
 e a animação de andar do protagonista mostra cada sprite pelo dobro do tempo. No jogo 1 isso também desfaz uma oscilação do original: andando no chão o
 estado alterna entre "andando" e "caindo" a cada tick e o sprite de ar piscava. Nos testes de validação (traces/quadros) esses ajustes ficam desligados.
@@ -114,7 +121,7 @@ a linha *Defaults* restaura o padrão. Uma entrada só pode estar em uma ação 
 | Fullscreen | tela cheia sem bordas (também `F11`) |
 | Integer scale | ligado: a imagem é ampliada por um fator **inteiro** (pixels nítidos, barras pretas) e a janela "gruda" no múltiplo inteiro ao redimensionar (`+`/`-` mudam a escala). Desligado: a imagem preenche a janela mantendo a proporção |
 | Filter | só aparece com *Integer scale* desligado: `nearest` (pixels duros) ou `bilinear` (suavizado) |
-| Movement | `revamped` (padrão) ou `original`. **Revamped**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo ou ao pousar. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
+| Movement | `revamped` (padrão) ou `original`. **Revamped**: (1) segurar ↑ não faz o boneco pular sem parar — cada pulo precisa de um novo aperto (um aperto até 100 ms antes de pousar vale); (2) a direção que continua segurada vale depois de soltar outra tecla, então dá para trocar de direção caindo, ao pousar e **no meio de um pulo diagonal**; (3) um aperto de "entrar no portal" durante a transição é ignorado, e portais sem destino são ignorados. **Original**: o jogo como era no celular, que **zera todo o movimento ao soltar qualquer tecla** e repete o pulo enquanto ↑ está apertada |
 | Keyboard keys / Gamepad | telas de remapeamento (acima) |
 
 **Salvamento.** Bônus liberado e hi-scores ficam em `%APPDATA%/MikisWorld/save.json` (`save2.json` no jogo 2); as opções acima, em `settings.json`; os controles remapeados, em `bindings.json`.

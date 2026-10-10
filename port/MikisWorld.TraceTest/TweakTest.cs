@@ -156,6 +156,21 @@ internal static class TweakTest
             Check(d0 == baseline, $"original: releasing the other key stops the steering (dx {d0}, nothing pressed {baseline})");
             Check(d1 < 0, $"revamped: keeps going left while falling (dx {d1})");
 
+            // ---- a diagonal jump to the left, then right is pressed in mid-air: revamped turns around, the original keeps its momentum
+            int Turn(bool revamped)
+            {
+                var r = Make(game, dir);
+                r.Tweaks().RevampedMovement = revamped;
+                r.Press(49, 0);                                   // jump + left
+                r.Ticks(4);
+                r.Press(54, 5);                                   // right, while still in the air and while left is still held
+                int x0 = r.X;
+                r.Ticks(6);
+                return r.X - x0;
+            }
+            int t0 = Turn(false), t1 = Turn(true);
+            Check(t0 < 0 && t1 > 0, $"mid-air direction change: original keeps going left ({t0}), revamped turns right ({t1})");
+
             // ---- and after the menu opens the held keys are forgotten
             {
                 var r = Make(game, dir);

@@ -1,12 +1,16 @@
+using System.Numerics;
 using MikisWorld.Core;
 using Raylib_cs;
 
 namespace MikisWorld.Game;
 
 /// <summary>Start-up screen: pick the game and set the options that are the same for both (movement, video, volume).
-/// Changes are saved straight away through <see cref="DisplaySettings.Changed"/>.</summary>
+/// Changes are saved straight away through <see cref="DisplaySettings.Changed"/>. The screen has a native size of 320x230 and follows the
+/// same scaling options as the games (whole-number zoom with a snapping window, or fill the window).</summary>
 internal static class Launcher
 {
+    public const int W0 = 320, H0 = 230;
+
     private enum Nav { None, Up, Down, Left, Right, Select, Back }
 
     private sealed record Row(string Label, Func<string> Value, Action<int> Change, bool Slider = false, int Game = 0);
@@ -16,11 +20,11 @@ internal static class Launcher
     private static bool _stickLeft, _stickRight, _stickUp, _stickDown;
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
-    /// <param name="script">developer aid: frame -> names (Up Down Left Right Enter Escape One Two) injected as if typed; <paramref name="shots"/> frame -> screenshot names</param>
+    /// <param name="script">developer aid: frame -> names (Up Down Left Right Enter Escape One) injected as if typed; <paramref name="shots"/> frame -> screenshot names</param>
     public static int Run(DisplaySettings s, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
     {
         int sel = 0, frame = 0;
-        string[] hints = { "Arrows: choose / change    Enter: select    1 / 2: play    Esc: quit", "" };
+        double resizedAt = -1;
         while (!Raylib.WindowShouldClose())
         {
             var rows = Rows(s);
@@ -32,8 +36,11 @@ internal static class Launcher
             var nav = Poll();
             if (script != null && script.TryGetValue(frame, out var names))
                 foreach (string n in names)
-                    nav = n switch { "Up" => Nav.Up, "Down" => Nav.Down, "Left" => Nav.Left, "Right" => Nav.Right, "Enter" => Nav.Select, "Escape" => Nav.Back, "One" => Nav.None, _ => nav };
-            if (script != null && script.TryGetValue(frame, out var pick) && pick.Contains("One")) return 1;
+                {
+                    if (n == "One") return 1;
+                    if (n == "F11") { s.Fullscreen = !s.Fullscreen; s.NotifyChanged(); }
+                    nav = n switch { "Up" => Nav.Up, "Down" => Nav.Down, "Left" => Nav.Left, "Right" => Nav.Right, "Enter" => Nav.Select, "Escape" => Nav.Back, _ => nav };
+                }
             switch (nav)
             {
                 case Nav.Up: sel = (sel + rows.Count - 1) % rows.Count; break;
@@ -47,15 +54,16 @@ internal static class Launcher
                     break;
                 case Nav.Back: return 0;
             }
-            Program.SyncFullscreen(s);
+            bool borderless = Program.SyncFullscreen(s);
+            Program.ApplyWindowScale(s, W0, H0, borderless, ref resizedAt);
 
             Raylib.BeginDrawing();
-            Raylib.ClearBackground(Bg);
-            Draw(rows, sel, hints[0]);
+            Raylib.ClearBackground(Color.Black);
+            Draw(s, rows, sel);
             Raylib.EndDrawing();
             if (shots != null && shots.TryGetValue(frame, out var list)) foreach (string n in list) Raylib.TakeScreenshot($"shot_{n}.png");
-            if (quitAfter >= 0 && ++frame > quitAfter) return 0;
-            if (quitAfter < 0) frame++;
+            frame++;
+            if (quitAfter >= 0 && frame > quitAfter) return 0;
         }
         return 0;
     }
@@ -77,31 +85,40 @@ internal static class Launcher
         return rows;
     }
 
-    private static void Draw(List<Row> rows, int sel, string hint)
+    private static void Draw(DisplaySettings s, List<Row> rows, int sel)
     {
         int w = Raylib.GetScreenWidth(), h = Raylib.GetScreenHeight();
-        float k = Math.Max(0.5f, Math.Min(w / 640f, h / 460f));   // layout is designed for 640x460
-        int fs = (int)(22 * k), fsSmall = (int)(15 * k), rowH = (int)(34 * k);
-        string title = "Miki's World";
-        Raylib.DrawText(title, (w - Raylib.MeasureText(title, (int)(40 * k))) / 2, (int)(10 * k), (int)(40 * k), Color.White);
+        // same rule as the games: a whole-number zoom (black bars) or fill the window keeping the aspect ratio
+        float k = s.IntegerScale ? Math.Max(1, Math.Min(w / W0, h / H0)) : Math.Min((float)w / W0, (float)h / H0);
+        float ox = MathF.Floor((w - W0 * k) / 2), oy = MathF.Floor((h - H0 * k) / 2);
+        var font = Raylib.GetFontDefault();
+        Raylib.SetTextureFilter(font.Texture, s.UsesBilinear ? TextureFilter.Bilinear : TextureFilter.Point);
 
-        int boxW = (int)(520 * k), x = (w - boxW) / 2, y = (int)(66 * k);
-        Raylib.DrawRectangle(x - 8, y - 8, boxW + 16, rows.Count * rowH + 16, Panel);
-        Raylib.DrawRectangleLines(x - 8, y - 8, boxW + 16, rows.Count * rowH + 16, Color.White);
+        void Rect(float x, float y, float rw, float rh, Color c) => Raylib.DrawRectangle((int)(ox + x * k), (int)(oy + y * k), (int)MathF.Ceiling(rw * k), (int)MathF.Ceiling(rh * k), c);
+        float Width(string t, int size) => Raylib.MeasureTextEx(font, t, size * k, size * k / 10f).X / k;
+        void Text(string t, float x, float y, int size, Color c) => Raylib.DrawTextEx(font, t, new Vector2(ox + x * k, oy + y * k), size * k, size * k / 10f, c);
+        void Centered(string t, float y, int size, Color c) => Text(t, (W0 - Width(t, size)) / 2, y, size, c);
+
+        Rect(0, 0, W0, H0, Bg);
+        Centered("Miki's World", 6, 30, Color.White);
+
+        const int rowH = 17, x0 = 30, boxW = 260, y0 = 40;
+        Rect(x0 - 4, y0 - 4, boxW + 8, rows.Count * rowH + 8, Color.White);
+        Rect(x0 - 3, y0 - 3, boxW + 6, rows.Count * rowH + 6, Panel);
         for (int i = 0; i < rows.Count; i++)
         {
-            int ry = y + i * rowH;
-            if (i == sel) Raylib.DrawRectangle(x - 4, ry, boxW + 8, rowH - 2, Hi);
+            float ry = y0 + i * rowH;
+            if (i == sel) Rect(x0 - 2, ry, boxW + 4, rowH - 1, Hi);
             var r = rows[i];
-            // the two games first, then a gap-less list of options
-            Raylib.DrawText(r.Game != 0 ? "Play  " + r.Label : r.Label, x + 8, ry + (rowH - fs) / 2, fs, Color.White);
+            Text(r.Game != 0 ? "Play  " + r.Label : r.Label, x0 + 4, ry + 4, 10, Color.White);
             string v = r.Value();
             if (v.Length == 0) continue;
             string shown = r.Game != 0 ? v : (r.Slider || i == sel ? $"< {v} >" : v);
-            Raylib.DrawText(shown, x + boxW - 8 - Raylib.MeasureText(shown, fs), ry + (rowH - fs) / 2, fs, r.Game != 0 ? Sub : Color.White);
+            Text(shown, x0 + boxW - 4 - Width(shown, 10), ry + 4, 10, r.Game != 0 ? Sub : Color.White);
         }
-        Raylib.DrawText("Settings are shared by both games and saved automatically.", (w - Raylib.MeasureText("Settings are shared by both games and saved automatically.", fsSmall)) / 2, h - (int)(46 * k), fsSmall, Color.White);
-        Raylib.DrawText(hint, (w - Raylib.MeasureText(hint, fsSmall)) / 2, h - (int)(24 * k), fsSmall, Sub);
+        Centered("Settings are shared and saved automatically.", H0 - 36, 10, Color.White);
+        Centered("Arrows: choose / change     Enter: select", H0 - 24, 10, Sub);
+        Centered("1 / 2: play     F11: fullscreen     Esc: quit", H0 - 13, 10, Sub);
     }
 
     // ---- input: keyboard (with repeat), gamepad buttons and the left stick as one navigation stream

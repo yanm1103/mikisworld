@@ -9,186 +9,309 @@ internal static class Program
 {
     private const int StepMs = 20;                      // the original logic runs in steps of >= 20 ms
 
+    private sealed class Run
+    {
+        public string Jar1, Jar2, SavePath, ResizeSpec;
+        public int Scale, Octave, QuitAfter, CrashAt;
+        public bool Fixed;                                   // --game given: no launcher, closing the game closes the program
+        public Dictionary<int, List<string>> Inject, Shoot, LaunchInject, LaunchShoot;
+        public int LaunchQuitAfter;
+        public DisplaySettings Settings;
+        public InputBindings Bindings;
+    }
+
     private static int Main(string[] args)
     {
-        string jar1 = FindJar(args, "MikisWorld.jar");
-        string jar2 = FindJar(args, "MikisWorld2.jar");
-        int scale = ArgInt(args, "--scale", 4);
-        string savePath = ArgStr(args, "--save", null);
+        var run = new Run
+        {
+            Jar1 = FindJar(args, "MikisWorld.jar"),
+            Jar2 = FindJar(args, "MikisWorld2.jar"),
+            Scale = ArgInt(args, "--scale", 4),
+            SavePath = ArgStr(args, "--save", null),
+            // developer aids: inject keys / take screenshots at given frames, e.g. --inject 30:Enter,60:Down --shoot 90:menu
+            Inject = ParseFrames(ArgStr(args, "--inject", "")),
+            Shoot = ParseFrames(ArgStr(args, "--shoot", "")),
+            QuitAfter = ArgInt(args, "--quit-after", -1),
+            CrashAt = ArgInt(args, "--crash-at", -1),                // dev aid: throw inside the game loop to see the crash screen
+            Octave = ArgInt(args, "--octave", -1),                // pitch of the ring tones, in octaves relative to the decoded notes
+            ResizeSpec = ArgStr(args, "--resize", null),         // dev aid: "--resize 700x500" at frame 10
+            LaunchInject = ParseFrames(ArgStr(args, "--launcher-inject", "")),
+            LaunchShoot = ParseFrames(ArgStr(args, "--launcher-shoot", "")),
+            LaunchQuitAfter = ArgInt(args, "--launcher-quit-after", -1),
+        };
         int game = ArgInt(args, "--game", 0);                       // 0 = ask (when both JARs are present)
-        // developer aids: inject keys / take screenshots at given frames, e.g. --inject 30:Enter,60:Down --shoot 90:menu
-        var inject = ParseFrames(ArgStr(args, "--inject", ""));
-        var shoot = ParseFrames(ArgStr(args, "--shoot", ""));
-        int quitAfter = ArgInt(args, "--quit-after", -1);
         string exportDir = ArgStr(args, "--export-sounds", null);
-        int octave = ArgInt(args, "--octave", -1);                  // pitch of the ring tones, in octaves relative to the decoded notes
         bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
 
         // both games are required: the start-up screen lets you choose, and missing files are reported instead of silently
         // falling back to the one that exists
         var missing = new List<string>();
-        if (jar1 == null) missing.Add("MikisWorld.jar");
-        if (jar2 == null) missing.Add("MikisWorld2.jar");
-        if (missing.Count > 0) return ShowMissingJars(missing, quitAfter >= 0 || exportDir != null || soundTest);
-        if (game == 0 && (exportDir != null || soundTest || inject.Count > 0 || quitAfter >= 0)) game = 1;
-        var settings = SettingsStore.Load(ArgStr(args, "--settings", null));
-        settings.Changed += () => SettingsStore.Save(settings);
-        var bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
-        bindings.Changed += () => BindingsStore.Save(bindings);
+        if (run.Jar1 == null) missing.Add("MikisWorld.jar");
+        if (run.Jar2 == null) missing.Add("MikisWorld2.jar");
+        if (missing.Count > 0) return ShowMissingJars(missing, run.QuitAfter >= 0 || exportDir != null || soundTest);
+        if (game == 0 && (exportDir != null || soundTest || run.LaunchInject.Count == 0 && (run.Inject.Count > 0 || run.QuitAfter >= 0))) game = 1;
+        run.Fixed = game != 0;
+        run.Settings = SettingsStore.Load(ArgStr(args, "--settings", null));
+        run.Settings.Changed += () => SettingsStore.Save(run.Settings);
+        run.Bindings = BindingsStore.Load(ArgStr(args, "--bindings", null));
+        run.Bindings.Changed += () => BindingsStore.Save(run.Bindings);
 
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         if (exportDir != null)
         {
-            using var a = new JarAssets(game == 2 ? jar2 : jar1);
-            AudioHost.Export(a, exportDir, octave);
+            using var a = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+            AudioHost.Export(a, exportDir, run.Octave);
             return 0;
         }
 
-        Raylib.InitWindow(640, 400, "Miki's World");
+        Raylib.InitWindow(Launcher.W0 * 2, Launcher.H0 * 2, "Miki's World");
         Raylib.SetExitKey(KeyboardKey.Null);
         Raylib.SetTargetFPS(60);
-        if (game == 0) game = Launcher.Run(settings, ParseFrames(ArgStr(args, "--launcher-inject", "")), ParseFrames(ArgStr(args, "--launcher-shoot", "")), ArgInt(args, "--launcher-quit-after", -1));
-        if (game == 0) { Raylib.CloseWindow(); return 0; }
-
-        using var assets = new JarAssets(game == 2 ? jar2 : jar1);
-        using var audio = new AudioHost(assets, octave, settings.Volume) { TitleLoops = game == 2 ? 3 : 1 };
-        settings.Changed += () => audio.SetVolume(settings.Volume);
-        if (soundTest)
+        Raylib.SetWindowMinSize(Launcher.W0, Launcher.H0);
+        int exit = 0;
+        bool firstLauncher = true;
+        while (true)
         {
-            audio.Play(Sfx.Coin);
-            Raylib.WaitTime(0.03);
-            Console.WriteLine($"audio device ready={audio.Ready}, coin playing={audio.IsPlaying}");
-            Raylib.CloseWindow();
-            return audio.Ready && audio.IsPlaying ? 0 : 1;
-        }
-
-        long seed = Environment.TickCount64;
-        string saveFile = savePath ?? DefaultSave(game);
-        App app = game == 2
-            ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, bindings)
-            : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, bindings);
-
-        int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
-        Raylib.SetWindowSize(sw0 * scale, sh0 * scale);
-        Raylib.SetWindowMinSize(sw0, sh0);
-        Raylib.SetWindowTitle(game == 2 ? "Miki's World 2: The Storm Master" : "Miki's World 1: The Lost Tiara");
-
-        var metrics = new RaylibFontMetrics();
-        Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, TextureFilter.Point);
-        var frame = new Bitmap(sw0, sh0);
-        var rgba = new byte[sw0 * sh0 * 4];
-        Texture2D tex;
-        unsafe
-        {
-            fixed (byte* p = rgba)
+            try
             {
-                var image = new Image { Data = p, Width = sw0, Height = sh0, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 };
-                tex = Raylib.LoadTextureFromImage(image);
-            }
-        }
-        bool smooth = !settings.UsesBilinear;                      // forces the filter to be applied on the first frame
-        Raylib.SetTextureFilter(tex, TextureFilter.Point);
-
-        double acc = 0;
-        int frameNo = 0;
-        double resizedAt = -1;
-        string resizeSpec = ArgStr(args, "--resize", null);       // dev aid: "--resize 700x500" at frame 10
-        var router = new InputRouter(new AppTarget(app));
-        var poller = new DevicePoller(router);
-        var injectedUp = new List<(BindingDevice, string)>();
-
-        while (!Raylib.WindowShouldClose() && !app.WantsExit)
-        {
-            acc += Math.Min(Raylib.GetFrameTime(), 0.25);
-
-            // ---- window: always an integer multiple of the native resolution (no blurry/uneven pixels)
-            if (resizeSpec != null && frameNo == 10)
-            {
-                var wh = resizeSpec.Split('x');
-                Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
-            }
-            if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
-            bool borderless = SyncFullscreen(settings);
-            if (settings.IntegerScale && !borderless && !Raylib.IsWindowMaximized())
-            {
-                int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
-                         : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
-                if (step != 0) SnapWindow(sw0, sh0, CurrentScale(sw0, sh0) + step);
-                if (Raylib.IsWindowResized()) resizedAt = Raylib.GetTime();
-                else if (resizedAt >= 0 && Raylib.GetTime() - resizedAt > 0.25)
+                if (game == 0)
                 {
-                    resizedAt = -1;
-                    SnapWindow(sw0, sh0, (int)Math.Round(Math.Min((double)Raylib.GetScreenWidth() / sw0, (double)Raylib.GetScreenHeight() / sh0)));
+                    game = Launcher.Run(run.Settings, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
+                    firstLauncher = false;
                 }
+                if (game == 0) break;
+                if (soundTest) { exit = SoundTest(run, game); break; }
+                var result = RunSession(run, game);
+                if (result == SessionResult.CloseProgram || run.Fixed) { exit = result == SessionResult.Crashed ? 1 : 0; break; }
+                game = 0;                                     // the game was exited: back to the game selection
+                RestoreLauncherWindow(run.Settings);
             }
-
-            double now = Raylib.GetTime();
-            foreach (var (dev, n) in injectedUp) router.Release(dev, n);
-            injectedUp.Clear();
-            if (inject.TryGetValue(frameNo, out var names))
-                foreach (string raw in names)
-                {
-                    // "Name" = tap, "+Name" = press and hold, "-Name" = release; "Pad:A" / "Pad:SRight" address the gamepad
-                    char mode = raw[0] is '+' or '-' ? raw[0] : ' ';
-                    string n = mode == ' ' ? raw : raw[1..];
-                    var dev = n.StartsWith("Pad:", StringComparison.OrdinalIgnoreCase) ? BindingDevice.Gamepad : BindingDevice.Keyboard;
-                    if (dev == BindingDevice.Gamepad) n = n[4..];
-                    else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
-                    else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
-                    else continue;
-                    if (mode != '-') router.Press(dev, n, now);
-                    if (mode == ' ') injectedUp.Add((dev, n));
-                    if (mode == '-') router.Release(dev, n);
-                }
-
-            poller.Poll(now);
-            int ch;
-            while ((ch = Raylib.GetCharPressed()) != 0) app.TextInput((char)ch);
-
-            while (acc >= StepMs / 1000.0)
+            catch (Exception e)
             {
-                app.Update(StepMs);
-                acc -= StepMs / 1000.0;
+                ReportCrash(e, game, null, false);
+                if (run.Fixed) { exit = 1; break; }
+                game = 0;
+                RestoreLauncherWindow(run.Settings);
             }
-            audio.Tick();
-
-            var canvas = new Canvas(frame) { Metrics = metrics };
-            app.Draw(canvas);
-            for (int i = 0; i < frame.Pixels.Length; i++)
-            {
-                int p = frame.Pixels[i];
-                rgba[i * 4] = (byte)(p >> 16); rgba[i * 4 + 1] = (byte)(p >> 8); rgba[i * 4 + 2] = (byte)p; rgba[i * 4 + 3] = 255;
-            }
-            unsafe { fixed (byte* p = rgba) Raylib.UpdateTexture(tex, p); }
-
-            // nearest-neighbour unless the user switched integer scaling off *and* chose bilinear
-            if (smooth != settings.UsesBilinear)
-            {
-                smooth = settings.UsesBilinear;
-                var f = smooth ? TextureFilter.Bilinear : TextureFilter.Point;
-                Raylib.SetTextureFilter(tex, f);
-                Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, f);
-            }
-
-            Raylib.BeginDrawing();
-            Raylib.ClearBackground(Color.Black);
-            int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
-            // integer scaling: a whole-number factor (black bars); otherwise fill the window keeping the aspect ratio
-            float scalef = settings.IntegerScale ? Math.Max(1, Math.Min(sw / sw0, sh / sh0)) : Math.Min((float)sw / sw0, (float)sh / sh0);
-            float dw = sw0 * scalef, dh = sh0 * scalef;
-            float ox = MathF.Floor((sw - dw) / 2), oy = MathF.Floor((sh - dh) / 2);
-            Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0), new Rectangle(ox, oy, dw, dh), Vector2.Zero, 0, Color.White);
-            foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef);
-            Raylib.EndDrawing();
-
-            if (shoot.TryGetValue(frameNo, out var shots))
-                foreach (string name in shots) Raylib.TakeScreenshot($"shot_{name}.png");
-            frameNo++;
-            if (quitAfter >= 0 && frameNo > quitAfter) break;
         }
-        if (resizeSpec != null) Console.WriteLine($"final window {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} (native {sw0}x{sh0}) borderless={Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode)} fullscreenSetting={settings.Fullscreen}");
         Raylib.CloseWindow();
-        return 0;
+        return exit;
+    }
+
+    private enum SessionResult { BackToLauncher, CloseProgram, Crashed }
+
+    private static int SoundTest(Run run, int game)
+    {
+        using var assets = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+        using var audio = new AudioHost(assets, run.Octave, run.Settings.Volume);
+        audio.Play(Sfx.Coin);
+        Raylib.WaitTime(0.03);
+        Console.WriteLine($"audio device ready={audio.Ready}, coin playing={audio.IsPlaying}");
+        return audio.Ready && audio.IsPlaying ? 0 : 1;
+    }
+
+    /// <summary>Back to the start-up screen's window: native size is 320x230 (twice that by default).</summary>
+    private static void RestoreLauncherWindow(DisplaySettings settings)
+    {
+        Raylib.SetWindowTitle("Miki's World");
+        Raylib.SetWindowMinSize(Launcher.W0, Launcher.H0);
+        if (!settings.Fullscreen) Raylib.SetWindowSize(Launcher.W0 * 2, Launcher.H0 * 2);
+    }
+
+    private static SessionResult RunSession(Run run, int game)
+    {
+        var settings = run.Settings;
+        using var assets = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+        using var audio = new AudioHost(assets, run.Octave, settings.Volume) { TitleLoops = game == 2 ? 3 : 1 };
+        Action volumeSync = () => audio.SetVolume(settings.Volume);
+        settings.Changed += volumeSync;
+        Texture2D tex = default;
+        bool haveTexture = false;
+        App app = null;
+        try
+        {
+            long seed = Environment.TickCount64;
+            string saveFile = run.SavePath ?? DefaultSave(game);
+            app = game == 2
+                ? new App(h => new Game2(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld2, settings, run.Bindings)
+                : new App(h => new MikisWorld.Core.Game(assets, h, seed), assets, audio, new FileStorage(saveFile), AppInfo.MikisWorld1, settings, run.Bindings);
+
+            int sw0 = app.ScreenWidth, sh0 = app.ScreenHeight;
+            // a full-screen window keeps the monitor's size; only a normal window is sized to the game
+            if (!settings.Fullscreen) Raylib.SetWindowSize(sw0 * run.Scale, sh0 * run.Scale);
+            Raylib.SetWindowMinSize(sw0, sh0);
+            Raylib.SetWindowTitle(game == 2 ? "Miki's World 2: The Storm Master" : "Miki's World 1: The Lost Tiara");
+
+            var metrics = new RaylibFontMetrics();
+            Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, TextureFilter.Point);
+            var frame = new Bitmap(sw0, sh0);
+            var rgba = new byte[sw0 * sh0 * 4];
+            unsafe
+            {
+                fixed (byte* p = rgba)
+                {
+                    var image = new Image { Data = p, Width = sw0, Height = sh0, Mipmaps = 1, Format = PixelFormat.UncompressedR8G8B8A8 };
+                    tex = Raylib.LoadTextureFromImage(image);
+                }
+            }
+            haveTexture = true;
+            bool smooth = !settings.UsesBilinear;                      // forces the filter to be applied on the first frame
+            Raylib.SetTextureFilter(tex, TextureFilter.Point);
+
+            double acc = 0;
+            int frameNo = 0;
+            double resizedAt = -1;
+            var router = new InputRouter(new AppTarget(app));
+            var poller = new DevicePoller(router);
+            var injectedUp = new List<(BindingDevice, string)>();
+
+            while (!app.WantsExit)
+            {
+                if (Raylib.WindowShouldClose()) return SessionResult.CloseProgram;
+                if (frameNo == run.CrashAt) throw new InvalidOperationException("test crash (--crash-at)");
+                acc += Math.Min(Raylib.GetFrameTime(), 0.25);
+
+                // ---- window: always an integer multiple of the native resolution (no blurry/uneven pixels)
+                if (run.ResizeSpec != null && frameNo == 10)
+                {
+                    var wh = run.ResizeSpec.Split('x');
+                    Raylib.SetWindowSize(int.Parse(wh[0]), int.Parse(wh[1]));
+                }
+                if (Raylib.IsKeyPressed(KeyboardKey.F11)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); }
+                bool borderless = SyncFullscreen(settings);
+                ApplyWindowScale(settings, sw0, sh0, borderless, ref resizedAt);
+
+                double now = Raylib.GetTime();
+                foreach (var (dev, n) in injectedUp) router.Release(dev, n);
+                injectedUp.Clear();
+                if (run.Inject.TryGetValue(frameNo, out var names))
+                    foreach (string raw in names)
+                    {
+                        // "Name" = tap, "+Name" = press and hold, "-Name" = release; "Pad:A" / "Pad:SRight" address the gamepad
+                        char mode = raw[0] is '+' or '-' ? raw[0] : ' ';
+                        string n = mode == ' ' ? raw : raw[1..];
+                        var dev = n.StartsWith("Pad:", StringComparison.OrdinalIgnoreCase) ? BindingDevice.Gamepad : BindingDevice.Keyboard;
+                        if (dev == BindingDevice.Gamepad) n = n[4..];
+                        else if (n.Equals("F11", StringComparison.OrdinalIgnoreCase)) { settings.Fullscreen = !settings.Fullscreen; settings.NotifyChanged(); continue; }   // window key
+                        else if (Enum.TryParse<KeyboardKey>(n, true, out var k)) n = k.ToString();
+                        else continue;
+                        if (mode != '-') router.Press(dev, n, now);
+                        if (mode == ' ') injectedUp.Add((dev, n));
+                        if (mode == '-') router.Release(dev, n);
+                    }
+
+                poller.Poll(now);
+                int ch;
+                while ((ch = Raylib.GetCharPressed()) != 0) app.TextInput((char)ch);
+
+                while (acc >= StepMs / 1000.0)
+                {
+                    app.Update(StepMs);
+                    acc -= StepMs / 1000.0;
+                }
+                audio.Tick();
+
+                var canvas = new Canvas(frame) { Metrics = metrics };
+                app.Draw(canvas);
+                for (int i = 0; i < frame.Pixels.Length; i++)
+                {
+                    int p = frame.Pixels[i];
+                    rgba[i * 4] = (byte)(p >> 16); rgba[i * 4 + 1] = (byte)(p >> 8); rgba[i * 4 + 2] = (byte)p; rgba[i * 4 + 3] = 255;
+                }
+                unsafe { fixed (byte* p = rgba) Raylib.UpdateTexture(tex, p); }
+
+                // nearest-neighbour unless the user switched integer scaling off *and* chose bilinear
+                if (smooth != settings.UsesBilinear)
+                {
+                    smooth = settings.UsesBilinear;
+                    var f = smooth ? TextureFilter.Bilinear : TextureFilter.Point;
+                    Raylib.SetTextureFilter(tex, f);
+                    Raylib.SetTextureFilter(Raylib.GetFontDefault().Texture, f);
+                }
+
+                Raylib.BeginDrawing();
+                Raylib.ClearBackground(Color.Black);
+                int sw = Raylib.GetScreenWidth(), sh = Raylib.GetScreenHeight();
+                // integer scaling: a whole-number factor (black bars); otherwise fill the window keeping the aspect ratio
+                float scalef = settings.IntegerScale ? Math.Max(1, Math.Min(sw / sw0, sh / sh0)) : Math.Min((float)sw / sw0, (float)sh / sh0);
+                float dw = sw0 * scalef, dh = sh0 * scalef;
+                float ox = MathF.Floor((sw - dw) / 2), oy = MathF.Floor((sh - dh) / 2);
+                Raylib.DrawTexturePro(tex, new Rectangle(0, 0, sw0, sh0), new Rectangle(ox, oy, dw, dh), Vector2.Zero, 0, Color.White);
+                foreach (var t in canvas.Texts) metrics.Draw(t, ox, oy, scalef);
+                Raylib.EndDrawing();
+
+                if (run.Shoot.TryGetValue(frameNo, out var shots))
+                    foreach (string name in shots) Raylib.TakeScreenshot($"shot_{name}.png");
+                frameNo++;
+                if (run.QuitAfter >= 0 && frameNo > run.QuitAfter) return SessionResult.CloseProgram;
+            }
+            if (run.ResizeSpec != null) Console.WriteLine($"final window {Raylib.GetScreenWidth()}x{Raylib.GetScreenHeight()} (native {sw0}x{sh0}) borderless={Raylib.IsWindowState(ConfigFlags.BorderlessWindowMode)} fullscreenSetting={settings.Fullscreen}");
+            return SessionResult.BackToLauncher;
+        }
+        catch (Exception e)
+        {
+            ReportCrash(e, game, app, run.QuitAfter >= 0);
+            return SessionResult.Crashed;
+        }
+        finally
+        {
+            settings.Changed -= volumeSync;
+            if (haveTexture) Raylib.UnloadTexture(tex);
+        }
+    }
+
+    // ------------------------------------------------------------------ crashes
+    private static string CrashLogPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MikisWorld", "crash.log");
+
+    /// <summary>Writes the exception (and what the game was doing) to crash.log, then keeps the window open with the error until a key is pressed.</summary>
+    private static void ReportCrash(Exception e, int game, App app, bool dev)
+    {
+        string where = app == null ? "outside a game" : $"state {app.Game.CurrentState}, frame {app.Game.Frame}";
+        string movement = app == null ? "?" : app.Settings.RevampedMovement ? "revamped" : "original";
+        string report = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Miki's World {(game == 0 ? "launcher" : game.ToString())} ({where}), movement={movement}\n{e}\n";
+        string path = CrashLogPath;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.AppendAllText(path, report + "\n");
+        }
+        catch (Exception) { path += " (could not be written)"; }
+        Console.Error.WriteLine(report);
+
+        string[] lines = (e.GetType().Name + ": " + e.Message + "\n" + e.StackTrace).Split('\n').Select(l => l.TrimEnd('\r')).Select(l => l.Length > 78 ? l[..75] + "..." : l).Take(14).ToArray();
+        string text = "The game crashed.\n\n" + string.Join("\n", lines)
+            + $"\n\nDetails were saved to:\n{path}\n\nEnter: back     C: copy the error     Esc: quit";
+        bool copied = false;
+        int shown = 0;
+        while (!Raylib.WindowShouldClose())
+        {
+            if (dev && ++shown == 10) { Raylib.TakeScreenshot("shot_crash.png"); return; }          // unattended runs (tests) do not wait for a key
+            if (Raylib.IsKeyPressed(KeyboardKey.C)) { Raylib.SetClipboardText(report); copied = true; }
+            if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.KpEnter)) return;
+            if (Raylib.IsKeyPressed(KeyboardKey.Escape)) break;
+            Raylib.BeginDrawing();
+            Raylib.ClearBackground(new Color(90, 20, 20, 255));
+            Raylib.DrawText(text, 16, 16, 14, Color.White);
+            if (copied) Raylib.DrawText("copied to the clipboard", 16, Raylib.GetScreenHeight() - 24, 14, new Color(255, 224, 160, 255));
+            Raylib.EndDrawing();
+        }
+        Raylib.CloseWindow();
+        Environment.Exit(1);
+    }
+
+    /// <summary>Zoom keys and snapping: with integer scaling the window always ends up an exact multiple of the native size.</summary>
+    internal static void ApplyWindowScale(DisplaySettings settings, int w0, int h0, bool borderless, ref double resizedAt)
+    {
+        if (!settings.IntegerScale || borderless || Raylib.IsWindowMaximized()) return;
+        int step = Raylib.IsKeyPressed(KeyboardKey.Equal) || Raylib.IsKeyPressed(KeyboardKey.KpAdd) ? 1
+                 : Raylib.IsKeyPressed(KeyboardKey.Minus) || Raylib.IsKeyPressed(KeyboardKey.KpSubtract) ? -1 : 0;
+        if (step != 0) SnapWindow(w0, h0, CurrentScale(w0, h0) + step);
+        if (Raylib.IsWindowResized()) resizedAt = Raylib.GetTime();
+        else if (resizedAt >= 0 && Raylib.GetTime() - resizedAt > 0.25)
+        {
+            resizedAt = -1;
+            SnapWindow(w0, h0, (int)Math.Round(Math.Min((double)Raylib.GetScreenWidth() / w0, (double)Raylib.GetScreenHeight() / h0)));
+        }
     }
 
     /// <summary>Both JARs are required; explains which one is missing and where they are searched for.</summary>

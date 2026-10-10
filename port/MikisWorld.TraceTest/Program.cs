@@ -68,6 +68,7 @@ internal static class Program
         if (a[0] == "apptest") return AppTest.Run(a[1], a.Length > 2 ? a[2] : null);
         if (a[0] == "mw2") return Mw2Test.Run(a);
         if (a[0] == "cutscene") return CutsceneTest.Run(a[1], a[2]);
+        if (a[0] == "portalspam") return PortalSpamTest.Run(a[1], a[2]);
         if (a[0] == "tweaks") return TweakTest.Run(a[1], a[2]);
         if (a[0] == "router") return RouterTest.Run();
         if (a[0] == "ott") return OttTest.Run(a[1], a[2], a.Length > 3 ? a[3] : "");
