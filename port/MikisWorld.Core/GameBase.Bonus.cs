@@ -94,6 +94,20 @@ public abstract partial class GameBase
         _pickY = CursorY;
     }
 
+    /// <summary>Mouse in the minigame: moving over a cell puts the cursor on it, a click also places the orb (when the cell may take it).</summary>
+    public void BonusPointer(int x, int y, bool click)
+    {
+        if (_state != State.BonusPlayerTurn || Winner != 0 || _imgGrid == null) return;
+        int gx = (L.ScreenW - _imgGrid.Width) / 2 + 1;            // same origin as DrawBonus
+        int gy = (L.ScreenH - _imgGrid.Height) / 2;
+        int cx = (int)Math.Floor((double)(x - gx) / L.CellW);
+        int cy = (int)Math.Floor((double)(y - gy) / L.CellH);
+        if (cx < 0 || cx >= BoardW || cy < 0 || cy >= BoardH) return;
+        CursorX = cx; CursorY = cy;
+        UpdateCursorValid();
+        if (click && CursorValid) { _pickX = CursorX; _pickY = CursorY; }
+    }
+
     // Original d.m(): can the player put an orb on the cursor cell?
     protected void UpdateCursorValid()
     {

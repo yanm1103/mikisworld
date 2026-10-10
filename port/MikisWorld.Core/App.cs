@@ -558,6 +558,7 @@ public sealed class App
             if (x < h.X || y < h.Y || x >= h.X + h.W || y >= h.Y + h.H) continue;
             if (h.Hover != null) { h.Hover(); return; }
         }
+        if (_screen == Screen.Game && !_menuOpen && !_debugOpen) _game.BonusPointer(x, y, false);
     }
 
     /// <summary>Left click on the picture: activates the entry under it (menus, options, controls, forms).</summary>
@@ -570,6 +571,7 @@ public sealed class App
             h.Click(x - h.X, y - h.Y);
             return;
         }
+        if (_screen == Screen.Game && !_menuOpen && !_debugOpen) _game.BonusPointer(x, y, true);
         if (_capturing) _capturing = false;
     }
 

@@ -293,6 +293,7 @@ internal static class AppTest
         app2.KeyPressed(56, 6); app2.KeyPressed(53, 8);
         for (int i = 0; i < 3; i++) app2.Update(20);
         Check(app2.Game.CurrentState == State.BonusPlayerTurn, "choosing 'Bonus game' starts the minigame");
+        CheckBonusMouse("game 2", app2, GameLayout.Two);
 
         Console.WriteLine("MikisWorld 2: hi-score");
         var store3 = new MemoryStorage();
@@ -643,8 +644,39 @@ internal static class AppTest
         app4.KeyPressed(Fire, 8);
         for (int i = 0; i < 3; i++) app4.Update(20);
         Check(app4.Game.CurrentState == State.BonusPlayerTurn, "choosing 'Bonus game' starts the minigame");
+        CheckBonusMouse("game 1", app4, GameLayout.One);
 
         return _fail == 0 ? 0 : 1;
+    }
+
+    /// <summary>The minigame with the mouse: each of the 20 cells is a CellW x CellH area of the picture, hovering moves the cursor, a click places an orb there.</summary>
+    private static void CheckBonusMouse(string name, App app, GameLayout lay)
+    {
+        var g = (GameBase)app.Game;
+        var area = new int[20];
+        int sx = -1, sy = -1;                                          // a point inside cell 17 (x 2, y 3)... picked below
+        (int X, int Y)[] inside = new (int, int)[20];
+        for (int y = 0; y < lay.ScreenH; y++)
+            for (int x = 0; x < lay.ScreenW; x++)
+            {
+                g.CursorX = -1; g.CursorY = -1;
+                app.PointerMoved(x, y);
+                if (g.CursorX < 0) continue;
+                int c = g.CursorX + g.CursorY * 5;
+                area[c]++;
+                inside[c] = (x, y);
+            }
+        Check(area.All(a => a == lay.CellW * lay.CellH), $"{name}: bonus mouse: every board cell is a {lay.CellW}x{lay.CellH} area under the pointer (areas {string.Join(",", area.Distinct())})");
+        var (px, py) = inside[17];
+        sx = px; sy = py;
+        Check(g.Board[17] == 0, "cell 17 is empty");
+        app.PointerPressed(sx, sy);
+        for (int i = 0; i < 3; i++) app.Update(20);
+        Check(g.Board[17] != 0, $"{name}: bonus mouse: a click on a cell puts the orb there");
+        int before = g.Board.Count(b => b != 0);
+        app.PointerPressed(0, 0);
+        for (int i = 0; i < 3; i++) app.Update(20);
+        Check(g.Board.Count(b => b != 0) == before, $"{name}: bonus mouse: a click outside the board does nothing");
     }
 
     private sealed class CountingHost : IGameHost

@@ -33,6 +33,8 @@ public interface IMikisGame
     void ReleaseAll();
     /// <summary>Debug: from the world, go to the final stage; from the final stage, go to the ending.</summary>
     void DebugSkipLevel();
+    /// <summary>Bonus minigame with the mouse: hover moves the cursor, a click places the orb.</summary>
+    void BonusPointer(int x, int y, bool click);
 
     /// <summary>Paints the frame; returns false when the game decided nothing changed since the last paint.</summary>
     bool Draw(Canvas g);

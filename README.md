@@ -42,7 +42,7 @@ https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
   Você pode mapear até duas entradas por ação; `Backspace`/`X` limpa; *Reset to defaults* restaura.
 - **Teclado numérico:** os dígitos continuam funcionando como no aparelho (`4`/`6` andar, `2` pular, `1`/`3` diagonal, `8` interagir, `5` confirmar)  
   Essas teclas **não** são remapeáveis, porque o código secreto é digitado com elas. Note que o celular é invertido, sendo que 1/2/3 são a linha de cima, enquanto no teclado, 7/8/9 é a coluna de cima.
-- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções).
+- **Mouse:** os menus são clicáveis (passar o mouse destaca, clique esquerdo ativa, direito volta, a roda rola as instruções). No minigame bônus, passar o mouse sobre uma casa move o cursor e o clique coloca a esfera ali.
 - **Tela-título:** qualquer tecla (ou clique) abre o menu, e ele abre sozinho depois de 5 s, como no original.
 - **Nome nos recordes com controle:** ↑/↓ trocam a letra, → acrescenta uma, ←/`B` apaga e `A`/`Start` salva.
 
