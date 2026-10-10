@@ -11,6 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\collectionlogo.png" LogicalName="collectionlogo.png" />
+    <EmbeddedResource Include="..\splash.png" LogicalName="splash.png" />
     <EmbeddedResource Include="Shaders\*.glsl" LogicalName="shader-%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>

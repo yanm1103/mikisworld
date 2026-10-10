@@ -20,6 +20,7 @@ internal static class Program
         public DisplaySettings Settings;
         public InputBindings Bindings;
         public ModManager Mods;
+        public bool ShowSplash;                              // the start-up picture (not with --no-splash, nor in scripted runs unless --splash)
         private readonly JarAssets[] _original = new JarAssets[2];
 
         /// <summary>The game's own files (never the mods'), opened when first needed.</summary>
@@ -67,6 +68,7 @@ internal static class Program
         if (missing.Count > 0) return ShowMissingJars(missing, run.QuitAfter >= 0 || exportDir != null || soundTest);
         if (game == 0 && (exportDir != null || soundTest || run.LaunchInject.Count == 0 && (run.Inject.Count > 0 || run.QuitAfter >= 0))) game = 1;
         run.Fixed = game != 0;
+        run.ShowSplash = Array.IndexOf(args, "--splash") >= 0 || Array.IndexOf(args, "--no-splash") < 0 && run.LaunchInject.Count == 0 && run.LaunchQuitAfter < 0 && run.QuitAfter < 0;
         LogConsole.Log($"games: {run.Jar1} | {run.Jar2}");
         run.Settings = SettingsStore.Load(ArgStr(args, "--settings", null));
         run.NoSound = Array.IndexOf(args, "--no-sound") >= 0;
@@ -102,7 +104,7 @@ internal static class Program
             {
                 if (game == 0)
                 {
-                    game = Launcher.Run(run.Settings, run.Bindings, run.Mods, run.Original, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter);
+                    game = Launcher.Run(run.Settings, run.Bindings, run.Mods, run.Original, firstLauncher ? run.LaunchInject : null, run.LaunchShoot, run.LaunchQuitAfter, splash: firstLauncher && run.ShowSplash);
                     firstLauncher = false;
                 }
                 if (game == 0) break;

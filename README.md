@@ -43,6 +43,7 @@ https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
 - **Numeric keypad:** the digits still work as on the phone (`4`/`6` walk, `2` jump, `1`/`3` diagonal, `8` interact, `5` confirm)  
   These keys are **not** remappable, because the secret code is typed with them. Note that the phone layout is inverted: 1/2/3 is the top row, while on a keyboard 7/8/9 is the top row.
 - **Mouse:** the menus are clickable (hovering highlights, left click activates, right click goes back, the wheel scrolls the instructions). In the bonus minigame, hovering over a cell moves the cursor and a click places the orb there.
+- **Start-up picture:** when the program opens, a credits picture (`port/splash.png`, 320x290) shows for 2.5 seconds; any key, mouse button or gamepad button skips it. `--no-splash` leaves it out.
 - **Title screen:** any key (or click) opens the menu, and it opens by itself after 5 s, like in the original.
 - **High-score name with a gamepad:** ↑/↓ change the letter, → adds one, ←/`B` erases and `A`/`Start` saves.
 - **Clear the high scores:** on the high-score screen, hold `Enter` (or `A`) for 3 seconds. A short tap still just closes the screen.
@@ -149,6 +150,7 @@ If you hit an error, please let us know!
 - `--scale N` (initial window size)
 - `--no-sound` (starts without sound; the saved volume is not changed)
 - `--logs` (shows the program log, for reporting problems)
+- `--no-splash` (no start-up picture), `--splash` (even in scripted runs)
 - `--mods-dir folder` (one more place to look for mods), `--no-mods` (ignore all mods for this run), `--mods-state file.json` (where the on/off choice and the order are kept)
 
 

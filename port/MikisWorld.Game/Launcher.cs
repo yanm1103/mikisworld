@@ -25,13 +25,14 @@ internal static partial class Launcher
 
     /// <summary>Returns 1 or 2 (the game to start) or 0 to quit.</summary>
     /// <param name="script">developer aid: frame -> names (Up Down Left Right Enter Escape One) injected as if typed; <paramref name="shots"/> frame -> screenshot names</param>
-    public static int Run(DisplaySettings s, InputBindings bind, ModManager mods, Func<int, IAssets> original, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1)
+    public static int Run(DisplaySettings s, InputBindings bind, ModManager mods, Func<int, IAssets> original, Dictionary<int, List<string>> script = null, Dictionary<int, List<string>> shots = null, int quitAfter = -1, bool splash = false)
     {
         _mods = mods; _original = original;
         int sel = 0;
         _frame = 0; _script = script; _shots = shots; _quitAfter = quitAfter;
         double resizedAt = -1;
-        Raylib.PollInputEvents();                // the Enter that left the game must not also select a row here
+        if (splash) Splash(s);
+        Raylib.PollInputEvents();                // the Enter that left the game (or that skipped the splash) must not also select a row here
         while (!Raylib.WindowShouldClose())
         {
             var rows = Rows(s);
