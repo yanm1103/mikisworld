@@ -1,5 +1,5 @@
 <p align="center">
-<img width="300" alt="collectionlogo" src="https://github.com/user-attachments/assets/809e6c34-a18c-407d-a65c-f9b119c320d5" />
+<img width="480" alt="collectionlogo" src="https://github.com/yanm1103/mikisworld/blob/master/port/1920x1080.png?raw=true" />
 </p>
 
 # Miki's World PC Collection (decomp + port)
