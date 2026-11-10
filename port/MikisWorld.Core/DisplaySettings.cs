@@ -30,6 +30,9 @@ public sealed class DisplaySettings
     /// <summary>LCD-like ghosting: a pixel takes a few frames to reach its new colour, leaving a faint trail (the phone screens did this).</summary>
     public bool Ghosting { get; set; }
 
+    /// <summary>Which build of the games to play: the 176x144 one (recommended) or the 128x128 one. Falls back to the other if that JAR is missing.</summary>
+    public GameSize Resolution { get; set; } = GameSize.Large;
+
     public static readonly DisplayFilter[] Filters = (DisplayFilter[])Enum.GetValues(typeof(DisplayFilter));
 
     public static string FilterName(DisplayFilter f) => f switch
@@ -70,3 +73,6 @@ public sealed class DisplaySettings
     /// <summary>For the frontend's own text and logo: smooth them only when the filter is a smoothing one and the zoom is not a whole number.</summary>
     public bool UsesBilinear => !IntegerScale && Filter is DisplayFilter.Bilinear or DisplayFilter.Sharp;
 }
+
+/// <summary>The two screen sizes the games were released in.</summary>
+public enum GameSize { Large, Small }

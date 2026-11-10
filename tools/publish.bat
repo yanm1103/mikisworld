@@ -1,6 +1,6 @@
 @echo off
 rem Builds the distributable game: dist\MikisWorldCollection.exe (one self-contained file, no .NET install needed).
-rem The game files are NOT included: put MikisWorld.jar and MikisWorld2.jar in a JAR folder next to the exe.
+rem The game files are NOT included: put the game JARs (see README) in a JAR folder next to the exe.
 setlocal
 set "ROOT=%~dp0.."
 set "DOTNET_CLI_HOME=%ROOT%\tools\.dotnet-home"

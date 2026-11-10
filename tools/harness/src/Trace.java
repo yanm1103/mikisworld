@@ -114,7 +114,8 @@ public class Trace {
         PrintStream out = System.out;
         StringBuilder k = new StringBuilder("#consts");
         String[] consts = N.getProperty("consts", "bT,b6,cl,ck,aP,a0,bZ,cU,C,aw,ah,cr,be,bO,c7,bq,bo,at,cP,cD,bV,cd,bY,b3,cz").split(",");
-        for (String f : consts) if (!f.isEmpty()) k.append(' ').append(f).append('=').append(get(d, nm(f)));
+        String[] clabels = N.getProperty("consts.labels", N.getProperty("consts", "")).split(",");   // names printed in the trace (those of the reference build)
+        for (int ci = 0; ci < consts.length; ci++) { String f = consts[ci]; if (!f.isEmpty()) k.append(' ').append(ci < clabels.length && N.getProperty("consts.labels") != null ? clabels[ci] : f).append('=').append(get(d, nm(f))); }
         String jt = N.getProperty("jumptable", "S");
         if (!jt.isEmpty()) k.append(" S=").append(arr(get(d, jt)));
         out.println(k);
@@ -167,7 +168,7 @@ public class Trace {
 
     static String header() {
         return "tick cK c2 n cv aO aM am ak a1 a8 H a4 cO W bU cQ b1 E0 ci proj platHash mapHash grid"
-                + (N.getProperty("extra", "").isEmpty() ? "" : " " + N.getProperty("extra").replace(',', ' '));
+                + (N.getProperty("extra", "").isEmpty() ? "" : " " + N.getProperty("extra.labels", N.getProperty("extra")).replace(',', ' '));
     }
 
     static String line(Object d, int t) throws Exception {

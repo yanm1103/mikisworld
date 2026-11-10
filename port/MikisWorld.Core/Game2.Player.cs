@@ -211,9 +211,9 @@ public sealed partial class Game2
                     int ddy = _py - _morkY;
                     int adx = ddx < 0 ? -ddx : ddx;
                     int ady = ddy < 0 ? -ddy : ddy;
-                    if (-ddy > _tileH * Layout2.ViewTilesH * 3 / 2 << 4)
+                    if (-ddy > _tileH * L.ViewTilesH * 3 / 2 << 4)
                     {
-                        _morkY = _py + (_tileH * Layout2.ViewTilesH * 3 / 2 << 4);
+                        _morkY = _py + (_tileH * L.ViewTilesH * 3 / 2 << 4);
                         _morkX = _px;
                     }
                     else if (adx < ady && adx >= _scaleX << 1 || adx <= _scaleX << 1)
@@ -232,7 +232,7 @@ public sealed partial class Game2
             }
             else
             {
-                int ox = (_morkX >> 4) + (Layout2.LordPoseW >> 1) - ((_px >> 4) + (_playerW >> 1));
+                int ox = (_morkX >> 4) + (L.LordPoseW >> 1) - ((_px >> 4) + (_playerW >> 1));
                 int oy = (_py >> 4) - (_playerH >> 1) - ((_morkY >> 4) - (_lordH >> 1));
                 int stepY = _scaleY;
                 int stepX = _scaleX;
@@ -287,7 +287,7 @@ public sealed partial class Game2
                     _morkState = 0;
                     _morkTimer = pause;
                 }
-                int halfW = Layout2.LordPoseW >> 1;
+                int halfW = L.LordPoseW >> 1;
                 int halfH = _lordH >> 1;
                 if (ox >= -halfW && ox <= halfW && oy >= -halfH && oy <= halfH)
                 {

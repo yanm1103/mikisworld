@@ -2,6 +2,7 @@
 
 usage: python gen_inputs.py <level.bin> <scenario: main|area1|area2|area3|bonus> <seed> <ticks> [--v2] > script.txt
 
+--tile N: tile size of the build (14 / 12).  --c2: the simpler tile-layer container (128x128 build of game 1).
 --v2: level.bin of MikisWorld2 (12 px tiles, 8-bit map, different header).
 
 areaN scenarios are meant to be run with Trace's startArea = N (area1 = final stage, area2/3 = sub-areas).
@@ -40,7 +41,9 @@ def main():
     v2 = "--v2" in sys.argv
     if v2:
         TILE = 12
-    lv = parse(open(sys.argv[1], "rb").read(), v2=v2)
+    if "--tile" in sys.argv:
+        TILE = int(sys.argv[sys.argv.index("--tile") + 1])
+    lv = parse(open(sys.argv[1], "rb").read(), v2=v2, c2="--c2" in sys.argv)
     scen, seed, ticks = sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
     rnd = random.Random(seed)
     m = lv["map"]; w, h, t = m["width"], m["height"], m["tiles"]

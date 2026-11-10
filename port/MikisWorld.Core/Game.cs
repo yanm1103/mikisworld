@@ -1,4 +1,4 @@
-namespace MikisWorld.Core;
+﻿namespace MikisWorld.Core;
 
 /// <summary>Game states (original field <c>d.cK</c>).</summary>
 public static class State
@@ -52,7 +52,9 @@ public sealed partial class Game : GameBase, IMikisGame
     private int[] _hitFxStart = new int[3];
     private int _birdFxX = -1, _birdFxY = -1;       // bird released animation
 
-    public Game(IAssets assets, IGameHost host, long seed) : base(assets, host, seed, GameLayout.One)
+    public Game(IAssets assets, IGameHost host, long seed) : this(assets, host, seed, GameLayout.For(1, assets.ImageSize("title.png").Width)) { }
+
+    public Game(IAssets assets, IGameHost host, long seed, GameLayout layout) : base(assets, host, seed, layout)
     {
         var player = assets.ImageSize("player.png");
         var items = assets.ImageSize("items.png");
@@ -72,10 +74,10 @@ public sealed partial class Game : GameBase, IMikisGame
         _walkSpeed = 2 * _scaleX * 90 / 100;
         _fallSpeed = 2 * _scaleY;
         _totalCoins = 55;
-        _collision = new TileCollision();
+        _collision = layout.TileSky ? new TileCollision2() : new TileCollision();   // the 128x128 build has the collision class of game 2
 
-        Strings = GameStrings.Load(assets);
-        Cutscene = new CutscenePlayer(assets, _host, _scaleX, _scaleY, Strings.Count - 16);
+        Strings = GameStrings.Load(assets, "en", layout.UiStrings);
+        Cutscene = new CutscenePlayer(assets, _host, _scaleX, _scaleY, Strings.Count - layout.UiStrings);
 
         // cheat code: 7 7 7 7 3 3 2 2 2 7 7 7 3 3 8
         _cheat = new[] { 55, 55, 55, 55, 51, 51, 50, 50, 50, 55, 55, 55, 51, 51, 56 };

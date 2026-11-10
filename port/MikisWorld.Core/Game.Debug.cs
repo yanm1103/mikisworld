@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 
 [assembly: InternalsVisibleTo("MikisWorld.TraceTest")]
@@ -46,5 +46,5 @@ public sealed partial class Game
     }
 
     internal static string DebugConsts(Game g) =>
-        $"#consts bT={g._tileW} b6={g._tileH} cl={g._scaleX} ck={g._scaleY} aP={g._playerW} a0={(g._levelLoaded ? g._playerH : 0)} bZ={g._itemW} cU={g._itemH} C={g._hitFxDx} aw={(g._levelLoaded ? g._hitFxDy : 0)} ah={g._hitHalfW} cr={g._airSpeed} be={g._walkSpeed} bO={g._fallSpeed} c7={g._totalCoins} bq={g._gateX} bo={g._gateY} at={g._lord1Platform} cP={g._lord2Platform} cD={g._camMaxX} bV={g._outerX} cd={g._innerX} bY={g._innerY} b3={g._camMinY} cz={g._camMaxY} S={string.Join(",", g._jumpTable)}";
+        $"#consts bT={g._tileW} b6={g._tileH} cl={g._scaleX} ck={g._scaleY} aP={g._playerW} a0={(g._levelLoaded ? g._playerH : 0)} bZ={(g._levelLoaded || !g.L.TileSky ? g._itemW : 0)} cU={(g._levelLoaded || !g.L.TileSky ? g._itemH : 0)} C={(g._levelLoaded || !g.L.TileSky ? g._hitFxDx : 0)} aw={(g._levelLoaded ? g._hitFxDy : 0)} ah={g._hitHalfW} cr={g._airSpeed} be={g._walkSpeed} bO={g._fallSpeed} c7={g._totalCoins} bq={g._gateX} bo={g._gateY} at={g._lord1Platform} cP={g._lord2Platform} cD={g._camMaxX} bV={g._outerX} cd={g._innerX} bY={g._innerY} b3={g._camMinY} cz={g._camMaxY} S={string.Join(",", g._jumpTable)}";
 }

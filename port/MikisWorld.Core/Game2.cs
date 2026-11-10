@@ -1,4 +1,4 @@
-namespace MikisWorld.Core;
+﻿namespace MikisWorld.Core;
 
 /// <summary>Layout of MikisWorld 2 (original class <c>f</c>): 128x128 screen, 12 px tiles.</summary>
 public static class Layout2
@@ -53,7 +53,9 @@ public sealed partial class Game2 : GameBase, IMikisGame
     private int[] _events;
     private int _eventIdx;
 
-    public Game2(IAssets assets, IGameHost host, long seed) : base(assets, host, seed, GameLayout.Two)
+    public Game2(IAssets assets, IGameHost host, long seed) : this(assets, host, seed, GameLayout.For(2, assets.ImageSize("title.png").Width)) { }
+
+    public Game2(IAssets assets, IGameHost host, long seed, GameLayout layout) : base(assets, host, seed, layout)
     {
         _state = -1;
         _collision = new TileCollision2();
@@ -76,7 +78,7 @@ public sealed partial class Game2 : GameBase, IMikisGame
     protected override void DrawGameSpecificHitboxes(Canvas g)
     {
         if (_area == Area.SubArea || _state == State.Cutscene || _state == State.Ending) return;
-        int halfW = Layout2.LordPoseW >> 1, halfH = _lordH >> 1;
+        int halfW = L.LordPoseW >> 1, halfH = _lordH >> 1;
         int mcx = (_morkX >> 4) + halfW, mcy = (_morkY >> 4) - halfH;
         Box(g, ColMork, mcx - halfW, mcy - halfH, 2 * halfW + 1, 2 * halfH + 1);
         Cross(g, ColLanding, (_px >> 4) + (_playerW >> 1), (_py >> 4) - (_playerH >> 1));

@@ -11,7 +11,8 @@ internal static class Program
 
     private sealed class Run
     {
-        public string Jar1, Jar2, SavePath, ResizeSpec;
+        public string[,] Jars = new string[2, 2];            // [game - 1, 0 = large (176x144), 1 = small (128x128)]; null when the file is missing
+        public string SavePath, ResizeSpec;
         public int Scale, Octave, QuitAfter, CrashAt;
         public bool NoSound;                                 // --no-sound: this run starts muted (the saved volume is kept)
         public bool Fixed;                                   // --game given: no launcher, closing the game closes the program
@@ -21,10 +22,21 @@ internal static class Program
         public InputBindings Bindings;
         public ModManager Mods;
         public bool ShowSplash;                              // the start-up picture (not with --no-splash, nor in scripted runs unless --splash)
-        private readonly JarAssets[] _original = new JarAssets[2];
+        private readonly Dictionary<string, JarAssets> _opened = new();
+
+        /// <summary>The JAR to play: the chosen resolution, or the other one when that file is missing.</summary>
+        public string JarFor(int game)
+        {
+            int pick = Settings.Resolution == GameSize.Small ? 1 : 0;
+            return Jars[game - 1, pick] ?? Jars[game - 1, 1 - pick];
+        }
 
         /// <summary>The game's own files (never the mods'), opened when first needed.</summary>
-        public IAssets Original(int game) => _original[game - 1] ??= new JarAssets(game == 2 ? Jar2 : Jar1);
+        public IAssets Original(int game)
+        {
+            string jar = JarFor(game);
+            return _opened.TryGetValue(jar, out var a) ? a : _opened[jar] = new JarAssets(jar);
+        }
     }
 
     private static int Main(string[] args)
@@ -32,8 +44,6 @@ internal static class Program
         LogConsole.Configure(Array.IndexOf(args, "--logs") >= 0);      // raylib's own log and ours: only with --logs
         var run = new Run
         {
-            Jar1 = FindJar(args, "MikisWorld.jar"),
-            Jar2 = FindJar(args, "MikisWorld2.jar"),
             Scale = ArgInt(args, "--scale", 4),
             SavePath = ArgStr(args, "--save", null),
             // developer aids: inject keys / take screenshots at given frames, e.g. --inject 30:Enter,60:Down --shoot 90:menu
@@ -47,6 +57,12 @@ internal static class Program
             LaunchShoot = ParseFrames(ArgStr(args, "--launcher-shoot", "")),
             LaunchQuitAfter = ArgInt(args, "--launcher-quit-after", -1),
         };
+        // MikisWorld_176x144.jar / MikisWorld_128x128.jar and MikisWorld2_176x144.jar / MikisWorld2_128x128.jar; the old names (before the
+        // resolution was part of the name) still work: MikisWorld.jar is the 176x144 build of game 1, MikisWorld2.jar the 128x128 one of game 2
+        run.Jars[0, 0] = FindJar(args, "MikisWorld_176x144.jar", "MikisWorld.jar");
+        run.Jars[0, 1] = FindJar(args, "MikisWorld_128x128.jar");
+        run.Jars[1, 0] = FindJar(args, "MikisWorld2_176x144.jar");
+        run.Jars[1, 1] = FindJar(args, "MikisWorld2_128x128.jar", "MikisWorld2.jar");
         int game = ArgInt(args, "--game", 0);                       // 0 = ask (when both JARs are present)
         string exportDir = ArgStr(args, "--export-sounds", null);
         bool soundTest = Array.IndexOf(args, "--sound-test") >= 0;
@@ -63,14 +79,15 @@ internal static class Program
         // both games are required: the start-up screen lets you choose, and missing files are reported instead of silently
         // falling back to the one that exists
         var missing = new List<string>();
-        if (run.Jar1 == null) missing.Add("MikisWorld.jar");
-        if (run.Jar2 == null) missing.Add("MikisWorld2.jar");
+        if (run.Jars[0, 0] == null && run.Jars[0, 1] == null) missing.Add("MikisWorld_176x144.jar (or MikisWorld_128x128.jar)");
+        if (run.Jars[1, 0] == null && run.Jars[1, 1] == null) missing.Add("MikisWorld2_176x144.jar (or MikisWorld2_128x128.jar)");
         if (missing.Count > 0) return ShowMissingJars(missing, run.QuitAfter >= 0 || exportDir != null || soundTest);
         if (game == 0 && (exportDir != null || soundTest || run.LaunchInject.Count == 0 && (run.Inject.Count > 0 || run.QuitAfter >= 0))) game = 1;
         run.Fixed = game != 0;
         run.ShowSplash = Array.IndexOf(args, "--splash") >= 0 || Array.IndexOf(args, "--no-splash") < 0 && run.LaunchInject.Count == 0 && run.LaunchQuitAfter < 0 && run.QuitAfter < 0;
-        LogConsole.Log($"games: {run.Jar1} | {run.Jar2}");
         run.Settings = SettingsStore.Load(ArgStr(args, "--settings", null));
+        if (ArgStr(args, "--resolution", null) is string rs) run.Settings.Resolution = rs.StartsWith("128") ? GameSize.Small : GameSize.Large;
+        LogConsole.Log($"games: {run.JarFor(1)} | {run.JarFor(2)}");
         run.NoSound = Array.IndexOf(args, "--no-sound") >= 0;
         if (run.NoSound) SettingsStore.StartMuted(run.Settings);
         run.Settings.Changed += () => SettingsStore.Save(run.Settings);
@@ -86,7 +103,7 @@ internal static class Program
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow | ConfigFlags.VSyncHint);
         if (exportDir != null)
         {
-            using var a = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+            using var a = new JarAssets(run.JarFor(game));
             AudioHost.Export(a, exportDir, run.Octave);
             return 0;
         }
@@ -130,7 +147,7 @@ internal static class Program
 
     private static int SoundTest(Run run, int game)
     {
-        using var assets = new JarAssets(game == 2 ? run.Jar2 : run.Jar1);
+        using var assets = new JarAssets(run.JarFor(game));
         using var audio = new AudioHost(assets, run.Octave, run.Settings.Volume);
         audio.Play(Sfx.Coin);
         Raylib.WaitTime(0.03);
@@ -450,7 +467,7 @@ internal static class Program
     /// <summary>Both JARs are required; explains which one is missing and where they are searched for.</summary>
     private static int ShowMissingJars(List<string> missing, bool headless)
     {
-        string text = "Miki's World needs BOTH game files.\n\nMissing: " + string.Join(", ", missing)
+        string text = "Miki's World needs both games.\n\nMissing: " + string.Join(", ", missing)
             + "\n\nPut MikisWorld.jar and MikisWorld2.jar in the JAR folder next to the project,\nor pass their paths as arguments.\n\n(press any key to close)";
         Console.Error.WriteLine(text.Replace("\n\n(press any key to close)", ""));
         if (headless) return 1;
@@ -502,17 +519,19 @@ internal static class Program
                         (game == 2 ? "save2" : "save") + (modKey.Length > 0 ? "." + modKey : "") + ".json");
 
     /// <summary>An explicit .jar argument whose name matches, else JAR/&lt;name&gt; found by walking up from the executable.</summary>
-    private static string FindJar(string[] args, string name)
+    private static string FindJar(string[] args, params string[] names)
     {
-        foreach (string a in args)
-            if (a.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) && File.Exists(a)
-                && string.Equals(Path.GetFileName(a), name, StringComparison.OrdinalIgnoreCase)) return a;
+        foreach (string name in names)
+            foreach (string a in args)
+                if (a.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) && File.Exists(a)
+                    && string.Equals(Path.GetFileName(a), name, StringComparison.OrdinalIgnoreCase)) return a;
         string dir = AppContext.BaseDirectory;
         for (int i = 0; i < 8 && dir != null; i++, dir = Path.GetDirectoryName(dir))
-        {
-            string c = Path.Combine(dir, "JAR", name);
-            if (File.Exists(c)) return c;
-        }
+            foreach (string name in names)
+            {
+                string c = Path.Combine(dir, "JAR", name);
+                if (File.Exists(c)) return c;
+            }
         return null;
     }
 
@@ -594,7 +613,7 @@ internal sealed class RaylibFontMetrics : IFontMetrics
 internal static class SettingsStore
 {
     private sealed record Dto(int Volume = 100, bool IntegerScale = true, bool Bilinear = false, bool RevampedMovement = true, bool Vibration = true,
-                              string Filter = null, bool Ghosting = false, string View = null, int ViewZoom = 0);
+                              string Filter = null, bool Ghosting = false, string View = null, int ViewZoom = 0, string Resolution = null);
     private static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
     private static string _path;
     private static int? _mutedFrom;                // --no-sound: the volume to keep in the file while this run is muted
@@ -614,7 +633,7 @@ internal static class SettingsStore
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { }
         // files from before the filter list only have the Bilinear switch
         var filter = Enum.TryParse<DisplayFilter>(d.Filter, true, out var f) ? f : d.Bilinear ? DisplayFilter.Bilinear : DisplayFilter.Nearest;
-        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Filter = filter, Ghosting = d.Ghosting, View = Enum.TryParse<DisplayView>(d.View, true, out var v) ? v : DisplayView.Original, ViewZoom = Math.Clamp(d.ViewZoom, 0, 16), RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
+        return new DisplaySettings { Volume = Math.Clamp(d.Volume, 0, 100), IntegerScale = d.IntegerScale, Filter = filter, Ghosting = d.Ghosting, View = Enum.TryParse<DisplayView>(d.View, true, out var v) ? v : DisplayView.Original, ViewZoom = Math.Clamp(d.ViewZoom, 0, 16), Resolution = Enum.TryParse<GameSize>(d.Resolution, true, out var gs) ? gs : GameSize.Large, RevampedMovement = d.RevampedMovement, Vibration = d.Vibration };
     }
 
     public static void Save(DisplaySettings s)
@@ -623,7 +642,7 @@ internal static class SettingsStore
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, JsonSerializer.Serialize(new Dto(_mutedFrom is int kept && s.Volume == 0 ? kept : s.Volume, s.IntegerScale, s.Filter is DisplayFilter.Bilinear, s.RevampedMovement, s.Vibration,
-                s.Filter.ToString(), s.Ghosting, s.View.ToString(), s.ViewZoom), Opt));
+                s.Filter.ToString(), s.Ghosting, s.View.ToString(), s.ViewZoom, s.Resolution.ToString()), Opt));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

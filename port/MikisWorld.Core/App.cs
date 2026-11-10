@@ -846,24 +846,30 @@ public sealed class App
     private void DrawModeList(Canvas g)
     {
         DrawBackdrop(g);
-        int lineH = g.Metrics.Height(FontKind.Bold) + 4;
-        int w = Math.Min(124, W - 4), h = 3 * lineH + 10;
+        int lineH = g.Metrics.Height(FontKind.Bold) + 2;
+        int w = Math.Min(124, W - 4);
+        // titles and entries are wrapped: on a 128 px screen "The story continues in..." does not fit in one line
+        var title = Wrap(g, _s.Text(15), w - 16, FontKind.Bold);
+        var labels = new[] { Wrap(g, _s.Text(13), w - 24, FontKind.Bold), Wrap(g, _s.Text(14), w - 24, FontKind.Bold) };
+        int h = (title.Count + labels[0].Count + labels[1].Count) * lineH + 14;
         int x = (W - w) / 2, y = (H - h) / 2;
         Panel(g, x, y, w, h);
-        DrawShadowed(g, _s.Text(15), x + 8, y + 5, FontKind.Bold, 0xFFFFFF, 0);
-        string[] labels = { _s.Text(13), _s.Text(14) };
+        int ty = y + 6;
+        foreach (string line in title) { DrawShadowed(g, line, x + 8, ty, FontKind.Bold, 0xFFFFFF, 0); ty += lineH; }
         for (int i = 0; i < 2; i++)
         {
-            int ty = y + 6 + (i + 1) * lineH;
+            int rh = labels[i].Count * lineH;
             if (i == _modeSel)
             {
                 g.SetClip(0, 0, W, H);
                 g.SetColor(160, 90, 20);
-                g.FillRect(x + 3, ty - 1, w - 5, lineH);
+                g.FillRect(x + 3, ty - 1, w - 5, rh + 1);
             }
-            DrawShadowed(g, labels[i], x + 14, ty, FontKind.Bold, i == _modeSel ? 0xFFFFFF : 0xFFE0A0, 0);
+            for (int l = 0; l < labels[i].Count; l++)
+                DrawShadowed(g, labels[i][l], x + 14, ty + l * lineH, FontKind.Bold, i == _modeSel ? 0xFFFFFF : 0xFFE0A0, 0);
             int idx = i;
-            Hit(x + 3, ty - 1, w - 5, lineH, (_, _) => { _modeSel = idx; _game.ChooseMode(idx); }, () => _modeSel = idx);
+            Hit(x + 3, ty - 1, w - 5, rh + 1, (_, _) => { _modeSel = idx; _game.ChooseMode(idx); }, () => _modeSel = idx);
+            ty += rh;
         }
     }
 

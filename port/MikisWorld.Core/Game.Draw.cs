@@ -1,18 +1,25 @@
-namespace MikisWorld.Core;
+﻿namespace MikisWorld.Core;
 
 /// <summary>Rendering (original d.a(Graphics) and helpers, e.cfr_renamed_3(Graphics), a.a(Graphics,...)).
 /// Draws a 176x144 frame onto a <see cref="Canvas"/>; text is emitted as <see cref="TextCommand"/>s.</summary>
 public sealed partial class Game
 {
-    private Bitmap _imgTiles, _imgSky, _imgClouds, _imgSymbols;
+    private Bitmap _imgTiles, _imgSymbols;
+    private int _skyR, _skyG, _skyB;                   // flat sky colour of the 128x128 build (menus and the minigame)
+
+    protected override bool DrawsTileZero => L.TileSky;
 
     /// <summary>Loads the sprite sheets so <see cref="Draw"/> can be used. Logic-only users (tests) can skip this.</summary>
     public override void EnableRendering()
     {
         if (_render) return;
         _imgTiles = _assets.LoadBitmap("tiles.png");
-        _imgSky = _assets.LoadBitmap("sky.png");
-        _imgClouds = _assets.LoadBitmap("clouds.png");
+        if (!L.TileSky)
+        {
+            _imgSky = _assets.LoadBitmap("sky.png");
+            _imgClouds = _assets.LoadBitmap("clouds.png");
+        }
+        else { int c = _imgTiles.Pixels[0]; _skyR = c >> 16 & 255; _skyG = c >> 8 & 255; _skyB = c & 255; }   // the 128x128 build paints its sky into tile 0
         _imgLord = _assets.LoadBitmap("lord.png");
         _imgPlayer = _assets.LoadBitmap("player.png");
         _imgItems = _assets.LoadBitmap("items.png");
@@ -25,23 +32,23 @@ public sealed partial class Game
         _imgGrid = _assets.LoadBitmap("grid.png");
         _imgBonus = _assets.LoadBitmap("bonus.png");
         _imgCursor = _assets.LoadBitmap("cursor.png");
-        _snapshot = new Bitmap(Layout.ScreenW, Layout.ScreenH);
+        _snapshot = new Bitmap(L.ScreenW, L.ScreenH);
 
         // lateral bars of the minigame: strips cut from bonus.png (original d.i())
-        _barLeft = new Bitmap(Layout.BarW, Layout.ScreenH);
-        _barRight = new Bitmap(Layout.BarW, Layout.ScreenH);
-        int off = Layout.OrbW * 2;
+        _barLeft = new Bitmap(L.BarW, L.ScreenH);
+        _barRight = new Bitmap(L.BarW, L.ScreenH);
+        int off = L.OrbW * 2;
         var gl = new Canvas(_barLeft);
-        for (int y = 0; y < _barLeft.Height; y += Layout.BarStripH)
+        for (int y = 0; y < _barLeft.Height; y += L.BarStripH)
         {
-            gl.SetClip(0, y, Layout.BarW, Layout.BarStripH);
+            gl.SetClip(0, y, L.BarW, L.BarStripH);
             gl.DrawImage(_imgBonus, -off, y, Canvas.Left | Canvas.Top);
         }
-        off += Layout.BarW;
+        off += L.BarW;
         var gr = new Canvas(_barRight);
-        for (int y = 0; y < _barRight.Height; y += Layout.BarStripH)
+        for (int y = 0; y < _barRight.Height; y += L.BarStripH)
         {
-            gr.SetClip(0, y, Layout.BarW, Layout.BarStripH);
+            gr.SetClip(0, y, L.BarW, L.BarStripH);
             gr.DrawImage(_imgBonus, -off, y, Canvas.Left | Canvas.Top);
         }
         _render = true;
@@ -62,7 +69,7 @@ public sealed partial class Game
     {
         if (WideView && !DrawsWorld)
         {
-            int vw = ViewWidth, vh = ViewHeight, ox = (vw - Layout.ScreenW) / 2, oy = (vh - Layout.ScreenH) / 2;
+            int vw = ViewWidth, vh = ViewHeight, ox = (vw - L.ScreenW) / 2, oy = (vh - L.ScreenH) / 2;
             g.SetClip(0, 0, vw, vh);
             g.SetColor(0, 0, 0);
             g.FillRect(0, 0, vw, vh);
@@ -136,7 +143,7 @@ public sealed partial class Game
     {
         PrepareDraw(DrawsWorld);
         int W = _vw, H = _vh;
-        int ex = W - Layout.ScreenW, ey = H - Layout.ScreenH;       // how much bigger than the original screen (0 unless the view is wide)
+        int ex = W - L.ScreenW, ey = H - L.ScreenH;       // how much bigger than the original screen (0 unless the view is wide)
         bool wide = ex != 0 || ey != 0;
         g.SetClip(0, 0, W, H);
         if (wide)
@@ -145,7 +152,7 @@ public sealed partial class Game
             g.FillRect(0, 0, W, H);                                 // outside the map and the area: black
             g.SetClip(_wx, _wy, _ww, _wh);
         }
-        DrawSky(g, _frame, _camX, _sx, _sy, W, H, _wx, _wy, _ww, _wh);
+        if (!L.TileSky) DrawSky(g, _frame, _camX, _sx, _sy, W, H, _wx, _wy, _ww, _wh);
         g.SetClip(0, 0, W, H);
         if (wide) DrawTileLayerWide(g);
         else DrawTileLayer(g, 0, 0, W, H, _camX, _camY);
@@ -158,7 +165,7 @@ public sealed partial class Game
             int y = _platforms[i][1] - _dy;
             if ((_platforms[i][3] & 1) == 0)
             {
-                y -= 4;
+                if (!L.TileSky) y -= 4;
                 int bob = (_frame + i * 3) / 32 % 4;
                 int sheetW = _imgTiles.Width;
                 for (int k = 0; k < _platforms[i][2]; k++)
@@ -197,7 +204,7 @@ public sealed partial class Game
 
         if (_state == State.GameOver)
         {
-            int x = Layout.GameOverX + _hcx, y = Layout.GameOverY + _hcy;
+            int x = L.GameOverX + _hcx, y = L.GameOverY + _hcy;
             g.SetClip(x, y, _imgGameOver.Width, _imgGameOver.Height / 2);
             if (_lives != 0) y -= _imgGameOver.Height / 2;
             g.DrawImage(_imgGameOver, x, y, TL);
@@ -206,7 +213,7 @@ public sealed partial class Game
         if (_state != State.Unknown7 && _area >= 0)
         {
             g.SetClip(0, 0, W, H);
-            int x = Layout.LivesX + _hr, y = Layout.LivesY + _hb;
+            int x = L.LivesX + _hr, y = L.LivesY + _hb;
             for (int i = 0; i < _lives; i++)
             {
                 g.SetClip(x, y, _tileW, _tileH);
@@ -225,20 +232,20 @@ public sealed partial class Game
                 if (_finalTimer < 60000 || _finalTimer / 500 % 2 == 0)
                 {
                     g.SetClip(0, 0, W, H);
-                    int bx = Layout.CoinHudX + _hl;
-                    int by = Layout.CoinHudY - 2 + _hb;
+                    int bx = L.CoinHudX + _hl;
+                    int by = L.CoinHudY - 2 + _hb;
                     g.SetClip(bx, by, _tileW, _tileH);
                     g.DrawImage(_imgTiles, bx - Tile.CagedBird * _tileW % _imgTiles.Width, by - 12 * _tileW / _imgTiles.Width * _tileH, TL);
                     g.SetClip(bx, by - _tileH, _tileW, _tileH);
                     g.DrawImage(_imgTiles, bx - 12 * _tileW % _imgTiles.Width, by - Tile.BirdSign * _tileW / _imgTiles.Width * _tileH - _tileH, TL);
-                    DrawCounter(g, (bx += _tileW) + 3, by += (_tileH - _imgNumbers.Height) / 2, _imgNumbers, Layout.DigitW, 1, _finalBirdCells.Length - _finalDoor, false);
+                    DrawCounter(g, (bx += _tileW) + 3, by += (_tileH - _imgNumbers.Height) / 2, _imgNumbers, L.DigitW, 1, _finalBirdCells.Length - _finalDoor, false);
                 }
                 if (_finalTimer > 10000 || _frame / 15 % 2 == 0)
                 {
                     int secs = _finalTimer / 1000;
                     if (secs > 60) secs = 60;
                     g.SetClip(0, 0, W, H);
-                    DrawCounter(g, Layout.TimeHudX + _hr, Layout.TimeHudY + _ht, _imgTime, Layout.TimeDigitW, 2, secs, false);
+                    DrawCounter(g, L.TimeHudX + _hr, L.TimeHudY + _ht, _imgTime, L.TimeDigitW, 2, secs, false);
                 }
             }
             else
@@ -246,7 +253,7 @@ public sealed partial class Game
                 g.SetClip(0, 0, W, H);
                 int left = _totalCoins - _coins;
                 if (left < 0) left = 0;
-                DrawCounter(g, Layout.CoinHudX + _hl, Layout.CoinHudY + _hb, _imgNumbers, Layout.DigitW, 4, left, true);
+                DrawCounter(g, L.CoinHudX + _hl, L.CoinHudY + _hb, _imgNumbers, L.DigitW, 4, left, true);
             }
         }
         if (_state == State.Cutscene) DrawCutsceneBubbles(g);
@@ -257,44 +264,25 @@ public sealed partial class Game
 
     // original d.cfr_renamed_1(Graphics): sky + two parallax cloud bands
     /// <summary>The scrolling sky + clouds, for screens outside the game world (menus).</summary>
-    public void DrawBackdrop(Canvas g, int frame) => DrawSky(g, frame, 0, 0, 0, Layout.ScreenW, Layout.ScreenH, 0, 0, Layout.ScreenW, Layout.ScreenH);
-
-    /// <summary>The sky anchored at (ox, oy) of a W x H picture (the original screen's top-left), painted only inside the clip rectangle (cx, cy, cw, ch).
-    /// Above and below the original sky strip a flat colour continues it.</summary>
-    private void DrawSky(Canvas g, int frame, int camX, int ox, int oy, int W, int H, int cx, int cy, int cw, int ch)
+    public void DrawBackdrop(Canvas g, int frame)
     {
-        int skyW = _imgSky.Width, skyH = _imgSky.Height;
-        bool wide = ox != 0 || oy != 0 || W != Layout.ScreenW || H != Layout.ScreenH;
-        if (wide)
+        if (L.TileSky) DrawFlatSky(g, frame / 4);
+        else DrawSky(g, frame, 0, 0, 0, L.ScreenW, L.ScreenH, 0, 0, L.ScreenW, L.ScreenH);
+    }
+
+    /// <summary>The 128x128 build has no sky pictures: a flat colour (tile 0's) with a row of cloud tiles along the bottom edge.</summary>
+    private void DrawFlatSky(Canvas g, int scroll)
+    {
+        int W = L.ScreenW, H = L.ScreenH;
+        g.SetClip(0, 0, W, H);
+        g.SetColor(_skyR, _skyG, _skyB);
+        g.FillRect(0, 0, W, H);
+        int src = -Tile.Cloud * _tileW, sheetW = _imgTiles.Width;
+        for (int x = -(scroll % _tileW); x < W; x += _tileW)
         {
-            int top = _imgSky.Pixels[0], bottom = _imgSky.Pixels[(skyH - 1) * skyW];
-            g.SetClip(cx, cy, cw, ch);
-            g.SetColor(top >> 16, top >> 8, top);
-            g.FillRect(0, 0, W, oy);
-            g.SetColor(bottom >> 16, bottom >> 8, bottom);
-            g.FillRect(0, oy + skyH, W, H - oy - skyH);
-        }
-        g.SetClip(cx, cy, cw, ch);
-        int x = ox + -(frame / 32) % skyW;                         // (the original's arithmetic: with a negative frame the strip starts right of 0)
-        if (wide) while (x > 0) x -= skyW;
-        for (; x < W; x += skyW) g.DrawImage(_imgSky, x, oy, TL);
-        int y = 99 + oy;
-        x = ox + -(frame / 25 + camX / 4) % 38;
-        if (wide) while (x > 0) x -= 38;
-        for (; x < W; x += 38)
-        {
-            g.SetClip(cx, cy, cw, ch);
-            g.ClipRect(x, y, 38, 27);
-            g.DrawImage(_imgClouds, x, y, TL);
-        }
-        y = 114 + oy;
-        x = ox + -(frame / 5 + camX / 2) % 45;
-        if (wide) while (x > 0) x -= 45;
-        for (; x < W; x += 45)
-        {
-            g.SetClip(cx, cy, cw, ch);
-            g.ClipRect(x, y, 45, 30);
-            g.DrawImage(_imgClouds, x, y - 27, TL);
+            g.SetClip(0, 0, W, H);
+            g.ClipRect(x, H - _tileH, _tileW, _tileH);
+            g.DrawImage(_imgTiles, x + src % sheetW, H - _tileH + src / sheetW * _tileH, TL);
         }
     }
 
@@ -308,8 +296,8 @@ public sealed partial class Game
             int y = _lordY - _dy;
             int h = _imgLord.Height;
             g.SetClip(0, 0, W, H);
-            g.ClipRect(x, y - h, Layout.LordPoseW, h);
-            g.DrawImage(_imgLord, x -= Layout.LordFrameW * 2 + Layout.LordPoseW * _lordFrame, y, BL);
+            g.ClipRect(x, y - h, L.LordPoseW, h);
+            g.DrawImage(_imgLord, x -= L.LordFrameW * 2 + L.LordPoseW * _lordFrame, y, BL);
         }
         if (_birdFxX != -1)
         {
@@ -365,15 +353,15 @@ public sealed partial class Game
                 case 2:
                     {
                         int h = _imgLord.Height;
-                        g.SetClip(x, y - h, Layout.LordFrameW, h);
-                        g.DrawImage(_imgLord, x -= Layout.LordFrameW * c.Frame[i], y, BL);
+                        g.SetClip(x, y - h, L.LordFrameW, h);
+                        g.DrawImage(_imgLord, x -= L.LordFrameW * c.Frame[i], y, BL);
                         break;
                     }
                 case 3:
                     {
                         int h = _imgLord.Height;
-                        g.SetClip(x, y - h, Layout.LordPoseW, h);
-                        g.DrawImage(_imgLord, x -= Layout.LordFrameW * 2 + Layout.LordPoseW * c.Frame[i], y, BL);
+                        g.SetClip(x, y - h, L.LordPoseW, h);
+                        g.DrawImage(_imgLord, x -= L.LordFrameW * 2 + L.LordPoseW * c.Frame[i], y, BL);
                         break;
                     }
                 case 4:
@@ -438,9 +426,9 @@ public sealed partial class Game
         int tx = camX / _tileW, ty = camY / _tileH;
         int offX = camX % _tileW, offY = camY % _tileH;
         int ox = x - offX, oy = y - offY;
-        int rows = Layout.ViewTilesH;
+        int rows = L.ViewTilesH;
         if (ty + rows > h) rows = h - ty;
-        int cols = Layout.ViewTilesW;
+        int cols = L.ViewTilesW;
         if (tx + cols > w) cols = w - tx;
         int clipX = g.ClipX, clipY = g.ClipY, clipW = g.ClipWidth, clipH = g.ClipHeight;
         int sheetW = _imgTiles.Width;
@@ -453,7 +441,7 @@ public sealed partial class Game
             for (int i = 0; i < cols; i++)
             {
                 int tile = _map.Tiles[idx];
-                if (tile != 0)
+                if (tile != 0 || L.TileSky)
                 {
                     g.SetClip(clipX, clipY, clipW, clipH);
                     g.ClipRect(px, py, _tileW, _tileH);
@@ -472,7 +460,7 @@ public sealed partial class Game
     // ------------------------------------------------------------------ bonus minigame (original d.cfr_renamed_3(Graphics))
     private void DrawBonus(Canvas g)
     {
-        int W = Layout.ScreenW, H = Layout.ScreenH;
+        int W = L.ScreenW, H = L.ScreenH;
         if (_state == State.ModeMenu)
         {
             g.SetColor(255, 255, 255);
@@ -481,11 +469,11 @@ public sealed partial class Game
         }
         int gx = (W - _imgGrid.Width) / 2;
         int gy = (H - _imgGrid.Height) / 2 - 1;
-        DrawSky(g, _frame, _camX, 0, 0, W, H, 0, 0, W, H);
+        if (L.TileSky) DrawFlatSky(g, 0); else DrawSky(g, _frame, _camX, 0, 0, W, H, 0, 0, W, H);
         g.SetClip(0, 0, W, H);
         g.DrawImage(_imgGrid, gx, gy, TL);
         gx++; gy++;
-        int cw = Layout.CellW, ch = Layout.CellH;
+        int cw = L.CellW, ch = L.CellH;
         int idx = 0;
         for (int y = 0; y < 4; y++)
             for (int x = 0; x < 5; x++, idx++)
@@ -503,18 +491,18 @@ public sealed partial class Game
         }
         g.SetClip(0, 0, W, H);
         int leftY = BarLeft, rightY = BarRight;
-        g.DrawImage(_barLeft, Layout.LeftBarX, BarLeft, TL);
-        g.DrawImage(_barRight, Layout.RightBarX, BarRight, TL);
-        int px = Layout.LeftBarX - (_playerW - _barLeft.Width) / 2;
+        g.DrawImage(_barLeft, L.LeftBarX, BarLeft, TL);
+        g.DrawImage(_barRight, L.RightBarX, BarRight, TL);
+        int px = L.LeftBarX - (_playerW - _barLeft.Width) / 2;
         int ph = _imgPlayer.Height;
         g.ClipRect(px, (leftY += _py) - ph, _playerW, ph);
         g.DrawImage(_imgPlayer, px -= _playerW * _sprite, leftY, BL);
-        int lw = Layout.LordPoseW;
-        int lx = Layout.RightBarX - (lw - _barRight.Width) / 2 - 1;
+        int lw = L.LordPoseW;
+        int lx = L.RightBarX - (lw - _barRight.Width) / 2 - 1;
         int lh = _imgLord.Height;
         g.SetClip(0, 0, W, H);
         g.ClipRect(lx, (rightY += _lordY) - lh, lw, lh);
-        g.DrawImage(_imgLord, lx -= lw * _lordFrame + Layout.LordFrameW * 2, rightY, BL);
+        g.DrawImage(_imgLord, lx -= lw * _lordFrame + L.LordFrameW * 2, rightY, BL);
         if (_state == State.BonusAiMoving)
         {
             int x = _cpuX * cw + (W - _imgGrid.Width) / 2;
@@ -524,7 +512,7 @@ public sealed partial class Game
         }
         if (_gameOverTimer > 1500)
         {
-            int x = Layout.GameOverX, y = Layout.GameOverY;
+            int x = L.GameOverX, y = L.GameOverY;
             g.SetClip(x, y, _imgGameOver.Width, _imgGameOver.Height / 2);
             g.DrawImage(_imgGameOver, x, y, TL);
         }

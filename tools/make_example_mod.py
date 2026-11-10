@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds the "Blue Miki" example mod from YOUR copy of MikisWorld.jar.
 
-    python tools/make_example_mod.py [path/to/MikisWorld.jar] [mods-folder]
+    python tools/make_example_mod.py [path/to/MikisWorld_176x144.jar] [mods-folder]
 
 It takes Miki's sprite sheet (player.png) out of the JAR, swaps its red and blue channels and writes
     <mods-folder>/blue-miki/mod.json
@@ -22,7 +22,7 @@ from PIL import Image
 
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    jar = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "JAR", "MikisWorld.jar")
+    jar = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "JAR", "MikisWorld_176x144.jar")
     mods = sys.argv[2] if len(sys.argv) > 2 else os.path.join(root, "mods")
     out = os.path.join(mods, "blue-miki")
     os.makedirs(out, exist_ok=True)

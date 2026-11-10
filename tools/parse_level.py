@@ -38,7 +38,7 @@ def packed10(r):
     return count, v
 
 
-def parse(data, v2=False):
+def parse(data, v2=False, c2=False):
     """v2=True for MikisWorld2: the header has no 'exit cells' list (bi) between the gate cells and the coin total."""
     r = R(data)
     lv = {}
@@ -65,7 +65,7 @@ def parse(data, v2=False):
     # tile layer container (a.a(DataInputStream,0))
     start = r.p
     layers = r.i8()
-    if v2:
+    if v2 or c2:
         r.p += (layers - 1) * 2          # MW2: layer 0 follows immediately (extra layers would be skipped)
     else:
         offs = [r.i32() for _ in range(layers)]
@@ -85,7 +85,7 @@ def parse(data, v2=False):
 
 
 if __name__ == "__main__":
-    lv = parse(open(sys.argv[1], "rb").read(), v2="--v2" in sys.argv)
+    lv = parse(open(sys.argv[1], "rb").read(), v2="--v2" in sys.argv, c2="--c2" in sys.argv)
     m = lv["map"]
     print("map %dx%d bpp=%d layers=%d, unread bytes=%d" % (m["width"], m["height"], m["bpp"], m["layers"], lv["_bytes_left"]))
     print("platforms=%d subareas=%d coins(tile 6)=%d keys(7)=%d cages(15)=%d doors(12)=%d" % (

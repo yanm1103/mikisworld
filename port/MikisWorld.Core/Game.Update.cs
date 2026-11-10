@@ -11,7 +11,7 @@ public sealed partial class Game
         {
             placeCamera = false;
             _camMinY = 0;
-            _camMaxY = _map.Height * _tileH - Layout.ScreenH - 1;
+            _camMaxY = _map.Height * _tileH - L.ScreenH - 1;
             _area = (sbyte)n;
             _state = State.Cutscene;
             if (n == -1) _host.Play(Sfx.OnceUponATime);
@@ -20,7 +20,7 @@ public sealed partial class Game
         else if (n == 0)
         {
             _camMinY = 0;
-            _camMaxY = _mainBottomRow * _tileH - Layout.ScreenH - 1;
+            _camMaxY = _mainBottomRow * _tileH - L.ScreenH - 1;
             _px = _startMainX;
             _py = _startMainY;
             if (_savedPx != -1)
@@ -35,7 +35,7 @@ public sealed partial class Game
         else if (n == 1)
         {
             _camMinY = _mainBottomRow * _tileH;
-            _camMaxY = _subBottomRow * _tileH - Layout.ScreenH - 1;
+            _camMaxY = _subBottomRow * _tileH - L.ScreenH - 1;
             _px = _startFinalX;
             _py = _startFinalY;
             _finalTimer = 67000;
@@ -64,7 +64,7 @@ public sealed partial class Game
         else
         {
             _camMinY = n == 2 ? _subBottomRow * _tileH : _subAreaRows[n - 3] * _tileH;
-            _camMaxY = _subAreaRows[n - 2] * _tileH - Layout.ScreenH - 1;
+            _camMaxY = _subAreaRows[n - 2] * _tileH - L.ScreenH - 1;
             _savedPx = _px;
             _savedPy = _py;
             _px = _subAreaX[n - 2];
@@ -74,7 +74,7 @@ public sealed partial class Game
         if (placeCamera)
         {
             _camX = (_px >> 4) + _playerW / 2 - _outerX;
-            _camY = (_py >> 4) - Layout.ScreenH / 2;
+            _camY = (_py >> 4) - L.ScreenH / 2;
         }
         if (_camX < 0) _camX = 0;
         if (_camX > _camMaxX) _camX = _camMaxX;
@@ -135,9 +135,9 @@ public sealed partial class Game
             return;
         }
 
-        UpdateVisibleWindow(_camY - _tileH - ExtraView, _camY + Layout.ScreenH + _tileH + ExtraView);
+        UpdateVisibleWindow(_camY - _tileH - ExtraView, _camY + L.ScreenH + _tileH + ExtraView);
         int[] tiles = _map.Tiles;
-        int bottom = _camY + Layout.ScreenH + ExtraView;
+        int bottom = _camY + L.ScreenH + ExtraView;
         for (int i = _animFirst; i < _animTiles.Length && _animTiles[i + 1] * _tileH < bottom; i += 3)
         {
             short x = _animTiles[i], y = _animTiles[i + 1];
@@ -292,7 +292,7 @@ public sealed partial class Game
         {
             int px = (_px >> 4) + _playerW / 2;
             int py = (_py >> 4) - _playerH / 2;
-            UpdateCamera(px, py, _camX, _camY, Layout.ScreenW, Layout.ScreenH);
+            UpdateCamera(px, py, _camX, _camY, L.ScreenW, L.ScreenH);
         }
         if (_state == State.Cutscene || _state == State.Ending)
         {

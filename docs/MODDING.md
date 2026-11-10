@@ -5,7 +5,7 @@
 The goal: Miki of game 1 with different colours. It takes five minutes.
 
 1. **Make the folder.** Create `mods/blue-miki/` next to the executable (when running from the repository with `play.bat`, use the `mods/` folder at the root of the repository: `play.bat` looks there too).
-2. **Get the picture to change.** Miki's frames are in `player.png`, inside `JAR/MikisWorld.jar` (a JAR is a ZIP: open it with any archiver and take the file out). Copy it into `mods/blue-miki/`.
+2. **Get the picture to change.** Miki's frames are in `player.png`, inside `JAR/MikisWorld_176x144.jar` (a JAR is a ZIP: open it with any archiver and take the file out). Copy it into `mods/blue-miki/`.
 3. **Edit it** in any image editor, **keeping the size** (128x23: eight frames of 16 px). Keep the transparent background transparent.
 4. **Say what it is.** Create `mods/blue-miki/mod.json`:
 
@@ -69,7 +69,7 @@ Run with `--logs` to see what the game thinks of each mod. **Options → Mods** 
 
 ## What can be replaced
 
-Every file of the original JARs can be replaced by a file with the same name. Sizes of pictures must stay the same unless the table says otherwise.
+Every file of the original JARs can be replaced by a file with the same name. Sizes of pictures must stay the same unless the table says otherwise. The table gives the sizes of the usual pair (game 1 at 176x144, game 2 at 128x128); the other screen-size builds (game 1 at 128x128, game 2 at 176x144) use the sizes of the other game's column, with the `sky.png`/`clouds.png` and `symbols.png` rows following the screen size (a 176x144 build has `sky.png` and `clouds.png` and transparent tiles; a 128x128 build has none and paints the sky into tile 0), so a mod is made for one build.
 
 | File | Game 1 | Game 2 | What it is |
 |---|---|---|---|

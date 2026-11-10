@@ -63,15 +63,15 @@ public sealed partial class Game
         _finalLordX = (short)(r.ReadShort() * _scaleX / 16);
         _finalLordY = (short)(r.ReadShort() * _scaleY / 16);
 
-        _map.LoadLayer(r, 0);
+        if (L.TileSky) _map.LoadLayerV2(r); else _map.LoadLayer(r, 0);   // the 128x128 build uses the simpler container (as game 2)
         _collision.Setup(_map.Tiles, _map.Width, _map.Height, _tileW, _tileH, _tileFlags);
         _scrollLockX = false;
         _scrollLockY = false;
-        _outerX = Layout.ScreenW / 2 - 2;
-        _outerY = Layout.ScreenW / 2 - 2;    // sic: derived from the screen *width* in the original
-        _innerX = Layout.ScreenW / 2 - 2;
-        _innerY = Layout.ScreenH / 2 - 2;
-        _camMaxX = _map.Width * _tileW - Layout.ScreenW;
+        _outerX = L.ScreenW / 2 - 2;
+        _outerY = L.ScreenW / 2 - 2;    // sic: derived from the screen *width* in the original
+        _innerX = L.ScreenW / 2 - 2;
+        _innerY = L.ScreenH / 2 - 2;
+        _camMaxX = _map.Width * _tileW - L.ScreenW;
         if (_camMaxX < 0) _camMaxX = 0;
         _collision.SetShift(4);
 
@@ -82,7 +82,7 @@ public sealed partial class Game
         EnterArea(0);
         _birdFxX = -1;
         _birdFxY = -1;
-        UpdateVisibleWindow(_camY, _camY + Layout.ScreenH + _tileH);
+        UpdateVisibleWindow(_camY, _camY + L.ScreenH + _tileH);
         _accum = 40;
     }
 

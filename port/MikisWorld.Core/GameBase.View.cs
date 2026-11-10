@@ -1,4 +1,4 @@
-namespace MikisWorld.Core;
+﻿namespace MikisWorld.Core;
 
 /// <summary>The "Extended" view: the picture the frontend asks for can be larger than the original screen (176x144 / 128x128).
 /// The game logic keeps working with the original screen: the camera, its dead zones and everything validated against the original
@@ -119,4 +119,46 @@ public abstract partial class GameBase
 
     /// <summary>Game 2 paints its sky as tile 0; game 1 has a separate sky and tile 0 is empty.</summary>
     protected virtual bool DrawsTileZero => false;
+
+    // ---------------------------------------------------------------- the parallax sky of the 176x144 builds
+    protected Bitmap _imgSky, _imgClouds;
+
+    /// <summary>The sky anchored at (ox, oy) of a W x H picture (the original screen's top-left), painted only inside the clip rectangle (cx, cy, cw, ch).
+    /// Above and below the original sky strip a flat colour continues it.</summary>
+    protected void DrawSky(Canvas g, int frame, int camX, int ox, int oy, int W, int H, int cx, int cy, int cw, int ch)
+    {
+        int skyW = _imgSky.Width, skyH = _imgSky.Height;
+        bool wide = ox != 0 || oy != 0 || W != L.ScreenW || H != L.ScreenH;
+        if (wide)
+        {
+            int top = _imgSky.Pixels[0], bottom = _imgSky.Pixels[(skyH - 1) * skyW];
+            g.SetClip(cx, cy, cw, ch);
+            g.SetColor(top >> 16, top >> 8, top);
+            g.FillRect(0, 0, W, oy);
+            g.SetColor(bottom >> 16, bottom >> 8, bottom);
+            g.FillRect(0, oy + skyH, W, H - oy - skyH);
+        }
+        g.SetClip(cx, cy, cw, ch);
+        int x = ox + -(frame / 32) % skyW;                         // (the original's arithmetic: with a negative frame the strip starts right of 0)
+        if (wide) while (x > 0) x -= skyW;
+        for (; x < W; x += skyW) g.DrawImage(_imgSky, x, oy, TL);
+        int y = 99 + oy;
+        x = ox + -(frame / 25 + camX / 4) % 38;
+        if (wide) while (x > 0) x -= 38;
+        for (; x < W; x += 38)
+        {
+            g.SetClip(cx, cy, cw, ch);
+            g.ClipRect(x, y, 38, 27);
+            g.DrawImage(_imgClouds, x, y, TL);
+        }
+        y = 114 + oy;
+        x = ox + -(frame / 5 + camX / 2) % 45;
+        if (wide) while (x > 0) x -= 45;
+        for (; x < W; x += 45)
+        {
+            g.SetClip(cx, cy, cw, ch);
+            g.ClipRect(x, y, 45, 30);
+            g.DrawImage(_imgClouds, x, y - 27, TL);
+        }
+    }
 }

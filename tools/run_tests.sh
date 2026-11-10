@@ -33,6 +33,15 @@ step "$EXE" ott "$ROOT/extracted/MikisWorld2" "$ROOT/traces" mw2_
 echo "== cutscene bubbles do not leak between cutscenes"
 step "$EXE" cutscene "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 
+echo "== state traces of the other screen-size builds (game 1 at 128x128, game 2 at 176x144)"
+if ls "$ROOT"/traces/g1s_*.trace >/dev/null 2>&1; then step "$ROOT/tools/run_traces_variants.sh"; else echo "(skipped: run tools/record_traces_variants.sh)"; fi
+
+echo "== other screen-size builds (game 1 at 128x128, game 2 at 176x144): load, play, bonus, extended view"
+if [ -d "$ROOT/extracted/MikisWorld_128x128" ]; then
+  step "$EXE" variant "$ROOT/extracted/MikisWorld_128x128" 1 "$ROOT/traces/_shots/v1_128"
+  step "$EXE" variant "$ROOT/extracted/MikisWorld2_176x144" 2 "$ROOT/traces/_shots/v2_176"
+else echo "(skipped: extract the other builds into extracted/MikisWorld_128x128 and extracted/MikisWorld2_176x144)"; fi
+
 echo "== application flow"
 step "$EXE" apptest "$ROOT/extracted/MikisWorld" "$ROOT/extracted/MikisWorld2"
 

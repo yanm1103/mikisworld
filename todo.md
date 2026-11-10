@@ -6,6 +6,7 @@
 4. ~~Gaiolas de pássaros e moedas não possuem hitbox visível no modo hitboxes on.~~ (feito: moedas, chaves e gaiolas/arco-íris têm caixa amarelo-clara)
 5. ~~A opção logs não faz nada no menu de debug.~~ (removida do menu F3; os logs continuam com `--logs`)
 6. ~~Não existe hoje uma opção nas telas de rebind de "Voltar os controles para o padrão"~~ (feito: a linha já existia mas se chamava "Defaults" e era discreta; agora é "Reset to defaults", em rosa, com aviso "Defaults restored"; a dica não corta mais no jogo 2)
+7. ~~Existem outras resoluções dos dois jogos. A lógica dos sprites nessas resoluções é errado, e no caso do primeiro jogo, o skybox aparentemente nem existe. (...)~~ (feito: o layout agora é escolhido pelo tamanho do `title.png` do JAR: jogo 1 em 128x128 (sem sky.png, céu no tile 0, `level.bin` com o contêiner simples) e jogo 2 em 176x144 (sky.png/clouds.png, tiles transparentes) rodam e foram conferidos nos quadros, no minigame, na visão estendida e no executável; os builds originais seguem idênticos nos traces/quadros. Lógica validada tick a tick: 37/37 traces idênticos aos do original nos dois builds (`tools/record_traces_variants.sh` / `run_traces_variants.sh`; o jogo 1 em 128x128 usa a classe de colisão do jogo 2). **Falta**: quadros de referência (comparação pixel a pixel do desenho) desses dois builds; por ora o desenho só foi conferido a olho)
 
 # Coisas a serem adicionadas de imediato
 
@@ -24,4 +25,8 @@
 
 # Suporte aos mods
 
-Para depois das correções acima...
+Feito.
+
+# Passo adicional
+
+Fazer uma versão que rode no navegador.

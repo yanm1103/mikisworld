@@ -48,9 +48,9 @@ public sealed partial class Game2
             return;
         }
 
-        UpdateVisibleWindow(_camY - _tileH - ExtraView, _camY + Layout2.ScreenH + _tileH + ExtraView);
+        UpdateVisibleWindow(_camY - _tileH - ExtraView, _camY + L.ScreenH + _tileH + ExtraView);
         int[] tiles = _map.Tiles;
-        int bottom = _camY + Layout2.ScreenH + ExtraView;
+        int bottom = _camY + L.ScreenH + ExtraView;
         for (int i = _animFirst; i < _animTiles.Length && _animTiles[i + 1] * _tileH < bottom; i += 3)
         {
             short x = _animTiles[i], y = _animTiles[i + 1];
@@ -216,7 +216,7 @@ public sealed partial class Game2
         {
             int px = (_px >> 4) + _playerW / 2;
             int py = (_py >> 4) - _playerH / 2;
-            UpdateCamera(px, py, _camX, _camY, Layout2.ScreenW, Layout2.ScreenH);
+            UpdateCamera(px, py, _camX, _camY, L.ScreenW, L.ScreenH);
         }
         if (_state == State.Cutscene || _state == State.Ending)
         {

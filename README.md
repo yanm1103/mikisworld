@@ -24,7 +24,9 @@ https://github.com/user-attachments/assets/98dbf750-d512-474f-810e-0ac2f8cb6636
 
 1. Download `MikisWorldCollection.exe` from the Releases tab (recommended).  
 (or build it yourself: follow the technical instructions at the end of this readme)
-2. Put `MikisWorld.jar` and `MikisWorld2.jar` in a folder called **`JAR`** next to the exe. **Both** are required; if one is missing, the game tells you which.
+2. Put the game files in a folder called **`JAR`** next to the exe. Each game exists in two screen-size builds, named by resolution:
+   `MikisWorld_176x144.jar` and `MikisWorld_128x128.jar` (game 1), `MikisWorld2_176x144.jar` and `MikisWorld2_128x128.jar` (game 2).
+   You need **at least one build of each game** (if one game is missing, the game tells you); with both, pick in *Options > Resolution* (176x144 is the default and recommended; if the chosen build is missing, the other is used). The old names `MikisWorld.jar` (= 176x144) and `MikisWorld2.jar` (= 128x128) still work. The picture, HUD and sky follow the build's size.
 3. Open the executable and enjoy.
 
 ## Default controls
@@ -158,7 +160,7 @@ If you hit an error, please let us know!
 
 > This table is updated **on every commit**. Percentages are effort estimates, not lines of code.
 > Weights: decompilation 10 · logic 30 · rendering 20 · window/input 10 · menus/saves 15 · audio 15.
-> Current version: **1.2.0** (see the [CHANGELOG](CHANGELOG.md)). Reference milestone of the base: tag `base-1.0`.
+> Current version: **1.3.0** (see the [CHANGELOG](CHANGELOG.md)). Reference milestone of the base: tag `base-1.0`.
 
 #### MikisWorld.jar (Miki's World 1: The Lost Tiara)
 
@@ -239,7 +241,7 @@ dotnet run --project port/MikisWorld.Game -- [--game 1|2] [--scale N] [--octave 
 ```
 
 **Executable.** `tools\publish.bat` produces `dist\MikisWorldCollection.exe`: a single file (~35 MB), self-contained (no need to install .NET); `dist/` is not versioned.
-The JARs are not included: put `MikisWorld.jar` and `MikisWorld2.jar` in a `JAR` folder next to the exe. It is a windowed program (it does not open a console).
+The JARs are not included: put the game JARs (see the installation steps) in a `JAR` folder next to the exe. It is a windowed program (it does not open a console).
 
 **Logs.** Only with `--logs`: raylib's log and the program's own (JARs used, configuration paths, start and end of each game). Opened from Explorer, `--logs` opens a
 console window; in a terminal, it writes to it. Without `--logs` nothing is printed; crashes go to the error screen and to `crash.log`.
@@ -281,7 +283,7 @@ Not versioned (see `.gitignore`): `extracted/`, `decompiled/`, `traces/`, `sons/
 
 ### Reproducing the validation environment
 
-1. `jar xf JAR/MikisWorld.jar` into `extracted/MikisWorld/` and `jar xf JAR/MikisWorld2.jar` into `extracted/MikisWorld2/`.
+1. `jar xf JAR/MikisWorld_176x144.jar` into `extracted/MikisWorld/`, `jar xf JAR/MikisWorld2_128x128.jar` into `extracted/MikisWorld2/`, `JAR/MikisWorld_128x128.jar` into `extracted/MikisWorld_128x128/` and `JAR/MikisWorld2_176x144.jar` into `extracted/MikisWorld2_176x144/`.
 2. Portable .NET 8 SDK: `dotnet-install.ps1 -Channel 8.0 -InstallDir tools/dotnet`.
 3. (Optional) Decompiler: CFR 0.152 → `tools/cfr.jar`, from `repo1.maven.org/maven2/org/benf/cfr/0.152/`.
 4. References, from the original JARs (JDK 11+ and Python):

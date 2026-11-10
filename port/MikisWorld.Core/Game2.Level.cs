@@ -100,11 +100,11 @@ public sealed partial class Game2
         _collision.Setup(_map.Tiles, _map.Width, _map.Height, _tileW, _tileH, _tileFlags);
         _scrollLockX = false;
         _scrollLockY = false;
-        _outerX = Layout2.ScreenW / 2 - 2;
-        _outerY = Layout2.ScreenW / 2 - 2;      // sic: derived from the width, as in the first game
-        _innerX = Layout2.ScreenW / 2 - 2;
-        _innerY = Layout2.ScreenH / 2 - 2;
-        _camMaxX = _map.Width * _tileW - Layout2.ScreenW;
+        _outerX = L.ScreenW / 2 - 2;
+        _outerY = L.ScreenW / 2 - 2;      // sic: derived from the width, as in the first game
+        _innerX = L.ScreenW / 2 - 2;
+        _innerY = L.ScreenH / 2 - 2;
+        _camMaxX = _map.Width * _tileW - L.ScreenW;
         if (_camMaxX < 0) _camMaxX = 0;
         _collision.SetShift(4);
 
@@ -113,7 +113,7 @@ public sealed partial class Game2
         _savedPx = -1;
         _savedPy = -1;
         EnterArea(0);
-        UpdateVisibleWindow(_camY, _camY + Layout2.ScreenH + _tileH);
+        UpdateVisibleWindow(_camY, _camY + L.ScreenH + _tileH);
         _accum = 40;
     }
 
@@ -125,7 +125,7 @@ public sealed partial class Game2
         {
             placeCamera = false;
             _camMinY = 0;
-            _camMaxY = _map.Height * _tileH - Layout2.ScreenH - 1;
+            _camMaxY = _map.Height * _tileH - L.ScreenH - 1;
             _area = (sbyte)n;
             _state = State.Cutscene;
             if (n == -1) _host.Play(Sfx.OnceUponATime);
@@ -134,7 +134,7 @@ public sealed partial class Game2
         else if (n == 0)
         {
             _camMinY = 0;
-            _camMaxY = _mainBottomRow * _tileH - Layout2.ScreenH - 1;
+            _camMaxY = _mainBottomRow * _tileH - L.ScreenH - 1;
             _px = _startMainX;
             _py = _startMainY;
             if (_savedPx != -1)
@@ -149,7 +149,7 @@ public sealed partial class Game2
         else if (n == 1)
         {
             _camMinY = _mainBottomRow * _tileH;
-            _camMaxY = _subBottomRow * _tileH - Layout2.ScreenH - 1;
+            _camMaxY = _subBottomRow * _tileH - L.ScreenH - 1;
             _px = _startFinalX;
             _py = _startFinalY;
             _finalTimer = 67000;
@@ -173,7 +173,7 @@ public sealed partial class Game2
         else
         {
             _camMinY = n == 2 ? _subBottomRow * _tileH : _subAreaRows[n - 3] * _tileH;
-            _camMaxY = _subAreaRows[n - 2] * _tileH - Layout2.ScreenH - 1;
+            _camMaxY = _subAreaRows[n - 2] * _tileH - L.ScreenH - 1;
             _savedPx = _px;
             _savedPy = _py;
             _px = _subAreaX[n - 2];
@@ -183,7 +183,7 @@ public sealed partial class Game2
         if (placeCamera)
         {
             _camX = (_px >> 4) + _playerW / 2 - _outerX;
-            _camY = (_py >> 4) - Layout2.ScreenH / 2;
+            _camY = (_py >> 4) - L.ScreenH / 2;
         }
         if (_camX < 0) _camX = 0;
         if (_camX > _camMaxX) _camX = _camMaxX;

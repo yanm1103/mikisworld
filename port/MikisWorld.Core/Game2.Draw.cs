@@ -1,4 +1,4 @@
-namespace MikisWorld.Core;
+﻿namespace MikisWorld.Core;
 
 /// <summary>Rendering of MikisWorld 2 (original c.a(Graphics) and helpers, d.a(Graphics), i.R4(...)). Text is emitted as
 /// <see cref="TextCommand"/>s. Frames are validated pixel-for-pixel against the original (text excluded).</summary>
@@ -20,9 +20,14 @@ public sealed partial class Game2
         {
             // original f.a(Image,...): every tile starts as an opaque white 12x12 image and the sheet is drawn at a
             // (possibly negative) offset, so transparent sheet pixels come out white.
-            _tileImages[i] = new Bitmap(_tileW, _tileH);
+            _tileImages[i] = L.TileSky ? new Bitmap(_tileW, _tileH) : new Bitmap(_tileW, _tileH, new int[_tileW * _tileH]);   // the 176x144 build's tiles are transparent (the sky is a picture)
             new Canvas(_tileImages[i]).DrawImage(sheet, n % sheet.Width, n / sheet.Width * _tileH, TL);
             n -= _tileW;
+        }
+        if (!L.TileSky)
+        {
+            _imgSky = _assets.LoadBitmap("sky.png");
+            _imgClouds = _assets.LoadBitmap("clouds.png");
         }
         _imgNumbers = _assets.LoadBitmap("numbers.png");
         _imgTime = _assets.LoadBitmap("time.png");
@@ -37,22 +42,22 @@ public sealed partial class Game2
         _imgCursor = _assets.LoadBitmap("cursor.png");
         _snapshot = new Bitmap(12, 12);          // sic: the original allocates the wipe snapshot as a 12x12 image
         _cache = new TileCache2();
-        _cache.Setup(_tileImages, Layout2.ViewTilesW, Layout2.ViewTilesH);
+        _cache.Setup(_tileImages, L.ViewTilesW, L.ViewTilesH);
 
-        _barLeft = new Bitmap(Layout2.BarW, Layout2.ScreenH);
-        _barRight = new Bitmap(Layout2.BarW, Layout2.ScreenH);
-        int off = Layout2.OrbW * 2;
+        _barLeft = new Bitmap(L.BarW, L.ScreenH);
+        _barRight = new Bitmap(L.BarW, L.ScreenH);
+        int off = L.OrbW * 2;
         var gl = new Canvas(_barLeft);
-        for (int y = 0; y < _barLeft.Height; y += Layout2.BarStripH)
+        for (int y = 0; y < _barLeft.Height; y += L.BarStripH)
         {
-            gl.SetClip(0, y, Layout2.BarW, Layout2.BarStripH);
+            gl.SetClip(0, y, L.BarW, L.BarStripH);
             gl.DrawImage(_imgBonus, -off, y, TL);
         }
-        off += Layout2.BarW;
+        off += L.BarW;
         var gr = new Canvas(_barRight);
-        for (int y = 0; y < _barRight.Height; y += Layout2.BarStripH)
+        for (int y = 0; y < _barRight.Height; y += L.BarStripH)
         {
-            gr.SetClip(0, y, Layout2.BarW, Layout2.BarStripH);
+            gr.SetClip(0, y, L.BarW, L.BarStripH);
             gr.DrawImage(_imgBonus, -off, y, TL);
         }
         _render = true;
@@ -68,7 +73,7 @@ public sealed partial class Game2
     /// <summary>The "Mork is after you" warning is driven by a clock that only runs in the world: skipping ahead from under it would leave it on for good.</summary>
     protected override void OnSkipLevel() => _markCooldown = 6000;
 
-    protected override bool DrawsTileZero => true;          // tile 0 is this game's sky
+    protected override bool DrawsTileZero => L.TileSky;          // tile 0 is this game's sky
 
     protected override void DrawTile(Canvas g, int tile, int px, int py) => g.DrawImage(_tileImages[tile], px, py, TL);
 
@@ -91,7 +96,7 @@ public sealed partial class Game2
         _repaint = false;
         if (WideView && !DrawsWorld)
         {
-            int vw = ViewWidth, vh = ViewHeight, ox = (vw - Layout2.ScreenW) / 2, oy = (vh - Layout2.ScreenH) / 2;
+            int vw = ViewWidth, vh = ViewHeight, ox = (vw - L.ScreenW) / 2, oy = (vh - L.ScreenH) / 2;
             g.SetClip(0, 0, vw, vh);
             g.SetColor(0, 0, 0);
             g.FillRect(0, 0, vw, vh);
@@ -131,7 +136,8 @@ public sealed partial class Game2
     /// <summary>Menu background: the minigame's flat sky with a row of clouds (this game has no parallax sky image).</summary>
     public void DrawBackdrop(Canvas g, int frame)
     {
-        int W = Layout2.ScreenW, H = Layout2.ScreenH;
+        int W = L.ScreenW, H = L.ScreenH;
+        if (!L.TileSky) { DrawSky(g, frame, 0, 0, 0, W, H, 0, 0, W, H); return; }
         g.SetClip(0, 0, W, H);
         g.SetColor(60, 179, 210);
         g.FillRect(0, 0, W, H);
@@ -143,7 +149,7 @@ public sealed partial class Game2
     {
         PrepareDraw(DrawsWorld);
         int W = _vw, H = _vh;
-        int ex = W - Layout2.ScreenW, ey = H - Layout2.ScreenH;       // how much bigger than the original screen (0 unless the view is wide)
+        int ex = W - L.ScreenW, ey = H - L.ScreenH;       // how much bigger than the original screen (0 unless the view is wide)
         g.SetClip(0, 0, W, H);
         g.SetClip(0, 0, W, H);
         int shift = (176 - W) / 2;
@@ -152,8 +158,11 @@ public sealed partial class Game2
         {
             g.SetColor(0, 0, 0);
             g.FillRect(0, 0, W, H);                                     // outside the map and the area: black
+            if (!L.TileSky) DrawSky(g, _frame, _camX, _sx, _sy, W, H, _wx, _wy, _ww, _wh);
+            g.SetClip(0, 0, W, H);
             DrawTileLayerWide(g);
         }
+        else if (!L.TileSky) { DrawSky(g, _frame, _camX, 0, 0, W, H, 0, 0, W, H); g.SetClip(0, 0, W, H); DrawTileLayerWide(g); }   // transparent tiles cannot go through the ring cache
         else _cache.Draw(g, 0, 0, W, H, _camX, _camY);
         if (ex != 0 || ey != 0) g.SetClip(_wx, _wy, _ww, _wh);        // a platform that sticks out of the map is cut at its edge
         for (int i = _visFirst; i < _visFirst + _visCount; i++)
@@ -199,7 +208,7 @@ public sealed partial class Game2
         if (_state != State.Unknown7 && _area >= 0)
         {
             g.SetClip(0, 0, W, H);
-            int x = Layout2.LivesX + _hr, y = Layout2.LivesY + _hb;
+            int x = L.LivesX + _hr, y = L.LivesY + _hb;
             for (int i = 0; i < _lives; i++)
             {
                 g.SetClip(x, y, _tileW, _tileH);
@@ -218,18 +227,18 @@ public sealed partial class Game2
                 if (_finalTimer < 60000 || _finalTimer / 500 % 2 == 0)
                 {
                     g.SetClip(0, 0, W, H);
-                    int bx = Layout2.CoinHudX + _hl;
-                    int by = Layout2.CoinHudY - 2 + _hb;
+                    int bx = L.CoinHudX + _hl;
+                    int by = L.CoinHudY - 2 + _hb;
                     g.DrawImage(_tileImages[Tile2.RainbowL], bx, by, TL);
                     g.DrawImage(_tileImages[Tile2.RainbowR], bx + _tileW, by, TL);
-                    DrawCounter(g, (bx += _tileW) + 3, by += (_tileH - _imgNumbers.Height) / 2, _imgNumbers, Layout2.DigitW, 2, 10 - _finalRainbows, false);
+                    DrawCounter(g, (bx += _tileW) + 3, by += (_tileH - _imgNumbers.Height) / 2, _imgNumbers, L.DigitW, 2, 10 - _finalRainbows, false);
                 }
                 if (_finalTimer > 10000 || _frame / 15 % 2 == 0)
                 {
                     int secs = _finalTimer / 1000;
                     if (secs > 60) secs = 60;
                     g.SetClip(0, 0, W, H);
-                    DrawCounter(g, Layout2.TimeHudX + _hr, Layout2.TimeHudY + _ht, _imgTime, Layout2.TimeDigitW, 2, secs, false);
+                    DrawCounter(g, L.TimeHudX + _hr, L.TimeHudY + _ht, _imgTime, L.TimeDigitW, 2, secs, false);
                 }
             }
             else
@@ -237,7 +246,7 @@ public sealed partial class Game2
                 g.SetClip(0, 0, W, H);
                 int left = _totalCoins - _coins;
                 if (left < 0) left = 0;
-                DrawCounter(g, Layout2.CoinHudX + _hl, Layout2.CoinHudY + _hb, _imgNumbers, Layout2.DigitW, 4, left, true);
+                DrawCounter(g, L.CoinHudX + _hl, L.CoinHudY + _hb, _imgNumbers, L.DigitW, 4, left, true);
             }
         }
         if (_state == State.Cutscene || _state == State.Ending)
@@ -281,17 +290,17 @@ public sealed partial class Game2
             int y = _lordY - _dy;
             int h = _imgLord.Height;
             g.SetClip(0, 0, W, H);
-            g.ClipRect(x, y - h + 1, Layout2.LordFrameW, h);
-            g.DrawImage(_imgLord, x -= Layout2.LordFrameW * _lordFrame, y, BL);
+            g.ClipRect(x, y - h + 1, L.LordFrameW, h);
+            g.DrawImage(_imgLord, x -= L.LordFrameW * _lordFrame, y, BL);
         }
-        if ((_morkY >> 4) - _tileH * Layout2.ViewTilesH - _imgLord.Height < _dy + (_vh - Layout2.ScreenH))
+        if ((_morkY >> 4) - _tileH * L.ViewTilesH - _imgLord.Height < _dy + (_vh - L.ScreenH))
         {
             int x = (_morkX >> 4) - _dx;
             int y = (_morkY >> 4) - _dy;
             int h = _imgLord.Height;
             g.SetClip(0, 0, W, H);
-            g.ClipRect(x, y - h + 1, Layout2.LordPoseW, h);
-            g.DrawImage(_imgLord, x -= Layout2.LordFrameW * 2 + Layout2.LordPoseW * _morkFrame, y, BL);
+            g.ClipRect(x, y - h + 1, L.LordPoseW, h);
+            g.DrawImage(_imgLord, x -= L.LordFrameW * 2 + L.LordPoseW * _morkFrame, y, BL);
         }
         for (int i = 0; i < 4; i++)
         {
@@ -349,15 +358,15 @@ public sealed partial class Game2
                 case 2:
                     {
                         int h = _imgLord.Height;
-                        g.SetClip(x, y - h + 1, Layout2.LordFrameW, h);
-                        g.DrawImage(_imgLord, x -= Layout2.LordFrameW * c.Frame[i], y, BL);
+                        g.SetClip(x, y - h + 1, L.LordFrameW, h);
+                        g.DrawImage(_imgLord, x -= L.LordFrameW * c.Frame[i], y, BL);
                         break;
                     }
                 case 3:
                     {
                         int h = _imgLord.Height;
-                        g.SetClip(x, y - h + 1, Layout2.LordPoseW, h);
-                        g.DrawImage(_imgLord, x -= Layout2.LordFrameW * 2 + Layout2.LordPoseW * c.Frame[i], y, BL);
+                        g.SetClip(x, y - h + 1, L.LordPoseW, h);
+                        g.DrawImage(_imgLord, x -= L.LordFrameW * 2 + L.LordPoseW * c.Frame[i], y, BL);
                         break;
                     }
                 case 4:
@@ -437,7 +446,7 @@ public sealed partial class Game2
     // ------------------------------------------------------------------ bonus minigame (original c.R4(Graphics))
     private void DrawBonus(Canvas g)
     {
-        int W = Layout2.ScreenW, H = Layout2.ScreenH;
+        int W = L.ScreenW, H = L.ScreenH;
         if (_state == State.ModeMenu)
         {
             g.SetColor(255, 255, 255);
@@ -447,14 +456,18 @@ public sealed partial class Game2
         int gx = (W - _imgGrid.Width) / 2;
         int gy = (H - _imgGrid.Height) / 2 - 1;
         g.SetClip(0, 0, W, H);
-        g.SetColor(60, 179, 210);
-        g.FillRect(0, 0, W, H);
-        for (int x = 0; x < W; x += _tileW)
-            g.DrawImage(_tileImages[Tile2.Cloud], x, H - 1, BL);
+        if (L.TileSky)
+        {
+            g.SetColor(60, 179, 210);
+            g.FillRect(0, 0, W, H);
+            for (int x = 0; x < W; x += _tileW)
+                g.DrawImage(_tileImages[Tile2.Cloud], x, H - 1, BL);
+        }
+        else DrawSky(g, _frame, _camX, 0, 0, W, H, 0, 0, W, H);
         g.SetClip(0, 0, W, H);
         g.DrawImage(_imgGrid, gx, gy, TL);
         gx++; gy++;
-        int cw = Layout2.CellW, ch = Layout2.CellH;
+        int cw = L.CellW, ch = L.CellH;
         int idx = 0;
         for (int y = 0; y < 4; y++)
             for (int x = 0; x < 5; x++, idx++)
@@ -475,14 +488,14 @@ public sealed partial class Game2
         }
         g.SetClip(0, 0, W, H);
         int leftY = BarLeft, rightY = BarRight;
-        g.DrawImage(_barLeft, Layout2.LeftBarX, BarLeft, TL);
-        g.DrawImage(_barRight, Layout2.RightBarX, BarRight, TL);
-        int px = Layout2.LeftBarX - (_playerW - _barLeft.Width) / 2;
+        g.DrawImage(_barLeft, L.LeftBarX, BarLeft, TL);
+        g.DrawImage(_barRight, L.RightBarX, BarRight, TL);
+        int px = L.LeftBarX - (_playerW - _barLeft.Width) / 2;
         int ph = _imgPlayer.Height;
         g.ClipRect(px, (leftY += _py) - ph, _playerW, ph);
         g.DrawImage(_imgPlayer, px -= _playerW * _sprite, leftY, BL);
-        int lw = Layout2.LordFrameW;
-        int lx = Layout2.RightBarX - (lw - _barRight.Width) / 2 - 1;
+        int lw = L.LordFrameW;
+        int lx = L.RightBarX - (lw - _barRight.Width) / 2 - 1;
         int lh = _imgLord.Height;
         g.SetClip(0, 0, W, H);
         g.ClipRect(lx, (rightY += _lordY) - lh, lw, lh);
